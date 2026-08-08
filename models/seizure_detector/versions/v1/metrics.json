@@ -1,0 +1,9 @@
+﻿{
+  "accuracy": null,
+  "sensitivity": null,
+  "specificity": null,
+  "f1": null,
+  "auroc": null,
+  "false_alarms_per_hour": null,
+  "note": "Placeholder metrics. Populated after the training pipeline produces a validated artifact."
+}

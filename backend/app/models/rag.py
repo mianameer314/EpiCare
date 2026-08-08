@@ -4,6 +4,7 @@ RAG models — ingested documents and their embedding chunks (pgvector).
 from datetime import datetime
 from typing import TYPE_CHECKING
 
+from pgvector.sqlalchemy import Vector
 from sqlalchemy import DateTime, ForeignKey, Integer, String, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -38,7 +39,7 @@ class RagChunk(Base):
     )
     chunk_index: Mapped[int] = mapped_column(Integer, nullable=False)
     content: Mapped[str] = mapped_column(nullable=False)  # mapped to Text implicitly
-    embedding: Mapped[list | None] = mapped_column(nullable=True)  # vector(1536) via migration
+    embedding: Mapped[list | None] = mapped_column(Vector(1536), nullable=True)
     metadata: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False

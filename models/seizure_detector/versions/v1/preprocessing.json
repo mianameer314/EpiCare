@@ -1,0 +1,15 @@
+﻿{
+  "sampling_rate": 256,
+  "window_seconds": 10,
+  "window_samples": 2560,
+  "bandpass": {"low": 0.5, "high": 40.0, "order": 4},
+  "notch": {"freq": 50.0, "quality": 30.0},
+  "normalization": "zscore_per_channel",
+  "stft": {"nperseg": 256, "noverlap": 128, "fmin": 0.5, "fmax": 40.0},
+  "channels": [
+    "Fp1", "Fp2", "F7", "F3", "Fz", "F4", "F8",
+    "T7", "C3", "Cz", "C4", "T8",
+    "P7", "P3", "Pz", "P4", "P8",
+    "O1", "O2"
+  ]
+}

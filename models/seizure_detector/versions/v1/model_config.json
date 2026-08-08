@@ -1,0 +1,18 @@
+﻿{
+  "name": "EpiCareFusion",
+  "version": "v1",
+  "input_names": ["raw_eeg", "spectrogram"],
+  "output_names": ["seizure_probability"],
+  "input_shapes": {
+    "raw_eeg": [1, 19, 2560],
+    "spectrogram": [1, 19, 129, 19]
+  },
+  "output_shapes": {
+    "seizure_probability": [1, 1]
+  },
+  "threshold": 0.5,
+  "aggregation": "consecutive_min_2",
+  "sampling_rate": 256,
+  "window_seconds": 10,
+  "classes": ["no_seizure", "seizure"]
+}

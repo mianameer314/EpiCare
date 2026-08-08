@@ -2,6 +2,7 @@
 Lifestyle models — sleep, trigger, and stress logging.
 """
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship

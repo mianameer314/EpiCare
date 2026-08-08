@@ -49,4 +49,10 @@ class Prediction(Base):
 
     session: Mapped["EegSession"] = relationship(back_populates="prediction")
     report: Mapped["AiReport | None"] = relationship(back_populates="prediction", uselist=False)
-    model_version: Mapped["ModelVersion | None"] = relationship()
+    model_version_ref: Mapped["ModelVersion | None"] = relationship()
+
+    @property
+    def model_version(self) -> str | None:
+        """Expose the model version string for API serialization."""
+        ref = self.model_version_ref
+        return ref.version if ref is not None else None
