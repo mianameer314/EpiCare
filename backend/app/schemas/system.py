@@ -1,16 +1,16 @@
 ﻿"""
 System schemas — health and model status responses.
 """
-from pydantic import BaseModel
+from app.schemas.base import StrictModel
 
 
-class HealthOut(BaseModel):
+class HealthOut(StrictModel):
     """Liveness response."""
 
     status: str
 
 
-class ModelStatusOut(BaseModel):
+class ModelStatusOut(StrictModel):
     """Model registry status."""
 
     model: str

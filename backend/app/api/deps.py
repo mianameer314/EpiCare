@@ -1,40 +1,35 @@
 ﻿"""
-API dependencies — DB session, bearer auth guards, current-user resolution.
-Mirrors BRANDING-SYSTEM app/api/deps.py.
+API dependencies — async DB session, bearer auth guards, current-user resolution.
+
+Every session is created from the async_sessionmaker, tagged with the current
+trace_id (SQLAlchemy query comments for end-to-end correlation), and closed
+in a finally block.
 """
 from typing import Annotated
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from sqlalchemy.orm import Session
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import decode_token
-from app.db.session import SessionLocal
+from app.db.session import get_db
+from app.middleware.request_context import request_id_var
 from app.models.user import User
 
 # ---------- Security Scheme ----------
 
 bearer_scheme = HTTPBearer()
 
+# ---------- Dependency Aliases ----------
 
-# ---------- Database Session ----------
-
-def get_db():
-    """Yield a SQLAlchemy session, auto-close on exit."""
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
-DbDep = Annotated[Session, Depends(get_db)]
+DbDep = Annotated[AsyncSession, Depends(get_db)]
 TokenDep = Annotated[HTTPAuthorizationCredentials, Depends(bearer_scheme)]
 
 
 # ---------- Auth Guards ----------
 
-def get_current_user(credentials: TokenDep, db: DbDep) -> User:
+async def get_current_user(credentials: TokenDep, db: DbDep) -> User:
     """Decode JWT and return the authenticated User, or raise 401."""
     try:
         payload = decode_token(credentials.credentials)
@@ -55,7 +50,8 @@ def get_current_user(credentials: TokenDep, db: DbDep) -> User:
             detail="Invalid or expired token",
         )
 
-    user = db.query(User).filter(User.email == user_email).first()
+    result = await db.execute(select(User).where(User.email == user_email))
+    user = result.scalar_one_or_none()
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -69,7 +65,7 @@ def get_current_user(credentials: TokenDep, db: DbDep) -> User:
     return user
 
 
-def get_refresh_user(credentials: TokenDep, db: DbDep) -> User:
+async def get_refresh_user(credentials: TokenDep, db: DbDep) -> User:
     """Decode refresh JWT and return the user."""
     try:
         payload = decode_token(credentials.credentials)
@@ -90,7 +86,8 @@ def get_refresh_user(credentials: TokenDep, db: DbDep) -> User:
             detail="Invalid or expired refresh token",
         )
 
-    user = db.query(User).filter(User.email == user_email).first()
+    result = await db.execute(select(User).where(User.email == user_email))
+    user = result.scalar_one_or_none()
     if user is None or not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

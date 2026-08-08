@@ -1,11 +1,11 @@
 ﻿"""
 EEG session schemas — upload, validation results, and session lifecycle.
 """
-from datetime import datetime
 from enum import Enum
 
-from pydantic import BaseModel, Field
+from pydantic import Field
 
+from app.schemas.base import StrictDatetime, StrictModel
 from app.schemas.common import PaginatedResponse
 
 
@@ -22,7 +22,7 @@ class EegSessionStatus(str, Enum):
     FAILED = "FAILED"
 
 
-class EegValidationResult(BaseModel):
+class EegValidationResult(StrictModel):
     """Validation summary returned for an uploaded EEG file."""
 
     valid: bool
@@ -33,7 +33,7 @@ class EegValidationResult(BaseModel):
     warnings: list[str] = Field(default_factory=list)
 
 
-class EegSessionOut(BaseModel):
+class EegSessionOut(StrictModel):
     """Response model for an EEG session."""
 
     id: int
@@ -43,10 +43,10 @@ class EegSessionOut(BaseModel):
     status: EegSessionStatus
     validation_result: EegValidationResult | None = None
     error_message: str | None = None
-    created_at: datetime
-    updated_at: datetime
+    created_at: StrictDatetime
+    updated_at: StrictDatetime
 
-    model_config = {"from_attributes": True}
+    model_config = {"from_attributes": True, "strict": True}
 
 
 class EegSessionList(PaginatedResponse[EegSessionOut]):

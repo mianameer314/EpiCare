@@ -11,13 +11,13 @@ router = APIRouter(prefix="/system", tags=["System"])
 
 
 @router.get("/health", response_model=HealthOut)
-def health():
+async def health():
     """Simple liveness probe."""
     return HealthOut(status="healthy")
 
 
 @router.get("/model", response_model=ModelStatusOut)
-def model_status():
+async def model_status():
     """Report which model version is active and whether it is loaded."""
     registry = get_model_registry()
     return ModelStatusOut(

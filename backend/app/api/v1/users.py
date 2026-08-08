@@ -1,5 +1,5 @@
 ﻿"""
-User routes — current user profile and patient profile management.
+User routes — current user profile and patient profile management (async).
 """
 from fastapi import APIRouter, HTTPException, status
 
@@ -16,15 +16,15 @@ router = APIRouter(prefix="/users", tags=["User Management"])
 
 
 @router.get("/me", response_model=UserOut)
-def get_me(current_user: CurrentUser):
+async def get_me(current_user: CurrentUser):
     """Get the current user."""
     return current_user
 
 
 @router.get("/me/profile", response_model=PatientProfileOut)
-def get_my_profile(current_user: CurrentUser, db: DbDep):
+async def get_my_profile(current_user: CurrentUser, db: DbDep):
     """Get the current user's patient profile."""
-    profile = profile_service.get_profile_for_user(db, current_user.id)
+    profile = await profile_service.get_profile_for_user(db, current_user.id)
     if profile is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -34,12 +34,12 @@ def get_my_profile(current_user: CurrentUser, db: DbDep):
 
 
 @router.post("/me/profile", response_model=PatientProfileOut, status_code=status.HTTP_201_CREATED)
-def create_my_profile(data: PatientProfileCreate, current_user: CurrentUser, db: DbDep):
+async def create_my_profile(data: PatientProfileCreate, current_user: CurrentUser, db: DbDep):
     """Create the current user's patient profile."""
-    return profile_service.create_profile(db, current_user.id, data)
+    return await profile_service.create_profile(db, current_user.id, data)
 
 
 @router.put("/me/profile", response_model=PatientProfileOut)
-def update_my_profile(data: PatientProfileUpdate, current_user: CurrentUser, db: DbDep):
+async def update_my_profile(data: PatientProfileUpdate, current_user: CurrentUser, db: DbDep):
     """Create or update the current user's patient profile."""
-    return profile_service.upsert_profile(db, current_user.id, data)
+    return await profile_service.upsert_profile(db, current_user.id, data)

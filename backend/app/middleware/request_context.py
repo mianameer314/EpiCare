@@ -1,8 +1,9 @@
 ﻿"""
-Request context middleware — request IDs, timing, and per-request state.
+Request context middleware — request IDs, trace IDs, timing, and per-request state.
 
-Every response carries an X-Request-Id header; the same id is injected into
-logs via contextvars so failures can be traced end-to-end.
+Every response carries both X-Request-Id and X-Trace-ID headers (same value);
+the id is injected into logs via contextvars and propagated to SQL comments
+and ProcessPoolExecutor tasks for end-to-end correlation.
 """
 import logging
 import time
@@ -24,10 +25,10 @@ def get_request_id() -> str:
 
 
 class RequestContextMiddleware(BaseHTTPMiddleware):
-    """Assigns X-Request-Id, records timing, and resolves user_id for rate limiting."""
+    """Assigns X-Request-Id / X-Trace-ID, records timing, resolves user_id."""
 
     async def dispatch(self, request: Request, call_next):
-        request_id = request.headers.get("x-request-id") or uuid.uuid4().hex[:16]
+        request_id = request.headers.get("x-request-id") or request.headers.get("x-trace-id") or uuid.uuid4().hex[:16]
         request_id_var.set(request_id)
         request_start_var.set(time.perf_counter())
 
@@ -41,15 +42,19 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
 
                 payload = decode_token(token)
                 if payload.get("type") == "access" and payload.get("sub"):
+                    from sqlalchemy import select
+
                     from app.db.session import SessionLocal
                     from app.models.user import User
 
-                    db = SessionLocal()
+                    session = SessionLocal()
                     try:
-                        user = db.query(User).filter(User.email == payload["sub"]).first()
-                        user_id = user.id if user else None
+                        result = await session.execute(
+                            select(User.id).where(User.email == payload["sub"])
+                        )
+                        user_id = result.scalar_one_or_none()
                     finally:
-                        db.close()
+                        await session.close()
             except Exception:
                 user_id = None
         request.state.user_id = user_id
@@ -59,13 +64,16 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
         duration_ms = int((time.perf_counter() - start) * 1000)
 
         response.headers["X-Request-Id"] = request_id
+        response.headers["X-Trace-ID"] = request_id
         response.headers["X-Process-Time-Ms"] = str(duration_ms)
         logger.info(
-            "%s %s -> %s (%dms, user=%s)",
-            request.method,
-            request.url.path,
-            response.status_code,
-            duration_ms,
-            user_id,
+            "http_request",
+            extra={
+                "method": request.method,
+                "path": request.url.path,
+                "status_code": response.status_code,
+                "duration_ms": duration_ms,
+                "user_id": user_id,
+            },
         )
         return response

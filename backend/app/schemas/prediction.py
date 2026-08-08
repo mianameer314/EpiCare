@@ -1,14 +1,13 @@
 ﻿"""
 Prediction and report schemas.
 """
-from datetime import datetime
+from pydantic import Field
 
-from pydantic import BaseModel, Field
-
+from app.schemas.base import StrictDatetime, StrictModel
 from app.schemas.common import PaginatedResponse
 
 
-class PredictionOut(BaseModel):
+class PredictionOut(StrictModel):
     """Response model for a single prediction."""
 
     id: int
@@ -24,25 +23,25 @@ class PredictionOut(BaseModel):
     mean_probability: float
     window_probabilities: list[float] | None = None
     status: str
-    started_at: datetime
-    completed_at: datetime | None = None
-    created_at: datetime
+    started_at: StrictDatetime
+    completed_at: StrictDatetime | None = None
+    created_at: StrictDatetime
 
-    model_config = {"from_attributes": True}
+    model_config = {"from_attributes": True, "strict": True}
 
 
 class PredictionList(PaginatedResponse[PredictionOut]):
     """Paginated prediction history."""
 
 
-class ReportSection(BaseModel):
+class ReportSection(StrictModel):
     """A single section of the structured AI report."""
 
     heading: str
     body: str
 
 
-class AiReportOut(BaseModel):
+class AiReportOut(StrictModel):
     """Response model for the structured AI report."""
 
     id: int
@@ -52,6 +51,6 @@ class AiReportOut(BaseModel):
     summary: str = ""
     sections: list[ReportSection] = Field(default_factory=list)
     disclaimer: str = ""
-    created_at: datetime
+    created_at: StrictDatetime
 
-    model_config = {"from_attributes": True}
+    model_config = {"from_attributes": True, "strict": True}

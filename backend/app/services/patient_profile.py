@@ -1,43 +1,39 @@
 ﻿"""
-Patient profile service — CRUD for patient profile rows.
+Patient profile service — CRUD for patient profile rows (async).
 """
-from sqlalchemy.orm import Session
+from fastapi import HTTPException, status
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.patient_profile import PatientProfile
-from app.schemas.patient_profile import (
-    PatientProfileCreate,
-    PatientProfileUpdate,
-)
+from app.schemas.patient_profile import PatientProfileCreate, PatientProfileUpdate
 
 
-def get_profile_for_user(db: Session, user_id: int) -> PatientProfile | None:
+async def get_profile_for_user(db: AsyncSession, user_id: int) -> PatientProfile | None:
     """Fetch a profile by user id."""
-    return (
-        db.query(PatientProfile)
-        .filter(PatientProfile.user_id == user_id)
-        .first()
+    result = await db.execute(
+        select(PatientProfile).where(PatientProfile.user_id == user_id)
     )
+    return result.scalar_one_or_none()
 
 
-def create_profile(db: Session, user_id: int, data: PatientProfileCreate) -> PatientProfile:
+async def create_profile(db: AsyncSession, user_id: int, data: PatientProfileCreate) -> PatientProfile:
     """Create a profile. Raises 409 if one already exists."""
-    from fastapi import HTTPException, status
-
-    if get_profile_for_user(db, user_id) is not None:
+    if await get_profile_for_user(db, user_id) is not None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Patient profile already exists",
         )
     profile = PatientProfile(user_id=user_id, **data.model_dump())
     db.add(profile)
-    db.commit()
-    db.refresh(profile)
+    await db.commit()
+    await db.refresh(profile)
     return profile
 
 
-def upsert_profile(db: Session, user_id: int, data: PatientProfileUpdate) -> PatientProfile:
+async def upsert_profile(db: AsyncSession, user_id: int, data: PatientProfileUpdate) -> PatientProfile:
     """Create or update the profile for a user."""
-    profile = get_profile_for_user(db, user_id)
+    profile = await get_profile_for_user(db, user_id)
     update_data = data.model_dump(exclude_unset=True, exclude_none=True)
 
     if profile is None:
@@ -47,6 +43,6 @@ def upsert_profile(db: Session, user_id: int, data: PatientProfileUpdate) -> Pat
         for field, value in update_data.items():
             setattr(profile, field, value)
 
-    db.commit()
-    db.refresh(profile)
+    await db.commit()
+    await db.refresh(profile)
     return profile

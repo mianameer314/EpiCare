@@ -1,12 +1,12 @@
 ﻿"""
 Emergency schemas — contacts, SOS trigger, and delivery state.
 """
-from datetime import datetime
+from pydantic import Field
 
-from pydantic import BaseModel, Field
+from app.schemas.base import StrictDatetime, StrictModel
 
 
-class EmergencyContactCreate(BaseModel):
+class EmergencyContactCreate(StrictModel):
     """Request body for adding an emergency contact."""
 
     name: str = Field(..., min_length=1, max_length=150)
@@ -15,7 +15,7 @@ class EmergencyContactCreate(BaseModel):
     is_primary: bool = False
 
 
-class EmergencyContactUpdate(BaseModel):
+class EmergencyContactUpdate(StrictModel):
     """Request body for updating an emergency contact."""
 
     name: str | None = None
@@ -24,7 +24,7 @@ class EmergencyContactUpdate(BaseModel):
     is_primary: bool | None = None
 
 
-class EmergencyContactOut(BaseModel):
+class EmergencyContactOut(StrictModel):
     """Response model for an emergency contact."""
 
     id: int
@@ -34,13 +34,13 @@ class EmergencyContactOut(BaseModel):
     phone_number: str
     is_primary: bool
     verified: bool
-    created_at: datetime
-    updated_at: datetime
+    created_at: StrictDatetime
+    updated_at: StrictDatetime
 
-    model_config = {"from_attributes": True}
+    model_config = {"from_attributes": True, "strict": True}
 
 
-class SosTriggerRequest(BaseModel):
+class SosTriggerRequest(StrictModel):
     """Request body for triggering an SOS alert."""
 
     latitude: float | None = None
@@ -48,7 +48,7 @@ class SosTriggerRequest(BaseModel):
     location_available: bool = False
 
 
-class SosDeliveryOut(BaseModel):
+class SosDeliveryOut(StrictModel):
     """Per-contact SMS delivery state."""
 
     contact_name: str
@@ -56,24 +56,24 @@ class SosDeliveryOut(BaseModel):
     delivery_status: str
     error_message: str | None = None
 
-    model_config = {"from_attributes": True}
+    model_config = {"from_attributes": True, "strict": True}
 
 
-class SosEventOut(BaseModel):
+class SosEventOut(StrictModel):
     """Response model for an SOS event."""
 
     id: int
-    triggered_at: datetime
+    triggered_at: StrictDatetime
     latitude: float | None
     longitude: float | None
     location_available: bool
     status: str
     deliveries: list[SosDeliveryOut] = []
 
-    model_config = {"from_attributes": True}
+    model_config = {"from_attributes": True, "strict": True}
 
 
-class SosEventCreateResponse(BaseModel):
+class SosEventCreateResponse(StrictModel):
     """Confirmation response after triggering SOS."""
 
     event_id: int

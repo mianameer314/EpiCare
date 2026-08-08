@@ -1,7 +1,6 @@
 ﻿"""
 Application configuration.
 Loads all configuration from environment variables (.env locally, container vars in production).
-Mirrors the BRANDING-SYSTEM config pattern (pydantic-settings + sectioned fields).
 """
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -16,9 +15,10 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "INFO"
 
     # ==========================================================
-    # Database
+    # Database (async driver)
     # ==========================================================
-    DATABASE_URL: str = "postgresql://epicare:epicare@localhost:5432/epicare"
+    DATABASE_URL: str = "postgresql+asyncpg://epicare:epicare@localhost:5432/epicare"
+    TEST_DATABASE_URL: str = "postgresql+asyncpg://epicare:epicare@localhost:5432/epicare_test"
     REDIS_URL: str = "redis://localhost:6379"
 
     # ==========================================================
@@ -53,10 +53,12 @@ class Settings(BaseSettings):
     AWS_ENDPOINT_URL: str = ""
 
     # ==========================================================
-    # Model Registry
+    # Model Registry + ONNX Runtime
     # ==========================================================
     MODEL_ROOT: str = "models/seizure_detector"
     MODEL_NAME: str = "EpiCareFusion"
+    ONNX_INTRA_OP_THREADS: int = 4
+    ONNX_INTER_OP_THREADS: int = 2
 
     # ==========================================================
     # AI / LLM (OpenAI-compatible)
@@ -66,6 +68,11 @@ class Settings(BaseSettings):
     EMBEDDING_MODEL: str = "text-embedding-3-small"
 
     # ==========================================================
+    # pgvector
+    # ==========================================================
+    VECTOR_DIMENSION: int = 1536
+
+    # ==========================================================
     # Twilio (SOS SMS)
     # ==========================================================
     TWILIO_ACCOUNT_SID: str = ""
@@ -73,9 +80,20 @@ class Settings(BaseSettings):
     TWILIO_FROM_NUMBER: str = ""
 
     # ==========================================================
-    # Background Jobs
+    # APScheduler
     # ==========================================================
     SCHEDULER_ENABLED: bool = True
+    SCHEDULER_JOBSTORE_URL: str = ""
+
+    # ==========================================================
+    # Admin diagnostics
+    # ==========================================================
+    ADMIN_API_KEY: str = "change_me_admin_api_key"
+
+    # ==========================================================
+    # Background Jobs
+    # ==========================================================
+    # (legacy flag kept for compatibility; scheduler uses SCHEDULER_ENABLED)
 
     model_config = SettingsConfigDict(
         env_file=".env",

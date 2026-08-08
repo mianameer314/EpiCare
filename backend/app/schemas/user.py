@@ -1,17 +1,18 @@
 ﻿"""
 User schemas — authentication, registration, and profile management.
-Mirrors BRANDING-SYSTEM app/schemas/user.py.
 """
 from datetime import datetime
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import EmailStr, Field
+
+from app.schemas.base import StrictDatetime, StrictModel
 
 
 # ------------------------------------------------------------------
 # Registration
 # ------------------------------------------------------------------
 
-class UserRegister(BaseModel):
+class UserRegister(StrictModel):
     """Request body for public user registration."""
 
     email: EmailStr
@@ -23,7 +24,7 @@ class UserRegister(BaseModel):
 # Login
 # ------------------------------------------------------------------
 
-class LoginRequest(BaseModel):
+class LoginRequest(StrictModel):
     """Request body for login."""
 
     email: EmailStr
@@ -34,7 +35,7 @@ class LoginRequest(BaseModel):
 # Profile Update
 # ------------------------------------------------------------------
 
-class UserProfileUpdate(BaseModel):
+class UserProfileUpdate(StrictModel):
     """User updating their own account fields."""
 
     full_name: str | None = Field(None, min_length=1, max_length=150)
@@ -44,7 +45,7 @@ class UserProfileUpdate(BaseModel):
 # Change Password
 # ------------------------------------------------------------------
 
-class ChangePasswordRequest(BaseModel):
+class ChangePasswordRequest(StrictModel):
     """Request to change password."""
 
     current_password: str
@@ -55,24 +56,24 @@ class ChangePasswordRequest(BaseModel):
 # User Response
 # ------------------------------------------------------------------
 
-class UserOut(BaseModel):
+class UserOut(StrictModel):
     """Response model (never exposes password)."""
 
     id: int
     email: EmailStr
     full_name: str
     is_active: bool
-    created_at: datetime
-    updated_at: datetime
+    created_at: StrictDatetime
+    updated_at: StrictDatetime
 
-    model_config = {"from_attributes": True}
+    model_config = {"from_attributes": True, "strict": True}
 
 
 # ------------------------------------------------------------------
 # Authentication
 # ------------------------------------------------------------------
 
-class Token(BaseModel):
+class Token(StrictModel):
     """JWT response."""
 
     access_token: str
@@ -80,7 +81,7 @@ class Token(BaseModel):
     token_type: str = "bearer"
 
 
-class TokenPayload(BaseModel):
+class TokenPayload(StrictModel):
     """Decoded JWT payload."""
 
     sub: str  # email
