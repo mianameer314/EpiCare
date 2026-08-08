@@ -1,0 +1,46 @@
+﻿# ---------- Web Framework ----------
+fastapi
+uvicorn[standard]
+python-multipart
+
+# ---------- Database ----------
+sqlalchemy
+psycopg2-binary
+alembic
+
+# ---------- Validation / Config ----------
+pydantic[email]
+pydantic-settings
+
+# ---------- Authentication ----------
+PyJWT
+passlib[bcrypt]
+bcrypt==4.0.1
+
+# ---------- EEG / Signal Processing ----------
+mne
+numpy
+scipy
+
+# ---------- ML Inference ----------
+onnxruntime
+
+# ---------- AI / LLM ----------
+openai
+langchain-core
+
+# ---------- Utilities ----------
+python-slugify
+requests
+httpx
+filetype
+
+# ---------- Storage ----------
+boto3
+
+# ---------- Scheduling ----------
+apscheduler
+
+# ---------- Testing ----------
+pytest
+pytest-asyncio

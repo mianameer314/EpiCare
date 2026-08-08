@@ -1,0 +1,33 @@
+﻿# EpiCare — AI Instructions (Cursor / AI Agent Guardrails)
+
+## Project Identity
+- Project: EpiCare — AI-powered epilepsy detection & management web app (FYP).
+- Stack: React + Vite + TypeScript (frontend) / FastAPI + SQLAlchemy + Alembic + PostgreSQL + pgvector (backend).
+- Reference code standard: `E:\BS_INTERN\BRANDING-SYSTEM` (backend) and `E:\BS_INTERN\BRANDING-SYSTEM-FRONTEND` (frontend). Every new file must match the cleanliness, naming, and structure of the reference projects.
+
+## Non-Negotiable Rules
+1. **Strict TypeScript typing.** Never use `any`. If a type is unknown, define it in `types/` or feature `types.ts`.
+2. **No plain passwords.** Always Argon2/bcrypt hash (backend `core/security.py`). Never commit `.env`.
+3. **Layered backend.** `api/v1` (routes) → `schemas` (Pydantic) → `services` (business logic) → `models` (SQLAlchemy). Routes never contain business logic.
+4. **Comprehensive error handling.** Every API endpoint and async operation must handle failures with a consistent `{ "error": { "code", "message", "details" } }` shape. Never leak stack traces in production.
+5. **Training ≠ Application.** `training/` is separated from `backend/`. Backend consumes versioned ONNX artifacts from `models/seizure_detector/versions/<vN>/`.
+6. **Preprocessing parity.** Training preprocessing and inference preprocessing must be identical (same filters, same z-score, same STFT). Avoid training-serving skew.
+7. **No fabricated clinical claims.** AI reports and chatbot answers must be grounded, include disclaimers, and never state a diagnosis.
+8. **Files stored on disk, paths in PostgreSQL.** EEG files, spectrograms, reports, exports live under `storage/` with UUID names. Never trust user filenames.
+9. **Keep `progress.md` updated** at the root after every completed milestone so context is never lost between prompts.
+10. **Feature-based frontend.** Each domain module lives in `src/features/<domain>/` with `types.ts`, `api.ts`, `hooks.ts`, pages, and components. Shared UI lives in `src/components/`.
+11. **Frontend state.** TanStack Query for server state; Context ONLY for auth and theme. No Redux.
+12. **Status enums over booleans.** EEG sessions use `UPLOADED → VALIDATING → PREPROCESSING → INFERENCE_RUNNING → REPORT_GENERATING → COMPLETED | FAILED`. Never a bare `done` flag.
+13. **No shortcuts.** Every file must be clean, typed, documented (module docstring / JSDoc), and consistent with the reference repos.
+
+## Conventions
+- Backend: module docstrings, section comments (`# ---- Queries ----`), typed `Session` params, `HTTPException` with explicit status codes, `from_attributes = True` Pydantic config.
+- Frontend: named exports, `@/` path alias, Tailwind tokens (`bg-background`, `text-foreground`, `border-border`, ...), `react-hot-toast` for toasts.
+- DB: SQLAlchemy 2.0 `Mapped[...]` / `mapped_column`, `DateTime(timezone=True)`, `server_default=func.now()`, `updated_at` with `onupdate=func.now()`, model registry re-exported in `app/models/__init__.py`.
+- API: routers with `prefix` + `tags`, registered in `app/main.py` with `prefix="/api/v1"` and `responses=COMMON_RESPONSES`.
+- Migrations: Alembic with `alembic/env.py` importing app settings + models.
+
+## Required Reading Before Editing
+- Root: `architecture.md`, `progress.md`, `.env.example`, `docs/model_contract.md`
+- Backend: `backend/app/core/config.py`, `backend/app/main.py`
+- Frontend: `frontend/src/config/env.ts`, `frontend/src/api/axios.ts`, `frontend/src/router/index.tsx`

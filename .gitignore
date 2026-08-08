@@ -1,0 +1,53 @@
+﻿# ---------- Python (mirrors BRANDING-SYSTEM .gitignore) ----------
+__pycache__/
+*.py[cod]
+*$py.class
+.venv
+venv/
+env/
+ENV/
+*.egg-info/
+.installed.cfg
+*.egg
+.ipynb_checkpoints
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ---------- Environment ----------
+.env
+.env.local
+.env.production
+.env.*.local
+
+# ---------- Node / Frontend (mirrors BRANDING-SYSTEM-FRONTEND .gitignore) ----------
+node_modules/
+dist/
+dist-ssr/
+*.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ---------- Editor ----------
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# ---------- Storage: never commit uploaded files / model weights ----------
+storage/*
+!storage/.gitkeep
+models/**/model.onnx
+models/**/*.joblib
+rag/documents/*
+!rag/documents/.gitkeep
+
+# ---------- Local runtime ----------
+backend/alembic/*.pyc
+tsconfig.tsbuildinfo
