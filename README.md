@@ -46,7 +46,8 @@ EpiCare is an end-to-end epilepsy care platform built for a final-year project (
 | **RBAC + Profiles** | Four roles (`PATIENT`, `DOCTOR`, `CARETAKER`, `ADMIN`). Each role gets its own isolated profile table with role-specific fields. |
 | **Connections** | Patients can search for a PMDC-verified doctor and send a connection request; the doctor approves it. Junction tables persist the `PENDING → ACTIVE` lifecycle. |
 | **Auth** | JWT access + refresh tokens, bcrypt password hashing, **email OTP verification** (with a placeholder for SMS), phone-number-aware registration. |
-| **AI Services (planned)** | RAG medical chatbot, structured AI reports, recommendations, medication + lifestyle tracking, SOS alerts. |
+| **AI Services & Core Features** | RAG medical chatbot, structured AI reports, Patient Dashboard, Lifestyle & Seizure tracking (Diet, Screen time, Menstruation). |
+| **Emergency SOS** | Multi-channel instant alerts triggering Email, WhatsApp, and Firebase Push Notifications (FCM). |
 
 ### Guiding rules (frozen decisions)
 
@@ -144,6 +145,7 @@ users.role  (postgres enum: user_role_enum, server default 'PATIENT')
    ├── users.otp_secret_hash       (bcrypt hash of the 6-digit OTP)
    ├── users.otp_expires_at        (10-minute TTL)
    ├── users.phone_number          (unique, indexed, required at registration)
+   ├── users.fcm_token             (Firebase Cloud Messaging token for push notifications)
    └── 1:1 role profiles ──► patient_profiles | doctor_profiles | caretaker_profiles
 ```
 
@@ -430,9 +432,11 @@ Rejections:
 | --- | --- | --- |
 | `202608080001` | `202608080001_initial_schema.py` | All 21 core tables + pgvector setup (skips `rag_chunks` when pgvector unavailable). |
 | `f42c7d723bd0` | `f42c7d723bd0_add_email_verification_fields.py` | Adds `is_verified`, `otp_secret_hash`, `otp_expires_at` to `users`. |
-| `23058907d24b` | `23058907d24b_add_rbac_roles_profiles_and_networks.py` | **RBAC overhaul** (head): creates `user_role_enum`, `connection_status_enum`, `doctor_profiles`, `caretaker_profiles`, both network tables, and re-shapes `users` + `patient_profiles`. |
+| `23058907d24b` | `23058907d24b_add_rbac_roles_profiles_and_networks.py` | **RBAC overhaul**: creates `user_role_enum`, `connection_status_enum`, `doctor_profiles`, `caretaker_profiles`, both network tables, and re-shapes `users` + `patient_profiles`. |
+| `6c8f25f56b3e` | `6c8f25f56b3e_add_fcm_token.py` | Adds `fcm_token` to `users` for push notifications (Firebase integration). |
+| `928d3b7d19a9` | `928d3b7d19a9_add_manual_seizures_and_lifestyle_.py` | Adds `manual_seizure_logs` table and `metadata_dict` JSONB to `lifestyle_logs` for robust tracking. |
 
-**Current DB state (verified):** `alembic_version = 23058907d24b (head)`, **26 tables** created.
+**Current DB state (verified):** `alembic_version = 928d3b7d19a9 (head)`, **27 tables** created.
 
 ### 8.2 Tables (26)
 
@@ -441,7 +445,7 @@ users  patient_profiles  doctor_profiles  caretaker_profiles
 patient_doctor_networks  patient_caretaker_networks
 eeg_sessions  predictions  ai_reports  model_versions
 medications  medication_schedules  medication_logs
-lifestyle_logs  trigger_logs  sleep_logs  recommendations
+lifestyle_logs  trigger_logs  sleep_logs  recommendations  manual_seizure_logs
 emergency_contacts  sos_events  sos_deliveries
 chat_sessions  chat_messages  rag_documents
 audit_logs  apscheduler_jobs  alembic_version
@@ -581,7 +585,19 @@ Base path: **`/api/v1`**. Auth: `Authorization: Bearer <access_token>` (except a
 | GET | `/system/model` | `200 ModelStatusOut` |
 | GET | `/admin/health/diagnostics` | `200 DiagnosticsOut` (requires `X-Admin-Key`) |
 
-### 11.6 Error envelope
+### 11.6 Lifestyle & Seizures (New)
+
+| Method | Path | Returns |
+| --- | --- | --- |
+| POST | `/seizures/manual` | `201 ManualSeizureLogOut` |
+| GET | `/seizures/manual` | `200 [ManualSeizureLogOut]` |
+| POST | `/lifestyle/menstruation` | `201 LifestyleLogOut` |
+| POST | `/lifestyle/diet` | `201 LifestyleLogOut` |
+| POST | `/lifestyle/illness` | `201 LifestyleLogOut` |
+| POST | `/lifestyle/med-side-effects` | `201 LifestyleLogOut` |
+| POST | `/lifestyle/screen-time` | `201 LifestyleLogOut` |
+
+### 11.7 Error envelope
 
 Every error follows the same shape:
 
@@ -800,7 +816,7 @@ Progress tracking lives in `progress.md`. Milestone summary:
 | M3 — EEG upload → inference | ✅ backend done (pipeline + services + tests) |
 | M4 — Core frontend (upload → result) | ⬜ not started (empty `frontend/`) |
 | M5 — AI report + RAG chatbot | ⬜ planned (services stubs, no pgvector locally) |
-| M6 — Medication, lifestyle, recommendations | ⬜ planned |
+| M6 — Medication, lifestyle, recommendations | 🔄 partially done (seizure & lifestyle trackers built, med/recs pending) |
 | M7 — SOS + dashboard + background jobs | ⬜ planned |
 | M8 — Security, testing, deployment | ✅ done (all tests passing, Docker compose present) |
 
