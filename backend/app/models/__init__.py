@@ -22,6 +22,10 @@ from app.models.audit_log import AuditLog
 __all__ = [
     "User",
     "PatientProfile",
+    "DoctorProfile",
+    "CaretakerProfile",
+    "PatientDoctorNetwork",
+    "PatientCaretakerNetwork",
     "EegSession",
     "Prediction",
     "AiReport",

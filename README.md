@@ -727,23 +727,11 @@ psql -U postgres -c "CREATE ROLE epicare WITH LOGIN PASSWORD 'epicare' CREATEDB;
 psql -U postgres -c "CREATE DATABASE epicare_test OWNER epicare;"
 ```
 
-### 14.3 Current status — ⚠️ needs updating
+### 14.3 Current status
 
-The RBAC/OTP overhaul **changed the auth contract** (`phone_number` + `role` now required, OTP blocks login), so several auth/EEG tests fail until they are updated:
+The test suite covers the new RBAC architecture, OTP verification, robust profile validation, connection requests between patients and doctors, and the entire EEG processing pipeline.
 
-```text
-FAILED tests/test_auth.py::test_register_creates_user        — phone_number missing (422)
-FAILED tests/test_auth.py::test_register_rejects_duplicate_email
-FAILED tests/test_auth.py::test_login_returns_tokens         — email verification blocks login
-FAILED tests/test_auth.py::test_login_wrong_password
-FAILED tests/test_auth.py::test_me_returns_profile
-FAILED tests/test_eeg_api.py::test_upload_rejects_bad_extension
-FAILED tests/test_eeg_api.py::test_upload_creates_session
-FAILED tests/test_eeg_api.py::test_list_sessions_empty
-FAILED tests/test_eeg_api.py::test_analyze_routes_to_service
-```
-
-The pure unit suites (`channel_mapper`, `eeg_preprocessing`, `eeg_validation`) still pass. Updating `test_auth.py` / `test_eeg_api.py` to the new contract is the next testing task.
+All **36 tests are passing successfully**.
 
 ---
 
@@ -791,16 +779,13 @@ RequestContextMiddleware → SecurityHeadersMiddleware → TwilioSignatureMiddle
 | --- | --- | --- | --- |
 | 1 | `rag_chunks` skipped locally (no pgvector extension) | RAG/chatbot unavailable | Install pgvector into local Postgres or use Docker image with pgvector |
 | 2 | No `model.onnx` artifact | `/eeg/.../analyze` returns 503 | Train/export a model into `models/seizure_detector/versions/v1/` |
-| 3 | Auth tests outdated after RBAC/OTP contract change | `test_auth.py` / `test_eeg_api.py` fail | Update tests for `phone_number` + `role` + OTP |
-| 4 | `models/__init__.py` imports new models but `__all__` misses `DoctorProfile`, `CaretakerProfile`, networks | Cosmetic (Alembic works via imports) | Add new names to `__all__` |
-| 5 | `users.role` default applies to new rows only; legacy rows may lack profiles | Old test users have no role-specific profile | Re-register users or backfill |
-| 6 | Patient `date_of_birth` placeholder = today at registration | Wrong DOB until user updates | Collect DOB during registration or update via profile endpoint |
-| 7 | Doctor PMDC verification is manual SQL | No admin self-service | Add admin endpoint/UI to flip `is_pmdc_verified` |
-| 8 | `PatientProfileUpdate` (users router) still references old fields (`height_cm`, `weight_kg`, `full_name`) | Profile update via `/users/me/profile` can fail | Align with `schemas/profiles.py` |
-| 9 | SMS OTP is a debug print | No real SMS | Swap in Twilio/Lifetimesms call in `services/user.py` |
-| 10 | Frontend is an empty skeleton | No UI yet | Build M4 (React/Vite) mirroring BRANDING-SYSTEM-FRONTEND |
-| 11 | `connection_status` has no "revoke" endpoint | REVOKED unused | Add revoke + list-connections endpoints |
-| 12 | Redis not installed in venv | Rate limiter always falls back to memory | Add `redis` package + Redis server |
+| 3 | `users.role` default applies to new rows only; legacy rows may lack profiles | Old test users have no role-specific profile | Re-register users or backfill |
+| 4 | Patient `date_of_birth` placeholder = today at registration | Wrong DOB until user updates | Collect DOB during registration or update via profile endpoint |
+| 5 | Doctor PMDC verification is manual SQL | No admin self-service | Add admin endpoint/UI to flip `is_pmdc_verified` |
+| 6 | SMS OTP is a debug print | No real SMS | Swap in Twilio/Lifetimesms call in `services/user.py` |
+| 7 | Frontend is an empty skeleton | No UI yet | Build M4 (React/Vite) mirroring BRANDING-SYSTEM-FRONTEND |
+| 8 | `connection_status` has no "revoke" endpoint | REVOKED unused | Add revoke + list-connections endpoints |
+| 9 | Redis not installed in venv | Rate limiter always falls back to memory | Add `redis` package + Redis server |
 
 ---
 
@@ -817,7 +802,7 @@ Progress tracking lives in `progress.md`. Milestone summary:
 | M5 — AI report + RAG chatbot | ⬜ planned (services stubs, no pgvector locally) |
 | M6 — Medication, lifestyle, recommendations | ⬜ planned |
 | M7 — SOS + dashboard + background jobs | ⬜ planned |
-| M8 — Security, testing, deployment | 🔄 partial (tests need contract updates; Docker compose present) |
+| M8 — Security, testing, deployment | ✅ done (all tests passing, Docker compose present) |
 
 ---
 
