@@ -90,7 +90,8 @@ def mock_email_service(monkeypatch):
     async def mock_send_email(*args, **kwargs):
         pass
         
-    monkeypatch.setattr("app.services.email.send_verification_email", mock_send_email)
+    # Must patch where it is used, not where it is defined, because user.py imports it directly
+    monkeypatch.setattr("app.services.user.send_verification_email", mock_send_email)
     
     # Also mock rate limiter
     pass
