@@ -10,10 +10,13 @@ from app.services.diagnostics import DiagnosticsOut, build_diagnostics
 router = APIRouter(prefix="/admin", tags=["Admin"])
 
 
-async def require_admin_key(request: Request) -> None:
+from fastapi.security import APIKeyHeader
+
+api_key_header = APIKeyHeader(name="X-Admin-Key", auto_error=False, description="Admin Secret Key")
+
+async def require_admin_key(api_key: str = Depends(api_key_header)) -> None:
     """Reject requests whose X-Admin-Key does not match the configured key."""
-    provided = request.headers.get("x-admin-key", "")
-    if not provided or provided != settings.ADMIN_API_KEY:
+    if not api_key or api_key != settings.ADMIN_API_KEY:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or missing admin key",
