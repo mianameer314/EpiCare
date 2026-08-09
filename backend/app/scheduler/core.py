@@ -1,4 +1,4 @@
-﻿"""
+"""
 APScheduler integration — AsyncIOScheduler backed by a persistent PostgreSQL
 job store so scheduled jobs survive restarts and are shared across workers.
 
@@ -37,6 +37,8 @@ class AppScheduler:
     def __init__(self) -> None:
         self.scheduler: AsyncIOScheduler | None = None
         self.jobstore_url: str = settings.SCHEDULER_JOBSTORE_URL or settings.DATABASE_URL
+        if self.jobstore_url.startswith("postgresql+asyncpg://"):
+            self.jobstore_url = self.jobstore_url.replace("+asyncpg", "")
         self.state = SchedulerState()
 
     def start(self) -> None:

@@ -40,13 +40,30 @@ os.environ.setdefault("REDIS_URL", "redis://localhost:6379")
 @pytest.fixture(scope="session")
 async def _prepare_database() -> AsyncGenerator[None, None]:
     """Create all tables in the test DB before the session, drop after."""
+    from sqlalchemy import text
+
+    import app.models  # noqa: F401  (register every table on Base.metadata)
     from app.db.session import Base, test_engine
 
+    # pgvector may not be installed on the local server; the vector-dependent
+    # tables are not needed by the current suite, so skip them when the
+    # extension cannot be enabled.
     async with test_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+        vector_available = True
+        try:
+            async with conn.begin_nested():
+                await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+        except Exception:
+            vector_available = False
+
+        tables = list(Base.metadata.sorted_tables)
+        if not vector_available:
+            tables = [t for t in tables if t.name != "rag_chunks"]
+
+        await conn.run_sync(Base.metadata.create_all, tables)
     yield
     async with test_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
+        await conn.run_sync(Base.metadata.drop_all, tables)
     await test_engine.dispose()
 
 

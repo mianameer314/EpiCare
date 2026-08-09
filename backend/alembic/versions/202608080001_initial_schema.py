@@ -19,9 +19,25 @@ branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 
-def upgrade() -> None:
-    """Create every table plus the pgvector extension."""
+def _vector_available() -> bool:
+    """Return True when the pgvector extension can be enabled on this server.
+
+    Probes the pg_available_extensions catalog first (a read that cannot
+    abort the migration transaction) and only then runs CREATE EXTENSION.
+    """
+    bind = op.get_bind()
+    row = bind.execute(
+        sa.text("SELECT 1 FROM pg_available_extensions WHERE name = 'vector'")
+    ).first()
+    if row is None:
+        return False
     op.execute("CREATE EXTENSION IF NOT EXISTS vector")
+    return True
+
+
+def upgrade() -> None:
+    """Create every table plus the pgvector extension (when available)."""
+    vector_available = _vector_available()
 
     # ---------- Core / Auth ----------
     op.create_table(
@@ -331,22 +347,23 @@ def upgrade() -> None:
     )
     op.create_index("ix_rag_documents_checksum", "rag_documents", ["checksum"])
 
-    op.create_table(
-        "rag_chunks",
-        sa.Column("id", sa.Integer(), primary_key=True, index=True),
-        sa.Column("document_id", sa.Integer(), nullable=False),
-        sa.Column("chunk_index", sa.Integer(), nullable=False),
-        sa.Column("content", sa.Text(), nullable=False),
-        sa.Column("embedding", Vector(1536), nullable=True),
-        sa.Column("metadata", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
-        sa.ForeignKeyConstraint(["document_id"], ["rag_documents.id"], ondelete="CASCADE"),
-    )
-    op.create_index("ix_rag_chunks_document_id", "rag_chunks", ["document_id"])
-    op.execute(
-        "CREATE INDEX ix_rag_chunks_embedding_hnsw ON rag_chunks "
-        "USING hnsw (embedding vector_cosine_ops)"
-    )
+    if vector_available:
+        op.create_table(
+            "rag_chunks",
+            sa.Column("id", sa.Integer(), primary_key=True, index=True),
+            sa.Column("document_id", sa.Integer(), nullable=False),
+            sa.Column("chunk_index", sa.Integer(), nullable=False),
+            sa.Column("content", sa.Text(), nullable=False),
+            sa.Column("embedding", Vector(1536), nullable=True),
+            sa.Column("metadata", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
+            sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+            sa.ForeignKeyConstraint(["document_id"], ["rag_documents.id"], ondelete="CASCADE"),
+        )
+        op.create_index("ix_rag_chunks_document_id", "rag_chunks", ["document_id"])
+        op.execute(
+            "CREATE INDEX ix_rag_chunks_embedding_hnsw ON rag_chunks "
+            "USING hnsw (embedding vector_cosine_ops)"
+        )
 
     # ---------- Audit ----------
     op.create_table(
@@ -366,8 +383,10 @@ def upgrade() -> None:
 def downgrade() -> None:
     """Drop every table (reverse order)."""
     op.drop_table("audit_logs")
-    op.drop_index("ix_rag_chunks_embedding_hnsw", table_name="rag_chunks")
-    op.drop_table("rag_chunks")
+    bind = op.get_bind()
+    if bind.dialect.has_table(bind, "rag_chunks"):
+        op.drop_index("ix_rag_chunks_embedding_hnsw", table_name="rag_chunks")
+        op.drop_table("rag_chunks")
     op.drop_table("rag_documents")
     op.drop_table("chat_messages")
     op.drop_table("chat_sessions")
@@ -387,4 +406,7 @@ def downgrade() -> None:
     op.drop_table("eeg_sessions")
     op.drop_table("patient_profiles")
     op.drop_table("users")
-    op.execute("DROP EXTENSION IF EXISTS vector")
+    try:
+        op.execute("DROP EXTENSION IF EXISTS vector")
+    except Exception:
+        pass

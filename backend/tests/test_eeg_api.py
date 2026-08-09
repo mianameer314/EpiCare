@@ -6,18 +6,21 @@ The heavy pipeline (parse/validate/preprocess/inference) is exercised in
 tests/test_eeg_session_service.py; here we verify HTTP contract, auth, and
 error wiring.
 """
+from uuid import uuid4
+
 from fastapi.testclient import TestClient
 
 
-def _auth(client: TestClient) -> dict[str, str]:
+def _auth(client: TestClient, email: str | None = None) -> dict[str, str]:
+    email = email or f"eeg-{uuid4().hex[:12]}@example.com"
     response = client.post(
         "/api/v1/auth/register",
-        json={"email": "eeg-user@example.com", "password": "supersecret123", "full_name": "EEG User"},
+        json={"email": email, "password": "supersecret123", "full_name": "EEG User"},
     )
     assert response.status_code == 201, response.text
     login = client.post(
         "/api/v1/auth/login",
-        json={"email": "eeg-user@example.com", "password": "supersecret123"},
+        json={"email": email, "password": "supersecret123"},
     )
     assert login.status_code == 200, login.text
     return {"Authorization": f"Bearer {login.json()['access_token']}"}

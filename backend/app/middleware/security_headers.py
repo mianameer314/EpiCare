@@ -1,4 +1,4 @@
-﻿"""
+"""
 Security headers middleware — hardened defaults for the API.
 
 Adds CSP, HSTS, frame/frame-ancestors, nosniff, and referrer policy headers.
@@ -16,7 +16,13 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         "Referrer-Policy": "no-referrer",
         "Permissions-Policy": "geolocation=(self), camera=(), microphone=()",
         "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
-        "Content-Security-Policy": "default-src 'none'; frame-ancestors 'none'",
+        "Content-Security-Policy": (
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline' cdn.jsdelivr.net; "
+            "style-src 'self' 'unsafe-inline' cdn.jsdelivr.net; "
+            "img-src 'self' data: cdn.jsdelivr.net fastapi.tiangolo.com; "
+            "frame-ancestors 'none'"
+        ),
     }
 
     async def dispatch(self, request: Request, call_next):

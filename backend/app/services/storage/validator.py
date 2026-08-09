@@ -1,4 +1,4 @@
-﻿"""
+"""
 File validation — extension checks, MIME checks, size limits, path safety.
 Validates uploads server-side. Never trusts UploadFile.content_type alone.
 """
@@ -91,7 +91,7 @@ async def validate_eeg_upload(file: UploadFile) -> bytes:
             detail=f"File size exceeds the {settings.EEG_MAX_SIZE_MB} MB limit.",
         )
 
-    logger.info("eeg_upload_validated", extra={"filename": filename, "bytes": len(data)})
+    logger.info("eeg_upload_validated", extra={"file_name": filename, "size_bytes": len(data)})
     return data
 
 

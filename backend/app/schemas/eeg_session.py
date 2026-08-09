@@ -1,9 +1,10 @@
-﻿"""
+"""
 EEG session schemas — upload, validation results, and session lifecycle.
 """
 from enum import Enum
+from typing import Annotated, Any
 
-from pydantic import Field
+from pydantic import BeforeValidator, Field
 
 from app.schemas.base import StrictDatetime, StrictModel
 from app.schemas.common import PaginatedResponse
@@ -33,6 +34,18 @@ class EegValidationResult(StrictModel):
     warnings: list[str] = Field(default_factory=list)
 
 
+def parse_status(value: Any) -> EegSessionStatus:
+    """Accept EegSessionStatus or its string value (DB stores plain strings)."""
+    if isinstance(value, EegSessionStatus):
+        return value
+    if isinstance(value, str):
+        return EegSessionStatus(value)
+    raise ValueError("must be a valid EEG session status")
+
+
+StrictStatus = Annotated[EegSessionStatus, BeforeValidator(parse_status)]
+
+
 class EegSessionOut(StrictModel):
     """Response model for an EEG session."""
 
@@ -40,7 +53,7 @@ class EegSessionOut(StrictModel):
     user_id: int
     original_filename: str
     file_size_bytes: int
-    status: EegSessionStatus
+    status: StrictStatus
     validation_result: EegValidationResult | None = None
     error_message: str | None = None
     created_at: StrictDatetime
