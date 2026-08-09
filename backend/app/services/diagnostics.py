@@ -1,4 +1,4 @@
-﻿"""
+"""
 Admin diagnostics — hidden, authenticated endpoint reporting live system health.
 
 Protected by X-Admin-Key (settings.ADMIN_API_KEY). Reports:
@@ -74,16 +74,26 @@ class DiagnosticsOut(StrictModel):
 def _pool_stats() -> PoolStats:
     """Read live stats from the async engine pool."""
     pool = engine.pool
-    checkedout = pool.checkedout()
-    overflow = getattr(pool, "overflow", -1)
-    size = pool.size()
+    checkedout = pool.checkedout() if hasattr(pool, "checkedout") else 0
+    
+    # SQLAlchemy pool overflow is a method, not an attribute
+    overflow = -1
+    if hasattr(pool, "overflow"):
+        try:
+            overflow = pool.overflow()
+        except TypeError:
+            # In case it is an attribute in some versions
+            overflow = pool.overflow
+            
+    size = pool.size() if hasattr(pool, "size") else 0
     total = size + max(overflow, 0)
     percent = (checkedout / total * 100.0) if total else 0.0
+    
     return PoolStats(
         size=size,
         checkedout_connections=checkedout,
         overflow=overflow,
-        checkedin_connections=pool.checkedin(),
+        checkedin_connections=pool.checkedin() if hasattr(pool, "checkedin") else 0,
         percent_used=round(percent, 2),
     )
 
