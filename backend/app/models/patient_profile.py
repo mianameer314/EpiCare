@@ -1,4 +1,4 @@
-﻿"""
+"""
 Patient profile model — profile data for a user. Stores date_of_birth, never age.
 """
 from datetime import date, datetime
@@ -21,11 +21,17 @@ class PatientProfile(Base):
     user_id: Mapped[int] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"), unique=True, index=True, nullable=False
     )
-    full_name: Mapped[str] = mapped_column(String(150), nullable=False)
-    date_of_birth: Mapped[date | None] = mapped_column(Date, nullable=True)
+    date_of_birth: Mapped[date] = mapped_column(Date, nullable=False)
     gender: Mapped[str | None] = mapped_column(String(30), nullable=True)
-    height_cm: Mapped[float | None] = mapped_column(Float, nullable=True)
-    weight_kg: Mapped[float | None] = mapped_column(Float, nullable=True)
+    blood_type: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    city: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    
+    primary_diagnosis: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    
+    emergency_contact_name: Mapped[str | None] = mapped_column(String(150), nullable=True)
+    emergency_contact_relation: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    emergency_contact_phone: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    
     known_triggers: Mapped[list | None] = mapped_column(JSONB, nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     timezone: Mapped[str] = mapped_column(String(64), default="UTC", nullable=False)

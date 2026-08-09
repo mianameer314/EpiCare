@@ -1,4 +1,4 @@
-﻿"""
+"""
 Role-Based Access Control (RBAC) — roles, permission matrix, and dependency guards.
 Mirrors BRANDING-SYSTEM app/core/permissions.py.
 """
@@ -7,15 +7,11 @@ from enum import Enum
 from fastapi import Depends, HTTPException, status
 
 
-class UserRole(str, Enum):
-    """System roles. Patients are 'user'; 'admin' reserved for future staff/ops."""
-
-    user = "user"
-    admin = "admin"
+from app.models.enums import UserRole
 
 
-ROLE_PERMISSIONS: dict[str, set[str]] = {
-    "user": {
+ROLE_PERMISSIONS: dict[UserRole, set[str]] = {
+    UserRole.PATIENT: {
         "read_own",
         "update_own",
         "upload_eeg",
@@ -28,7 +24,7 @@ ROLE_PERMISSIONS: dict[str, set[str]] = {
         "manage_emergency",
         "trigger_sos",
     },
-    "admin": {
+    UserRole.ADMIN: {
         "read_own",
         "update_own",
         "upload_eeg",

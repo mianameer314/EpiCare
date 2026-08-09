@@ -46,11 +46,25 @@ async def login(data: LoginRequest, db: DbDep):
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Account is deactivated",
         )
-    if not user.is_verified:
+    if not user.is_email_verified:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Email is not verified. Please verify your email first.",
         )
+        
+    from app.models.enums import UserRole
+    if user.role == UserRole.DOCTOR:
+        from app.models.doctor_profile import DoctorProfile
+        from sqlalchemy import select
+        
+        result = await db.execute(select(DoctorProfile).where(DoctorProfile.user_id == user.id))
+        doctor_profile = result.scalar_one_or_none()
+        
+        if doctor_profile and not doctor_profile.is_pmdc_verified:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Your doctor profile is pending PMDC verification by an admin.",
+            )
 
     access_token = create_access_token(data={"sub": user.email})
     refresh_token = create_refresh_token(subject=user.email)
@@ -64,7 +78,7 @@ async def verify_email(data: VerifyOTPRequest, db: DbDep):
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
         
-    if user.is_verified:
+    if user.is_email_verified:
         return {"message": "Email is already verified"}
         
     is_valid = await user_service.verify_user_otp(db, user, data.otp)
@@ -82,7 +96,7 @@ async def resend_otp(data: ResendOTPRequest, db: DbDep, background_tasks: Backgr
         # Don't reveal user existence
         return {"message": "If an account exists, a new OTP has been sent."}
         
-    if user.is_verified:
+    if user.is_email_verified:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email is already verified")
         
     await user_service.generate_and_send_otp(db, user, background_tasks)

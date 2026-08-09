@@ -1,8 +1,12 @@
-﻿"""
+"""
 Central model registry — re-exports all models for easy imports and Alembic autogenerate.
 """
+from app.models.enums import UserRole, ConnectionStatus
 from app.models.user import User
 from app.models.patient_profile import PatientProfile
+from app.models.doctor_profile import DoctorProfile
+from app.models.caretaker_profile import CaretakerProfile
+from app.models.networks import PatientDoctorNetwork, PatientCaretakerNetwork
 from app.models.eeg_session import EegSession
 from app.models.prediction import Prediction
 from app.models.ai_report import AiReport

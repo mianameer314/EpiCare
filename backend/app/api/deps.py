@@ -1,4 +1,4 @@
-﻿"""
+"""
 API dependencies — async DB session, bearer auth guards, current-user resolution.
 
 Every session is created from the async_sessionmaker, tagged with the current
@@ -98,3 +98,35 @@ async def get_refresh_user(credentials: TokenDep, db: DbDep) -> User:
 
 CurrentUser = Annotated[User, Depends(get_current_user)]
 RefreshUser = Annotated[User, Depends(get_refresh_user)]
+
+
+# ---------- Role Checking ----------
+
+class RoleChecker:
+    def __init__(self, allowed_roles: list[str]):
+        self.allowed_roles = allowed_roles
+
+    def __call__(self, user: CurrentUser) -> User:
+        if user.role not in self.allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Operation not permitted",
+            )
+        return user
+
+
+async def get_verified_doctor(user: Annotated[User, Depends(RoleChecker(["DOCTOR"]))], db: DbDep) -> User:
+    """Ensure the doctor has been PMDC verified by admin."""
+    from app.models.doctor_profile import DoctorProfile
+    
+    result = await db.execute(select(DoctorProfile).where(DoctorProfile.user_id == user.id))
+    profile = result.scalar_one_or_none()
+    
+    if not profile or not profile.is_pmdc_verified:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Doctor profile pending PMDC verification",
+        )
+    return user
+
+VerifiedDoctor = Annotated[User, Depends(get_verified_doctor)]

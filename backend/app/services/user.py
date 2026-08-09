@@ -23,6 +23,10 @@ async def get_user(db: AsyncSession, user_id: int) -> User | None:
     result = await db.execute(select(User).where(User.id == user_id))
     return result.scalar_one_or_none()
 
+async def get_user_by_phone(db: AsyncSession, phone_number: str) -> User | None:
+    result = await db.execute(select(User).where(User.phone_number == phone_number))
+    return result.scalar_one_or_none()
+
 
 # ---------------------------------------------------------
 # Registration & Verification
@@ -38,19 +42,31 @@ def _generate_otp() -> str:
     return "".join(secrets.choice("0123456789") for _ in range(6))
 
 async def register_user(db: AsyncSession, data: UserRegister, background_tasks: BackgroundTasks) -> User:
-    """Public user registration. Raises 409 on duplicate email."""
-    existing = await get_user_by_email(db, data.email)
-    if existing:
+    """Public user registration. Raises 409 on duplicate email or phone."""
+    existing_email = await get_user_by_email(db, data.email)
+    if existing_email:
         raise conflict_error("EMAIL_ALREADY_REGISTERED", "Email already registered")
+
+    existing_phone = await get_user_by_phone(db, data.phone_number)
+    if existing_phone:
+        raise conflict_error("PHONE_ALREADY_REGISTERED", "Phone number already registered")
+
+    from app.models.enums import UserRole
+    if data.role == UserRole.DOCTOR and not data.pmdc_number:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail="PMDC number is required for doctors")
 
     otp_plain = _generate_otp()
     
     user = User(
         email=data.email,
         password_hash=hash_password(data.password),
+        phone_number=data.phone_number,
         full_name=data.full_name,
+        role=data.role,
         is_active=True,
-        is_verified=False,
+        is_email_verified=False,
+        is_phone_verified=False,
         otp_secret_hash=hash_password(otp_plain),
         otp_expires_at=datetime.now(timezone.utc) + timedelta(minutes=10)
     )
@@ -58,8 +74,36 @@ async def register_user(db: AsyncSession, data: UserRegister, background_tasks: 
     await db.commit()
     await db.refresh(user)
     
+    # Create Role-Specific Profile
+    if user.role == UserRole.PATIENT:
+        from app.models.patient_profile import PatientProfile
+        profile = PatientProfile(
+            user_id=user.id,
+            date_of_birth=datetime.now(timezone.utc).date() # Placeholder, they should update later or pass in registration
+        )
+        db.add(profile)
+    elif user.role == UserRole.DOCTOR:
+        from app.models.doctor_profile import DoctorProfile
+        profile = DoctorProfile(
+            user_id=user.id,
+            pmdc_number=data.pmdc_number,
+            specialty="Neurologist"
+        )
+        db.add(profile)
+    elif user.role == UserRole.CARETAKER:
+        from app.models.caretaker_profile import CaretakerProfile
+        profile = CaretakerProfile(
+            user_id=user.id
+        )
+        db.add(profile)
+        
+    await db.commit()
+    
     # Dispatch email
     background_tasks.add_task(send_verification_email, user.email, otp_plain, user.full_name)
+    
+    # Placeholder for SMS
+    print(f"DEBUG (SMS Gateway Skipped): Sending OTP {otp_plain} to {user.phone_number}")
     
     return user
 
@@ -87,7 +131,7 @@ async def verify_user_otp(db: AsyncSession, user: User, otp: str) -> bool:
     if not verify_password(otp, user.otp_secret_hash):
         return False
         
-    user.is_verified = True
+    user.is_email_verified = True
     user.otp_secret_hash = None
     user.otp_expires_at = None
     await db.commit()

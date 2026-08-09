@@ -6,6 +6,7 @@ from datetime import datetime
 from pydantic import EmailStr, Field
 
 from app.schemas.base import StrictDatetime, StrictModel
+from app.models.enums import UserRole
 
 
 # ------------------------------------------------------------------
@@ -17,7 +18,12 @@ class UserRegister(StrictModel):
 
     email: EmailStr
     password: str = Field(..., min_length=8)
+    phone_number: str = Field(..., min_length=10, max_length=15)
     full_name: str = Field(..., min_length=1, max_length=150)
+    role: UserRole = Field(default=UserRole.PATIENT)
+    
+    # Optional field for doctor registration
+    pmdc_number: str | None = Field(None, description="Required if role is DOCTOR")
 
 
 # ------------------------------------------------------------------
@@ -39,6 +45,7 @@ class UserProfileUpdate(StrictModel):
     """User updating their own account fields."""
 
     full_name: str | None = Field(None, min_length=1, max_length=150)
+    phone_number: str | None = Field(None, min_length=10, max_length=15)
 
 
 # ------------------------------------------------------------------
@@ -78,9 +85,12 @@ class UserOut(StrictModel):
 
     id: int
     email: EmailStr
+    phone_number: str | None
     full_name: str
+    role: UserRole
     is_active: bool
-    is_verified: bool
+    is_email_verified: bool
+    is_phone_verified: bool
     created_at: StrictDatetime
     updated_at: StrictDatetime
 

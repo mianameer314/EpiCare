@@ -1,4 +1,4 @@
-﻿"""
+"""
 Structured JSON logging for the EpiCare backend.
 
 Every emitted record includes: timestamp, log_level, trace_id, module, message,
@@ -16,7 +16,14 @@ from typing import Any
 
 from app.middleware.request_context import request_id_var
 
-_RESERVED_KEYS = {"timestamp", "log_level", "trace_id", "module", "message"}
+_RESERVED_KEYS = {
+    "timestamp", "log_level", "trace_id", "module", "message",
+    "args", "asctime", "created", "exc_info", "exc_text", "filename",
+    "funcName", "levelname", "levelno", "lineno", "module", "msecs",
+    "message", "msg", "name", "pathname", "process", "processName",
+    "relativeCreated", "stack_info", "thread", "threadName", "taskName",
+    "color_message", "at"
+}
 
 
 class JsonFormatter(logging.Formatter):
@@ -63,4 +70,4 @@ def configure_logging(level: str = "INFO") -> None:
     # Quiet noisy third-party loggers unless they are truly failing
     logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
     logging.getLogger("httpx").setLevel(logging.WARNING)
-    logging.getLogger("apscheduler").setLevel(logging.INFO)
+    logging.getLogger("apscheduler").setLevel(logging.WARNING)

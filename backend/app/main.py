@@ -11,7 +11,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.v1 import admin, auth, eeg, system, users
+from app.api.v1 import admin, auth, connections, eeg, system, users
 from app.core.config import settings
 from app.core.exceptions import register_exception_handlers
 from app.core.logging import configure_logging
@@ -93,6 +93,7 @@ app.include_router(auth.router, prefix=api_prefix)
 app.include_router(users.router, prefix=api_prefix)
 app.include_router(eeg.router, prefix=api_prefix)
 app.include_router(admin.router, prefix=api_prefix)
+app.include_router(connections.router, prefix=api_prefix)
 
 
 @app.get("/", include_in_schema=False)
