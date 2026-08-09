@@ -56,3 +56,4 @@ rag/documents/*
 backend/alembic/*.pyc
 tsconfig.tsbuildinfo
 Final main Proposal.pdf
+backend/epicare-2fc46-firebase-adminsdk-fbsvc-d5cc2917c3.json
