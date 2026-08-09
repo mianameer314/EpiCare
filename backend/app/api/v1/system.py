@@ -1,8 +1,12 @@
-﻿"""
+"""
 System routes — health checks and model registry status.
 """
-from fastapi import APIRouter
+from datetime import datetime, timezone
+from sqlalchemy import text
+from fastapi import APIRouter, Depends
 
+from app.api.deps import DbDep
+from app.rate_limit.core import get_rate_limiter
 from app.core.config import settings
 from app.ml.model_registry import get_model_registry
 from app.schemas.system import HealthOut, ModelStatusOut
@@ -11,9 +15,31 @@ router = APIRouter(prefix="/system", tags=["System"])
 
 
 @router.get("/health", response_model=HealthOut)
-async def health():
-    """Simple liveness probe."""
-    return HealthOut(status="healthy")
+async def health(db: DbDep):
+    """Detailed health check probe."""
+    try:
+        await db.execute(text("SELECT 1"))
+        db_status = "connected"
+    except Exception:
+        db_status = "disconnected"
+
+    try:
+        limiter = get_rate_limiter()
+        redis_status = "connected" if limiter.using_redis else "unavailable (in-memory)"
+    except Exception:
+        redis_status = "unknown"
+
+    # In production, environment might come from settings, defaulting to development
+    env = getattr(settings, "ENVIRONMENT", "development")
+
+    return HealthOut(
+        status="healthy" if db_status == "connected" else "degraded",
+        version="1.0.0",
+        environment=env,
+        database_status=db_status,
+        redis_status=redis_status,
+        timestamp=datetime.now(timezone.utc).isoformat(),
+    )
 
 
 @router.get("/model", response_model=ModelStatusOut)
