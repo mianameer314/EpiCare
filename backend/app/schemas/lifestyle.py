@@ -1,4 +1,4 @@
-﻿"""
+"""
 Lifestyle schemas — sleep, trigger, and stress logs.
 """
 from pydantic import Field
@@ -38,3 +38,36 @@ class LifestyleSummaryOut(StrictModel):
     avg_sleep_minutes: float | None = None
     recent_triggers: list[str] = []
     stress_levels: list[int] = []
+
+class SleepLogOut(StrictModel):
+    id: int
+    user_id: int
+    slept_at: StrictDatetime
+    woke_at: StrictDatetime
+    duration_minutes: int
+    quality: int | None
+    notes: str | None
+    created_at: StrictDatetime
+    updated_at: StrictDatetime
+    model_config = {"from_attributes": True, "strict": True}
+
+class TriggerLogOut(StrictModel):
+    id: int
+    user_id: int
+    trigger_name: str
+    severity: int
+    occurred_at: StrictDatetime
+    notes: str | None
+    created_at: StrictDatetime
+    updated_at: StrictDatetime
+    model_config = {"from_attributes": True, "strict": True}
+
+class LifestyleLogOut(StrictModel):
+    id: int
+    user_id: int
+    log_type: str
+    occurred_at: StrictDatetime
+    notes: str | None
+    created_at: StrictDatetime
+    updated_at: StrictDatetime
+    model_config = {"from_attributes": True, "strict": True}

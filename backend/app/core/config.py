@@ -17,14 +17,14 @@ class Settings(BaseSettings):
     # ==========================================================
     # Database (async driver)
     # ==========================================================
-    DATABASE_URL: str = "postgresql+asyncpg://epicare:epicare@localhost:5432/epicare"
+    DATABASE_URL: str = ""
     TEST_DATABASE_URL: str = "postgresql+asyncpg://epicare:epicare@localhost:5432/epicare_test"
     REDIS_URL: str = "redis://localhost:6379"
 
     # ==========================================================
     # JWT
     # ==========================================================
-    JWT_SECRET: str = "change_me_in_production_at_least_32_chars_long"
+    JWT_SECRET: str = ""
     JWT_ALGORITHM: str = "HS256"
     JWT_ACCESS_EXPIRY_MINUTES: int = 30
     JWT_REFRESH_EXPIRY_DAYS: int = 7
@@ -38,10 +38,10 @@ class Settings(BaseSettings):
     # ==========================================================
     # Storage
     # ==========================================================
-    STORAGE_PROVIDER: str = "local"
+    STORAGE_PROVIDER: str = ""
     LOCAL_STORAGE_PATH: str = "storage"
     EEG_MAX_SIZE_MB: int = 200
-    ALLOWED_EEG_EXTENSIONS: str = ".edf,.csv"
+    ALLOWED_EEG_EXTENSIONS: str = ""
 
     # ==========================================================
     # AWS S3 (only when STORAGE_PROVIDER=s3)
@@ -64,8 +64,8 @@ class Settings(BaseSettings):
     # AI / LLM (OpenAI-compatible)
     # ==========================================================
     OPENAI_API_KEY: str = ""
-    LLM_MODEL: str = "gpt-4o-mini"
-    EMBEDDING_MODEL: str = "text-embedding-3-small"
+    LLM_MODEL: str = ""
+    EMBEDDING_MODEL: str = ""
 
     # ==========================================================
     # pgvector
@@ -73,8 +73,18 @@ class Settings(BaseSettings):
     VECTOR_DIMENSION: int = 1536
 
     # ==========================================================
-    # Twilio (SOS SMS)
+    # Emergency SOS
     # ==========================================================
+    SOS_PROVIDER: str = ""  # 'email', 'firebase', 'whatsapp', or 'twilio'
+    
+    # Firebase
+    FIREBASE_CREDENTIALS_PATH: str = ""
+    
+    # WhatsApp (Meta Cloud API)
+    WHATSAPP_TOKEN: str = ""
+    WHATSAPP_PHONE_ID: str = ""
+    
+    # Twilio (Legacy/Optional)
     TWILIO_ACCOUNT_SID: str = ""
     TWILIO_AUTH_TOKEN: str = ""
     TWILIO_FROM_NUMBER: str = ""
@@ -100,7 +110,7 @@ class Settings(BaseSettings):
     # ==========================================================
     # Admin diagnostics
     # ==========================================================
-    ADMIN_API_KEY: str = "change_me_admin_api_key"
+    ADMIN_API_KEY: str = ""
 
     # ==========================================================
     # Background Jobs
