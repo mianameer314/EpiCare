@@ -102,7 +102,17 @@ openapi_tags = [
 app = FastAPI(
     title=settings.APP_NAME,
     version="0.1.0",
-    description="Epilepsy EEG analysis, AI reports, and daily management API.",
+    description="""
+**EpiCare AI** is a robust and comprehensive platform designed to manage and analyze epilepsy-related data, facilitating seamless interactions between patients, doctors, and caretakers.
+
+### Core Features
+- **User Management**: Unified profiles tailored for Patients, Doctors, and Caretakers.
+- **Role-Based Authentication**: Secure access control with PMDC verification for doctors.
+- **Connection System**: Connect patients with verified medical professionals and trusted caretakers.
+- **AI-Driven EEG Analysis**: Upload EEG sessions, process signals, and receive detailed AI-generated seizure prediction reports.
+
+This API adheres strictly to REST principles, delivering standardized responses and explicit HTTP status codes to ensure a reliable developer experience.
+""",
     lifespan=lifespan,
     openapi_tags=openapi_tags,
 )
