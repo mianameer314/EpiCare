@@ -3,7 +3,7 @@ from typing import Optional
 
 from pydantic import Field
 
-from app.schemas.base import StrictDatetime, StrictModel
+from app.schemas.base import StrictDatetime, StrictModel, StrictDate
 
 
 # ------------------------------------------------------------------
@@ -11,7 +11,7 @@ from app.schemas.base import StrictDatetime, StrictModel
 # ------------------------------------------------------------------
 
 class PatientProfileCreate(StrictModel):
-    date_of_birth: date
+    date_of_birth: StrictDate
     gender: Optional[str] = Field(None, max_length=30)
     blood_type: Optional[str] = Field(None, max_length=10)
     city: Optional[str] = Field(None, max_length=100)
@@ -25,7 +25,7 @@ class PatientProfileCreate(StrictModel):
 
 
 class PatientProfileUpdate(StrictModel):
-    date_of_birth: Optional[date] = None
+    date_of_birth: Optional[StrictDate] = None
     gender: Optional[str] = Field(None, max_length=30)
     blood_type: Optional[str] = Field(None, max_length=10)
     city: Optional[str] = Field(None, max_length=100)
@@ -41,7 +41,7 @@ class PatientProfileUpdate(StrictModel):
 class PatientProfileOut(StrictModel):
     id: int
     user_id: int
-    date_of_birth: date
+    date_of_birth: StrictDate
     gender: Optional[str] = None
     blood_type: Optional[str] = None
     city: Optional[str] = None

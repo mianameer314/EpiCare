@@ -51,7 +51,7 @@ async def get_dashboard_stats(db: DbDep, current_user: User = PatientUser):
     seizure_count_query = await db.execute(
         select(func.count(Prediction.id))
         .join(EegSession, Prediction.session_id == EegSession.id)
-        .where(Prediction.predicted_class_idx == 1)
+        .where(Prediction.predicted_class == "seizure")
         .where(EegSession.user_id == current_user.id)
         .where(EegSession.created_at >= thirty_days_ago)
     )

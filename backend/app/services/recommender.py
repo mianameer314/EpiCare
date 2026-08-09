@@ -62,10 +62,10 @@ async def get_daily_recommendations(user_id: int, db: AsyncSession) -> list[str]
 
     # 3. Trigger Analysis
     trigger_query = await db.execute(
-        select(TriggerLog.trigger_type, func.count(TriggerLog.id))
+        select(TriggerLog.trigger_name, func.count(TriggerLog.id))
         .where(TriggerLog.user_id == user_id)
         .where(TriggerLog.occurred_at >= seven_days_ago)
-        .group_by(TriggerLog.trigger_type)
+        .group_by(TriggerLog.trigger_name)
         .order_by(func.count(TriggerLog.id).desc())
     )
     triggers = trigger_query.all()
