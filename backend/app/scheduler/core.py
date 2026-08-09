@@ -134,19 +134,87 @@ def get_scheduler() -> AppScheduler:
 # ------------------------------------------------------------------
 
 async def medication_reminder_job() -> None:
-    """Send pending medication reminders. Implemented by the notification layer."""
-    logger.info("medication_reminder_job executed", extra={"at": datetime.now(timezone.utc).isoformat()})
+    """Send pending medication reminders."""
+    from app.db.session import SessionLocal
+    from app.models.medication import MedicationSchedule, Medication
+    from app.models.user import User
+    from app.services.notification import dispatch_notification
+
+    now = datetime.now(timezone.utc)
+    current_time = now.time().replace(second=0, microsecond=0)
+    current_day = now.strftime("%A").upper()
+
+    async with SessionLocal() as db:
+        # Find all active schedules due right now
+        result = await db.execute(
+            select(MedicationSchedule, Medication, User)
+            .join(Medication, MedicationSchedule.medication_id == Medication.id)
+            .join(User, Medication.user_id == User.id)
+            .where(MedicationSchedule.reminder_enabled == True)
+            .where(Medication.is_active == True)
+        )
+        rows = result.all()
+
+        for schedule, med, user in rows:
+            # Match time
+            sched_time = schedule.scheduled_time.replace(second=0, microsecond=0)
+            if sched_time != current_time:
+                continue
+
+            # Match day
+            if schedule.days_of_week and current_day not in schedule.days_of_week:
+                continue
+
+            # Dispatch
+            message = f"Reminder: It's time to take your medication '{med.name}' (Dose: {med.dosage})."
+            await dispatch_notification(user, "Medication Reminder", message)
+
+        logger.info("medication_reminder_job executed", extra={"at": now.isoformat()})
 
 
 async def missed_med_detection_job() -> None:
     """Detect missed doses and log MISSED entries for adherence rollups."""
     from app.db.session import SessionLocal
-    from app.models.medication import MedicationLog
+    from app.models.medication import MedicationSchedule, MedicationLog, Medication
+    from sqlalchemy import and_, not_, exists
+    
+    yesterday = datetime.now(timezone.utc) - timedelta(days=1)
+    yesterday_date = yesterday.date()
+    yesterday_day = yesterday.strftime("%A").upper()
 
     async with SessionLocal() as db:
-        # Placeholder-free baseline: count today's logs so the job is observable
-        from sqlalchemy import func
-
-        result = await db.execute(select(func.count(MedicationLog.id)))
-        count = result.scalar_one()
-        logger.info("missed_med_detection_job executed", extra={"logs_today": count})
+        # Find schedules active yesterday without a log
+        result = await db.execute(
+            select(MedicationSchedule)
+            .join(Medication, MedicationSchedule.medication_id == Medication.id)
+            .where(Medication.is_active == True)
+            .where(
+                not_(
+                    exists().where(
+                        and_(
+                            MedicationLog.schedule_id == MedicationSchedule.id,
+                            func.date(MedicationLog.taken_at) == yesterday_date
+                        )
+                    )
+                )
+            )
+        )
+        missing_schedules = result.scalars().all()
+        
+        missed_count = 0
+        for schedule in missing_schedules:
+            if schedule.days_of_week and yesterday_day not in schedule.days_of_week:
+                continue
+            
+            missed_log = MedicationLog(
+                schedule_id=schedule.id,
+                medication_id=schedule.medication_id,
+                user_id=schedule.medication.user_id,
+                taken_at=datetime.combine(yesterday_date, schedule.scheduled_time).replace(tzinfo=timezone.utc),
+                status="MISSED",
+            )
+            db.add(missed_log)
+            missed_count += 1
+            
+        await db.commit()
+        logger.info("missed_med_detection_job executed", extra={"missed_logs_inserted": missed_count})

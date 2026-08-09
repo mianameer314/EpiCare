@@ -51,5 +51,6 @@ apscheduler
 pytest
 pytest-asyncio
 
+firebase-admin
 
 

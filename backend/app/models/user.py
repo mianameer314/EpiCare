@@ -23,6 +23,7 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     phone_number: Mapped[str | None] = mapped_column(String(30), unique=True, index=True, nullable=True)
+    fcm_token: Mapped[str | None] = mapped_column(String(255), nullable=True)
     full_name: Mapped[str] = mapped_column(String(150), nullable=False)
     
     role: Mapped[UserRole] = mapped_column(Enum(UserRole, name="user_role_enum", create_type=False), default=UserRole.PATIENT, nullable=False)

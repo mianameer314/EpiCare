@@ -24,7 +24,19 @@ class DashboardStatsOut(StrictModel):
     recommendations: list[str]
 
 
-@router.get("", response_model=DashboardStatsOut)
+@router.get(
+    "",
+    response_model=DashboardStatsOut,
+    summary="Get Patient Dashboard Analytics",
+    description=(
+        "Retrieves the aggregated health analytics for the authenticated patient "
+        "over the **past 30 days**. This includes total seizures detected, average "
+        "daily sleep hours, and medication adherence percentages. It also calculates "
+        "and returns real-time, personalized recommendations based on the patient's "
+        "recent lifestyle logs."
+    ),
+    response_description="A JSON object containing the dashboard statistics and recommendations."
+)
 async def get_dashboard_stats(db: DbDep, current_user: User = PatientUser):
     """
     Get aggregated dashboard stats for the past 30 days.

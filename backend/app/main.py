@@ -22,6 +22,7 @@ from app.api.v1 import (
     medications,
     lifestyle,
     dashboard,
+    seizures,
 )
 from app.core.config import settings
 from app.core.exceptions import register_exception_handlers
@@ -81,6 +82,30 @@ openapi_tags = [
         "description": "Operations for user registration, login, and token management.",
     },
     {
+        "name": "Patient Dashboard",
+        "description": "Aggregated analytics and AI-driven recommendations for patients.",
+    },
+    {
+        "name": "Emergency SOS",
+        "description": "Manage emergency contacts and trigger instant SOS alerts via multi-channel providers.",
+    },
+    {
+        "name": "Manual Seizure Logs",
+        "description": "Log seizures manually if they occur while not wearing an EEG device.",
+    },
+    {
+        "name": "Medications",
+        "description": "Prescription logging, scheduling, and adherence tracking.",
+    },
+    {
+        "name": "Lifestyle & Diary",
+        "description": "Log daily sleep, triggers, and stress levels for personalized AI insights.",
+    },
+    {
+        "name": "EEG Analysis",
+        "description": "Endpoints for EEG file upload, session lifecycle tracking, and AI-driven seizure analysis.",
+    },
+    {
         "name": "Patient Management",
         "description": "Operations for managing patient profiles.",
     },
@@ -95,10 +120,6 @@ openapi_tags = [
     {
         "name": "Connections",
         "description": "Manage relationships and connection requests between patients, doctors, and caretakers.",
-    },
-    {
-        "name": "EEG Analysis",
-        "description": "Endpoints for EEG file upload, session lifecycle tracking, and AI-driven seizure analysis.",
     },
     {
         "name": "System Health & Status",
@@ -121,6 +142,9 @@ app = FastAPI(
 - **Role-Based Authentication**: Secure access control with PMDC verification for doctors.
 - **Connection System**: Connect patients with verified medical professionals and trusted caretakers.
 - **AI-Driven EEG Analysis**: Upload EEG sessions, process signals, and receive detailed AI-generated seizure prediction reports.
+- **Personalized Dashboard**: Get real-time heuristic recommendations based on daily habits.
+- **Lifestyle & Medication Tracking**: Log sleep, stress, triggers, and medications with adherence algorithms.
+- **Emergency SOS**: Instantly dispatch multi-channel (Firebase/WhatsApp/Email) SOS alerts to configured contacts.
 
 This API adheres strictly to REST principles, delivering standardized responses and explicit HTTP status codes to ensure a reliable developer experience.
 """,
@@ -155,6 +179,7 @@ app.include_router(emergency.router, prefix=api_prefix)
 app.include_router(medications.router, prefix=api_prefix)
 app.include_router(lifestyle.router, prefix=api_prefix)
 app.include_router(dashboard.router, prefix=api_prefix)
+app.include_router(seizures.router, prefix=api_prefix)
 
 
 @app.get("/", include_in_schema=False)

@@ -55,3 +55,23 @@ async def send_verification_email(email: EmailStr, otp: str, user_name: str) -> 
         logger.error(f"Failed to send verification email to {email}: {str(e)}")
         # We don't raise the exception here because we don't want to fail the registration
         # entirely if the email fails to send. The user can request a new OTP later.
+
+
+async def send_email(to_email: str, subject: str, html_content: str) -> None:
+    """Send a generic HTML email."""
+    if not settings.MAIL_USERNAME or not settings.MAIL_PASSWORD:
+        logger.warning(f"Email settings unconfigured. Suppressed email to {to_email} with subject {subject}")
+        return
+
+    message = MessageSchema(
+        subject=subject,
+        recipients=[to_email],
+        body=html_content,
+        subtype=MessageType.html,
+    )
+
+    try:
+        await fast_mail.send_message(message)
+        logger.info(f"Email sent to {to_email}")
+    except Exception as e:
+        logger.error(f"Failed to send email to {to_email}: {str(e)}")

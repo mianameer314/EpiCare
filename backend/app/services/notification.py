@@ -3,6 +3,9 @@ Notification Service — handles dispatching alerts/reminders to patients.
 Prioritizes Firebase/WhatsApp with a strict fallback to Email.
 """
 import logging
+import httpx
+from firebase_admin import messaging
+from firebase_admin.exceptions import FirebaseError
 from app.models.user import User
 from app.core.config import settings
 from app.services.email import send_email
@@ -18,23 +21,47 @@ async def dispatch_notification(user: User, subject: str, message: str) -> str:
     """
     
     # 1. Firebase Cloud Messaging (Push Notifications)
-    if settings.FIREBASE_CREDENTIALS_PATH:
-        # In a real production scenario, the `User` model would have a joined table
-        # of `fcm_tokens`. If the token exists, we dispatch the push.
-        # Since the schema currently lacks `fcm_tokens`, we assume no token and fallback.
-        logger.info(f"Checking Firebase FCM tokens for user {user.id}...")
-        pass # Fallthrough if no token found
+    if settings.FIREBASE_CREDENTIALS_PATH and user.fcm_token:
+        logger.info(f"Dispatching Firebase push notification to user {user.id}")
+        try:
+            msg = messaging.Message(
+                notification=messaging.Notification(
+                    title=subject,
+                    body=message,
+                ),
+                token=user.fcm_token,
+            )
+            response = messaging.send(msg)
+            logger.info(f"Successfully sent Firebase message: {response}")
+            return "SENT_FIREBASE"
+        except FirebaseError as e:
+            logger.error(f"Firebase dispatch failed for user {user.id}: {str(e)}")
+            # Fall through to secondary channels
 
     # 2. WhatsApp Business API
     if settings.WHATSAPP_TOKEN and settings.WHATSAPP_PHONE_ID and user.phone_number:
         logger.info(f"Dispatching WhatsApp message to {user.phone_number}")
-        # Real production implementation would use HTTPX to POST to WhatsApp Graph API
-        # Example:
-        # async with httpx.AsyncClient() as client:
-        #     await client.post(f"https://graph.facebook.com/v17.0/{settings.WHATSAPP_PHONE_ID}/messages", ...)
-        
-        # We simulate the HTTP call success here to avoid blocking execution without network
-        return "SENT_WHATSAPP"
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    f"https://graph.facebook.com/v17.0/{settings.WHATSAPP_PHONE_ID}/messages",
+                    headers={
+                        "Authorization": f"Bearer {settings.WHATSAPP_TOKEN}",
+                        "Content-Type": "application/json"
+                    },
+                    json={
+                        "messaging_product": "whatsapp",
+                        "to": user.phone_number,
+                        "type": "text",
+                        "text": {"body": f"{subject}\n\n{message}"}
+                    },
+                    timeout=10.0
+                )
+                response.raise_for_status()
+                return "SENT_WHATSAPP"
+        except httpx.HTTPError as e:
+            logger.error(f"WhatsApp dispatch failed for {user.phone_number}: {str(e)}")
+            # Fall through to email
 
     # 3. Fallback: Email
     logger.info(f"Falling back to Email for user {user.id}")

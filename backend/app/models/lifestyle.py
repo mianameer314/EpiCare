@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, func
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.session import Base
@@ -23,8 +24,9 @@ class LifestyleLog(TimestampMixin, Base):
     )
     log_type: Mapped[str] = mapped_column(
         String(20), nullable=False, index=True
-    )  # SLEEP | TRIGGER | STRESS
+    )  # STRESS | MENSTRUATION | DIET | ILLNESS | MED_SIDE_EFFECT
     occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    metadata_dict: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     user: Mapped["User"] = relationship()

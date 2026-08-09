@@ -32,6 +32,47 @@ class StressLogCreate(StrictModel):
     notes: str | None = None
 
 
+class MenstruationLogCreate(StrictModel):
+    """Request body for a menstruation cycle log."""
+    occurred_at: StrictDatetime
+    flow_intensity: str = Field(..., description="e.g., Light, Medium, Heavy")
+    notes: str | None = None
+
+
+class DietLogCreate(StrictModel):
+    """Request body for diet and alcohol intake log."""
+    occurred_at: StrictDatetime
+    keto_compliant: bool | None = None
+    alcohol_units: int | None = Field(None, ge=0)
+    notes: str | None = None
+
+
+class IllnessLogCreate(StrictModel):
+    """Request body for an illness or fever log."""
+    occurred_at: StrictDatetime
+    temperature_f: float | None = Field(None, description="Body temperature in Fahrenheit")
+    illness_type: str | None = Field(None, description="e.g., Flu, Cold, Infection")
+    notes: str | None = None
+
+
+class MedSideEffectLogCreate(StrictModel):
+    """Request body for medication side effect logging."""
+    occurred_at: StrictDatetime
+    medication_name: str
+    severity: int = Field(1, ge=1, le=5)
+    symptom: str = Field(..., description="e.g., Dizziness, Fatigue, Nausea")
+    notes: str | None = None
+
+
+class ScreenTimeLogCreate(StrictModel):
+    """Request body for screen time logging."""
+    occurred_at: StrictDatetime
+    duration_hours: int = Field(0, ge=0, description="Hours of screen time")
+    duration_minutes: int = Field(0, ge=0, le=59, description="Minutes of screen time")
+    device_type: str | None = Field(None, description="e.g., Phone, Computer, TV")
+    notes: str | None = None
+
+
 class LifestyleSummaryOut(StrictModel):
     """Aggregated lifestyle summary for the dashboard."""
 
@@ -67,6 +108,7 @@ class LifestyleLogOut(StrictModel):
     user_id: int
     log_type: str
     occurred_at: StrictDatetime
+    metadata_dict: dict | None = None
     notes: str | None
     created_at: StrictDatetime
     updated_at: StrictDatetime

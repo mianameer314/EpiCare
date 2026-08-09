@@ -21,24 +21,35 @@ router = APIRouter(prefix="/emergency", tags=["Emergency SOS"])
 PatientUser = Depends(RoleChecker([UserRole.PATIENT]))
 
 
-@router.get("/contacts", response_model=List[EmergencyContactOut])
+@router.get(
+    "/contacts",
+    response_model=List[EmergencyContactOut],
+    summary="List Emergency Contacts",
+    description="Retrieves the list of configured emergency contacts for the authenticated patient.",
+    response_description="A list of emergency contact objects."
+)
 async def get_emergency_contacts(
     db: DbDep, current_user: User = PatientUser
 ):
-    """Get all emergency contacts for the current patient."""
     result = await db.execute(
         select(EmergencyContact).where(EmergencyContact.user_id == current_user.id)
     )
     return result.scalars().all()
 
 
-@router.post("/contacts", response_model=EmergencyContactOut, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/contacts",
+    response_model=EmergencyContactOut,
+    status_code=status.HTTP_201_CREATED,
+    summary="Add Emergency Contact",
+    description="Adds a new emergency contact for the authenticated patient. A maximum of 3 emergency contacts are permitted per patient.",
+    response_description="The newly created emergency contact object."
+)
 async def add_emergency_contact(
     contact_in: EmergencyContactCreate,
     db: DbDep,
     current_user: User = PatientUser,
 ):
-    """Add a new emergency contact (Maximum 3)."""
     # Check current count
     result = await db.execute(
         select(EmergencyContact).where(EmergencyContact.user_id == current_user.id)
@@ -99,17 +110,24 @@ async def process_sos_in_background(db: AsyncSession, event_id: int, user_id: in
     await db.commit()
 
 
-@router.post("/sos/trigger", response_model=SosEventCreateResponse)
+@router.post(
+    "/sos/trigger",
+    response_model=SosEventCreateResponse,
+    summary="Trigger Emergency SOS",
+    description=(
+        "Triggers an immediate Emergency SOS alert. This logs the event along with "
+        "the patient's current GPS coordinates (if available) and instantly dispatches "
+        "asynchronous background tasks to notify all registered emergency contacts via "
+        "the configured provider (e.g., WhatsApp, Email)."
+    ),
+    response_description="An object acknowledging the trigger with the SOS event ID."
+)
 async def trigger_sos(
     request: SosTriggerRequest,
     background_tasks: BackgroundTasks,
     db: DbDep,
     current_user: User = PatientUser,
 ):
-    """
-    Trigger an Emergency SOS.
-    Logs the event with GPS coordinates and dispatches alerts in the background.
-    """
     event = SosEvent(
         user_id=current_user.id,
         latitude=request.latitude,

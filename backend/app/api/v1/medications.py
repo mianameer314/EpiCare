@@ -22,22 +22,36 @@ router = APIRouter(prefix="/medications", tags=["Medications"])
 PatientUser = Depends(RoleChecker([UserRole.PATIENT]))
 
 
-@router.get("", response_model=List[MedicationOut])
+@router.get(
+    "",
+    response_model=List[MedicationOut],
+    summary="List Patient Medications",
+    description="Fetches a list of all medication prescriptions registered to the authenticated patient.",
+    response_description="A list of medication objects."
+)
 async def get_medications(db: DbDep, current_user: User = PatientUser):
-    """Get all medications for the current patient."""
     result = await db.execute(
         select(Medication).where(Medication.user_id == current_user.id)
     )
     return result.scalars().all()
 
 
-@router.post("", response_model=MedicationOut, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=MedicationOut,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create Medication Prescription",
+    description=(
+        "Registers a new medication prescription for the patient. Includes "
+        "details like dosage, frequency, and start date. Used for tracking adherence."
+    ),
+    response_description="The newly registered medication prescription."
+)
 async def create_medication(
     med_in: MedicationCreate,
     db: DbDep,
     current_user: User = PatientUser,
 ):
-    """Create a new medication prescription."""
     new_med = Medication(
         user_id=current_user.id,
         name=med_in.name,
@@ -53,9 +67,14 @@ async def create_medication(
     return new_med
 
 
-@router.get("/{med_id}/schedules", response_model=List[MedicationScheduleOut])
+@router.get(
+    "/{med_id}/schedules",
+    response_model=List[MedicationScheduleOut],
+    summary="List Medication Schedules",
+    description="Retrieves all scheduled intake times for a specific medication.",
+    response_description="A list of medication schedules."
+)
 async def get_schedules(med_id: int, db: DbDep, current_user: User = PatientUser):
-    """Get all schedules for a specific medication."""
     # Ensure medication belongs to user
     med_result = await db.execute(
         select(Medication).where(
@@ -71,14 +90,24 @@ async def get_schedules(med_id: int, db: DbDep, current_user: User = PatientUser
     return sched_result.scalars().all()
 
 
-@router.post("/{med_id}/schedules", response_model=MedicationScheduleOut, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/{med_id}/schedules",
+    response_model=MedicationScheduleOut,
+    status_code=status.HTTP_201_CREATED,
+    summary="Add Medication Schedule",
+    description=(
+        "Adds a specific intake schedule (time and days) for a medication. "
+        "If reminders are enabled, background jobs will automatically notify "
+        "the patient when it is time to take this dose."
+    ),
+    response_description="The newly created schedule object."
+)
 async def create_schedule(
     med_id: int,
     sched_in: MedicationScheduleCreate,
     db: DbDep,
     current_user: User = PatientUser,
 ):
-    """Add a schedule time for a medication."""
     # Ensure medication belongs to user
     med_result = await db.execute(
         select(Medication).where(
@@ -100,14 +129,24 @@ async def create_schedule(
     return new_sched
 
 
-@router.post("/{med_id}/log", response_model=MedicationLogOut, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/{med_id}/log",
+    response_model=MedicationLogOut,
+    status_code=status.HTTP_201_CREATED,
+    summary="Log Medication Intake",
+    description=(
+        "Manually logs a medication dose as TAKEN, MISSED, or SKIPPED. "
+        "These logs are analyzed by the Recommender service to calculate "
+        "adherence scores."
+    ),
+    response_description="The medication log entry."
+)
 async def log_medication(
     med_id: int,
     log_in: MedicationLogCreate,
     db: DbDep,
     current_user: User = PatientUser,
 ):
-    """Log a medication dose as TAKEN, MISSED, or SKIPPED."""
     # Ensure medication belongs to user
     med_result = await db.execute(
         select(Medication).where(

@@ -18,6 +18,7 @@ from app.models.chat import ChatSession, ChatMessage
 from app.models.rag import RagDocument, RagChunk
 from app.models.model_version import ModelVersion
 from app.models.audit_log import AuditLog
+from app.models.seizure import ManualSeizureLog
 
 __all__ = [
     "User",
@@ -45,4 +46,5 @@ __all__ = [
     "RagChunk",
     "ModelVersion",
     "AuditLog",
+    "ManualSeizureLog",
 ]
