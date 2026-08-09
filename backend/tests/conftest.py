@@ -84,6 +84,17 @@ async def db(_prepare_database) -> AsyncGenerator:
 
 
 # ---------- Dependency overrides ----------
+@pytest.fixture(autouse=True)
+def mock_email_service(monkeypatch):
+    """Prevent tests from sending real emails by mocking the email service."""
+    async def mock_send_email(*args, **kwargs):
+        pass
+        
+    monkeypatch.setattr("app.services.email.send_verification_email", mock_send_email)
+    
+    # Also mock rate limiter
+    pass
+
 @pytest.fixture(scope="session")
 def _apply_overrides() -> Generator[None, None, None]:
     """Wire FastAPI dependency overrides for tests that use the HTTP client."""

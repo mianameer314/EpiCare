@@ -16,6 +16,7 @@ from app.core.security import decode_token
 from app.db.session import get_db
 from app.middleware.request_context import request_id_var
 from app.models.user import User
+from app.models.enums import UserRole
 
 # ---------- Security Scheme ----------
 
@@ -107,6 +108,7 @@ class RoleChecker:
         self.allowed_roles = allowed_roles
 
     def __call__(self, user: CurrentUser) -> User:
+        print(f"DEBUG: user.role='{user.role}' ({type(user.role)}), allowed_roles='{self.allowed_roles}' ([{type(self.allowed_roles[0])}])")
         if user.role not in self.allowed_roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -115,7 +117,7 @@ class RoleChecker:
         return user
 
 
-async def get_verified_doctor(user: Annotated[User, Depends(RoleChecker(["DOCTOR"]))], db: DbDep) -> User:
+async def get_verified_doctor(user: Annotated[User, Depends(RoleChecker([UserRole.DOCTOR]))], db: DbDep) -> User:
     """Ensure the doctor has been PMDC verified by admin."""
     from app.models.doctor_profile import DoctorProfile
     

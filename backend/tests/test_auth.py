@@ -214,7 +214,7 @@ def test_verify_otp(client: TestClient) -> None:
     
     # Verify the OTP
     verify_response = client.post(
-        "/api/v1/auth/verify-otp",
+        "/api/v1/auth/verify-email",
         json={"email": "otp_test@example.com", "otp": otp},
     )
     assert verify_response.status_code == 200

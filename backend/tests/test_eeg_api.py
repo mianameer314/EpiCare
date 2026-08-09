@@ -12,12 +12,30 @@ from fastapi.testclient import TestClient
 
 
 def _auth(client: TestClient, email: str | None = None) -> dict[str, str]:
+    import asyncio
+    from app.db.session import TestSessionLocal
+    from app.models.user import User
+    from sqlalchemy import select
+    import uuid
+    
     email = email or f"eeg-{uuid4().hex[:12]}@example.com"
+    unique_phone = f"+923{str(uuid.uuid4().int)[:9]}"
+    
     response = client.post(
         "/api/v1/auth/register",
-        json={"email": email, "password": "supersecret123", "full_name": "EEG User"},
+        json={"email": email, "password": "supersecret123", "full_name": "EEG User", "phone_number": unique_phone, "role": "PATIENT"},
     )
     assert response.status_code == 201, response.text
+    
+    async def verify_user():
+        async with TestSessionLocal() as session:
+            result = await session.execute(select(User).where(User.email == email))
+            user = result.scalar_one()
+            user.is_email_verified = True
+            await session.commit()
+            
+    asyncio.run(verify_user())
+    
     login = client.post(
         "/api/v1/auth/login",
         json={"email": email, "password": "supersecret123"},

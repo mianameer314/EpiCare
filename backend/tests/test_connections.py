@@ -96,5 +96,5 @@ def test_doctor_search_and_request_connection(client: TestClient) -> None:
         f"/api/v1/connections/doctors/approve/{conn_id}",
         headers=doctor_headers
     )
-    assert app_response.status_code == 200
+    assert app_response.status_code == 200, app_response.text
     assert app_response.json()["relationship_status"] == "ACTIVE"

@@ -112,7 +112,7 @@ async def request_connection(
 async def approve_connection(
     connection_id: int, 
     db: DbDep, 
-    current_user: User = Depends(VerifiedDoctor)
+    current_user: VerifiedDoctor
 ):
     """Doctor approves a pending connection request."""
     # Get doctor profile
