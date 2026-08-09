@@ -64,11 +64,47 @@ async def lifespan(app: FastAPI):
     await engine.dispose()
 
 
+openapi_tags = [
+    {
+        "name": "Authentication",
+        "description": "Operations for user registration, login, and token management.",
+    },
+    {
+        "name": "Patient Management",
+        "description": "Operations for managing patient profiles.",
+    },
+    {
+        "name": "Doctor Management",
+        "description": "Operations for managing doctor profiles and PMDC verification.",
+    },
+    {
+        "name": "Caretaker Management",
+        "description": "Operations for managing caretaker profiles.",
+    },
+    {
+        "name": "Connections",
+        "description": "Manage relationships and connection requests between patients, doctors, and caretakers.",
+    },
+    {
+        "name": "EEG Analysis",
+        "description": "Endpoints for EEG file upload, session lifecycle tracking, and AI-driven seizure analysis.",
+    },
+    {
+        "name": "System Health & Status",
+        "description": "Public system status and health checks.",
+    },
+    {
+        "name": "Admin",
+        "description": "Administrative actions and secure system diagnostics.",
+    },
+]
+
 app = FastAPI(
     title=settings.APP_NAME,
     version="0.1.0",
     description="Epilepsy EEG analysis, AI reports, and daily management API.",
     lifespan=lifespan,
+    openapi_tags=openapi_tags,
 )
 
 # ---------- Middleware (order matters: context -> security -> twilio) ----------

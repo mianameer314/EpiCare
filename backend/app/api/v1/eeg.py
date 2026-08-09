@@ -24,6 +24,13 @@ router = APIRouter(prefix="/eeg", tags=["EEG Analysis"])
     response_model=EegSessionOut,
     status_code=201,
     dependencies=[Depends(UPLOAD_LIMIT)],
+    summary="Upload EEG recording",
+    description="Upload an EEG file (EDF/CSV format) to create a new analysis session. Returns the created session details. Rate limits apply.",
+    responses={
+        400: {"description": "Bad Request - Invalid file format or file too large"},
+        401: {"description": "Unauthorized"},
+        429: {"description": "Too Many Requests - Upload rate limit exceeded"},
+    },
 )
 async def upload_eeg(
     current_user: CurrentUser,
@@ -35,7 +42,15 @@ async def upload_eeg(
     return await session_service.create_upload_session(db, current_user, file)
 
 
-@router.get("/sessions", response_model=EegSessionList)
+@router.get(
+    "/sessions",
+    response_model=EegSessionList,
+    summary="List EEG sessions",
+    description="Retrieve a paginated list of all EEG sessions uploaded by the current authenticated user.",
+    responses={
+        401: {"description": "Unauthorized"},
+    },
+)
 async def list_eeg_sessions(
     current_user: CurrentUser,
     db: DbDep,
@@ -54,7 +69,16 @@ async def list_eeg_sessions(
     )
 
 
-@router.get("/sessions/{session_id}", response_model=EegSessionOut)
+@router.get(
+    "/sessions/{session_id}",
+    response_model=EegSessionOut,
+    summary="Get session details",
+    description="Retrieve the details, validation result, and status pipeline for a single EEG session.",
+    responses={
+        401: {"description": "Unauthorized"},
+        404: {"description": "Not Found - Session does not exist or belongs to another user"},
+    },
+)
 async def get_eeg_session(
     session_id: int,
     current_user: CurrentUser,
@@ -67,7 +91,18 @@ async def get_eeg_session(
     return session
 
 
-@router.post("/sessions/{session_id}/analyze", response_model=PredictionOut)
+@router.post(
+    "/sessions/{session_id}/analyze",
+    response_model=PredictionOut,
+    summary="Analyze EEG session",
+    description="Trigger the full AI analysis pipeline for the given session (validation, preprocessing, inference) and return the generated seizure prediction report.",
+    responses={
+        400: {"description": "Bad Request - Session already analyzed, or file invalid"},
+        401: {"description": "Unauthorized"},
+        404: {"description": "Not Found - Session does not exist or belongs to another user"},
+        500: {"description": "Internal Server Error - ML pipeline failed"},
+    },
+)
 async def analyze_eeg_session(
     session_id: int,
     current_user: CurrentUser,
@@ -77,7 +112,16 @@ async def analyze_eeg_session(
     return await session_service.analyze_session(db, current_user, session_id)
 
 
-@router.get("/sessions/{session_id}/spectrogram")
+@router.get(
+    "/sessions/{session_id}/spectrogram",
+    summary="Get session spectrogram",
+    description="Download or serve the generated spectrogram PNG image for a processed EEG session.",
+    responses={
+        200: {"description": "Successful Response - Returns an image/png file", "content": {"image/png": {}}},
+        401: {"description": "Unauthorized"},
+        404: {"description": "Not Found - Session or spectrogram does not exist"},
+    },
+)
 async def get_session_spectrogram(
     session_id: int,
     current_user: CurrentUser,
@@ -102,7 +146,16 @@ async def get_session_spectrogram(
     raise not_found_error("Spectrogram")
 
 
-@router.get("/sessions/{session_id}/prediction", response_model=PredictionOut)
+@router.get(
+    "/sessions/{session_id}/prediction",
+    response_model=PredictionOut,
+    summary="Get session prediction",
+    description="Retrieve the latest seizure prediction and AI report associated with an analyzed session.",
+    responses={
+        401: {"description": "Unauthorized"},
+        404: {"description": "Not Found - Session or prediction does not exist"},
+    },
+)
 async def get_session_prediction(
     session_id: int,
     current_user: CurrentUser,

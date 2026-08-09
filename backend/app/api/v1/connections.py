@@ -1,7 +1,9 @@
+"""
+Connections routes — managing patient-doctor and patient-caretaker relationships (async).
+"""
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
-from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 from pydantic import BaseModel
 
@@ -34,7 +36,16 @@ class ConnectionResponse(BaseModel):
     relationship_status: ConnectionStatus
 
 
-@router.get("/doctors/search", response_model=List[DoctorSearchResponse])
+@router.get(
+    "/doctors/search",
+    response_model=List[DoctorSearchResponse],
+    summary="Search verified doctors",
+    description="Search for a PMDC-verified doctor by their PMDC number. Only patients can search for doctors.",
+    responses={
+        401: {"description": "Unauthorized"},
+        403: {"description": "Forbidden - Only patients can search for doctors"},
+    },
+)
 async def search_doctors(pmdc_number: str, db: DbDep, current_user: User = Depends(RoleChecker([UserRole.PATIENT]))):
     """Search for a verified doctor by their PMDC number."""
     query = (
@@ -59,7 +70,18 @@ async def search_doctors(pmdc_number: str, db: DbDep, current_user: User = Depen
     ]
 
 
-@router.post("/doctors/request", response_model=ConnectionResponse)
+@router.post(
+    "/doctors/request",
+    response_model=ConnectionResponse,
+    summary="Request doctor connection",
+    description="Patient sends a connection request to a doctor. A patient can only have one active/pending connection with a specific doctor.",
+    responses={
+        400: {"description": "Bad Request - Connection already exists or is pending"},
+        401: {"description": "Unauthorized"},
+        403: {"description": "Forbidden - Only patients can request doctor connections"},
+        404: {"description": "Not Found - Patient profile or doctor not found"},
+    },
+)
 async def request_connection(
     data: ConnectionRequest, 
     db: DbDep, 
@@ -108,7 +130,18 @@ async def request_connection(
     return network
 
 
-@router.post("/doctors/approve/{connection_id}", response_model=ConnectionResponse)
+@router.post(
+    "/doctors/approve/{connection_id}",
+    response_model=ConnectionResponse,
+    summary="Approve connection request",
+    description="A PMDC-verified doctor approves a pending connection request from a patient.",
+    responses={
+        400: {"description": "Bad Request - Connection is not in pending status"},
+        401: {"description": "Unauthorized"},
+        403: {"description": "Forbidden - Only verified doctors can approve connections"},
+        404: {"description": "Not Found - Connection request not found"},
+    },
+)
 async def approve_connection(
     connection_id: int, 
     db: DbDep, 
