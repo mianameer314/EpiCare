@@ -150,6 +150,9 @@ def auth_headers(client) -> dict:
         from app.db.session import TestSessionLocal
         from app.models.user import User
         from sqlalchemy import select
+        import uuid
+        
+        unique_phone = f"+923{str(uuid.uuid4().int)[:9]}"
         
         response = client.post(
             "/api/v1/auth/register",
@@ -157,7 +160,7 @@ def auth_headers(client) -> dict:
                 "email": email,
                 "password": "supersecret123",
                 "full_name": "Test User",
-                "phone_number": "+923000000000",
+                "phone_number": unique_phone,
                 "role": "PATIENT"
             },
         )

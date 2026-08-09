@@ -4,10 +4,13 @@ Auth endpoint tests — register, login, refresh, me (async stack via TestClient
 from fastapi.testclient import TestClient
 
 
+import uuid
+
 def _register(client: TestClient, email: str = "auth@example.com") -> dict:
+    unique_phone = f"+923{str(uuid.uuid4().int)[:9]}"
     response = client.post(
         "/api/v1/auth/register",
-        json={"email": email, "password": "supersecret123", "full_name": "Auth User", "phone_number": "+923000000001", "role": "PATIENT"},
+        json={"email": email, "password": "supersecret123", "full_name": "Auth User", "phone_number": unique_phone, "role": "PATIENT"},
     )
     assert response.status_code == 201, response.text
     return response.json()
@@ -197,14 +200,14 @@ def test_verify_otp(client: TestClient) -> None:
     from app.db.session import TestSessionLocal
     from app.models.user import User
     from sqlalchemy import select
-    from app.core.security import get_password_hash
+    from app.core.security import hash_password
     
     otp = "123456"
     async def get_otp():
         async with TestSessionLocal() as session:
             result = await session.execute(select(User).where(User.email == "otp_test@example.com"))
             user = result.scalar_one()
-            user.otp_secret_hash = get_password_hash(otp)
+            user.otp_secret_hash = hash_password(otp)
             await session.commit()
             
     asyncio.run(get_otp())
