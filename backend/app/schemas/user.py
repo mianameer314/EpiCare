@@ -1,4 +1,4 @@
-﻿"""
+"""
 User schemas — authentication, registration, and profile management.
 """
 from datetime import datetime
@@ -53,6 +53,23 @@ class ChangePasswordRequest(StrictModel):
 
 
 # ------------------------------------------------------------------
+# Email Verification (OTP)
+# ------------------------------------------------------------------
+
+class VerifyOTPRequest(StrictModel):
+    """Request body to verify OTP."""
+
+    email: EmailStr
+    otp: str = Field(..., min_length=6, max_length=6)
+
+
+class ResendOTPRequest(StrictModel):
+    """Request body to resend OTP."""
+
+    email: EmailStr
+
+
+# ------------------------------------------------------------------
 # User Response
 # ------------------------------------------------------------------
 
@@ -63,6 +80,7 @@ class UserOut(StrictModel):
     email: EmailStr
     full_name: str
     is_active: bool
+    is_verified: bool
     created_at: StrictDatetime
     updated_at: StrictDatetime
 

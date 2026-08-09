@@ -38,8 +38,10 @@ requests
 httpx
 filetype
 
-# ---------- Storage ----------
+# ---------- Storage / Email ----------
 boto3
+fastapi-mail
+jinja2
 
 # ---------- Scheduling ----------
 apscheduler

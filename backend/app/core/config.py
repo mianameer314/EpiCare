@@ -1,4 +1,4 @@
-﻿"""
+"""
 Application configuration.
 Loads all configuration from environment variables (.env locally, container vars in production).
 """
@@ -84,6 +84,18 @@ class Settings(BaseSettings):
     # ==========================================================
     SCHEDULER_ENABLED: bool = True
     SCHEDULER_JOBSTORE_URL: str = ""
+
+    # ==========================================================
+    # Email / Mailer
+    # ==========================================================
+    MAIL_USERNAME: str = ""
+    MAIL_PASSWORD: str = ""
+    MAIL_FROM: str = ""
+    MAIL_SERVER: str = ""
+    MAIL_PORT: int = 587
+    MAIL_FROM_NAME: str = "EpiCare"
+    MAIL_STARTTLS: bool = True
+    MAIL_SSL_TLS: bool = False
 
     # ==========================================================
     # Admin diagnostics
