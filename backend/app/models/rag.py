@@ -1,4 +1,4 @@
-﻿"""
+"""
 RAG models — ingested documents and their embedding chunks (pgvector).
 """
 from datetime import datetime
@@ -40,7 +40,9 @@ class RagChunk(Base):
     chunk_index: Mapped[int] = mapped_column(Integer, nullable=False)
     content: Mapped[str] = mapped_column(nullable=False)  # mapped to Text implicitly
     embedding: Mapped[list | None] = mapped_column(Vector(1536), nullable=True)
-    metadata: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    # "metadata" is reserved by the Declarative API, so the Python attribute is
+    # renamed while the physical column stays `metadata`.
+    metadata_: Mapped[dict | None] = mapped_column("metadata", JSONB, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

@@ -1,4 +1,4 @@
-﻿"""
+"""
 Auth endpoint tests — register, login, refresh, me (async stack via TestClient).
 """
 from fastapi.testclient import TestClient

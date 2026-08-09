@@ -1,2 +1,2 @@
-﻿# Placeholder — replace with sha256 of model.onnx after export.
+# Placeholder — replace with sha256 of model.onnx after export.
 # Generate with: Get-FileHash models/seizure_detector/versions/v1/model.onnx -Algorithm SHA256

@@ -1,4 +1,4 @@
-﻿"""Initial schema — all EpiCare tables + pgvector setup.
+"""Initial schema — all EpiCare tables + pgvector setup.
 
 Revision ID: 202608080001
 Revises:

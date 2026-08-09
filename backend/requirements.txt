@@ -1,10 +1,11 @@
-﻿# ---------- Web Framework ----------
+# ---------- Web Framework ----------
 fastapi
 uvicorn[standard]
 python-multipart
 
 # ---------- Database ----------
 pgvector
+asyncpg
 sqlalchemy
 psycopg2-binary
 alembic
@@ -31,6 +32,7 @@ openai
 langchain-core
 
 # ---------- Utilities ----------
+psutil
 python-slugify
 requests
 httpx
@@ -45,4 +47,6 @@ apscheduler
 # ---------- Testing ----------
 pytest
 pytest-asyncio
+
+
 

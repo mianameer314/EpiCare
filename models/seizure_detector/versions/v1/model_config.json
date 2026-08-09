@@ -1,4 +1,4 @@
-﻿{
+{
   "name": "EpiCareFusion",
   "version": "v1",
   "input_names": ["raw_eeg", "spectrogram"],

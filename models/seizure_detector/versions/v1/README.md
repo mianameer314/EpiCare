@@ -1,4 +1,4 @@
-﻿# Model artifact placeholder
+# Model artifact placeholder
 
 Drop the exported ONNX artifact here as `model.onnx` (gitignored on purpose):
 

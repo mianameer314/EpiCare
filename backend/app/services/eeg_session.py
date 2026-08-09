@@ -1,4 +1,4 @@
-﻿"""
+"""
 EEG session service — orchestrates the full upload → validate → preprocess
 → infer lifecycle and persists every step so the UI can resume/display
 state after a refresh or crash.

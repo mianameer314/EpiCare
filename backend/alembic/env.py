@@ -1,4 +1,4 @@
-﻿"""
+"""
 Alembic env.py — configured for EpiCare.
 
 Loads DATABASE_URL from app/core/config.py (asyncpg driver) and imports the

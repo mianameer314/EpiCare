@@ -1,4 +1,4 @@
-﻿"""
+"""
 EEG reader — parses EDF/EDF+/CSV uploads into the canonical processing
 shape (channels, samples) plus sampling rate and channel labels.
 

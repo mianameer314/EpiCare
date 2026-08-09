@@ -1,4 +1,4 @@
-﻿"""
+"""
 Prediction model — binary seizure/no-seizure result for an EEG session.
 """
 from datetime import datetime

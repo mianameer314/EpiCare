@@ -1,4 +1,4 @@
-﻿"""
+"""
 EEG API endpoint tests — upload + analyze routing with the service layer
 mocked at the boundary (mirrors BRANDING-SYSTEM test strategy).
 

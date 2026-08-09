@@ -1,4 +1,4 @@
-﻿"""
+"""
 Unit tests for the canonical channel mapper.
 """
 import pytest

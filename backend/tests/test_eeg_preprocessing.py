@@ -1,4 +1,4 @@
-﻿"""
+"""
 Unit tests for EEG preprocessing (pure functions, no DB / no HTTP).
 
 The heavy pipeline runs in a process pool in production; here we call the
@@ -39,7 +39,7 @@ def test_preprocess_resamples_128hz() -> None:
     payload = _payload(channels=19, samples=2560, rate=128.0)
     result = _preprocess_block(payload)
     assert result["sampling_rate"] == CONTRACT_SAMPLING_RATE
-    assert result["raw_shape"][0] == 1  # 10s at 128Hz -> 1280 -> resampled to 2560
+    assert result["raw_shape"][0] == 2  # 10s at 128Hz -> 1280 samples -> 2560 @256Hz + another window
     assert any("Resampled" in warning for warning in result["warnings"])
 
 

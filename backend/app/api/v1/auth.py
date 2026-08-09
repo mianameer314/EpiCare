@@ -1,7 +1,7 @@
 ﻿"""
 Auth routes — register, login, refresh, logout, and profile (async).
 """
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.api.deps import CurrentUser, DbDep, RefreshUser
 from app.core.security import create_access_token, create_refresh_token, verify_password
@@ -83,3 +83,4 @@ async def change_password(data: ChangePasswordRequest, current_user: CurrentUser
         db, current_user, data.current_password, data.new_password
     )
     return None
+

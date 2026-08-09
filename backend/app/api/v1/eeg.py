@@ -1,4 +1,4 @@
-﻿"""
+"""
 EEG routes — upload, session lifecycle, and analysis (async).
 
 The analyze endpoint runs the full pipeline (validate → preprocess → infer)
@@ -26,10 +26,10 @@ router = APIRouter(prefix="/eeg", tags=["EEG Analysis"])
     dependencies=[Depends(UPLOAD_LIMIT)],
 )
 async def upload_eeg(
-    file: UploadFile = File(...),
-    metadata: str | None = Form(None),
     current_user: CurrentUser,
     db: DbDep,
+    file: UploadFile = File(...),
+    metadata: str | None = Form(None),
 ):
     """Upload an EEG file (EDF/CSV) and create an analysis session."""
     return await session_service.create_upload_session(db, current_user, file)
@@ -37,10 +37,10 @@ async def upload_eeg(
 
 @router.get("/sessions", response_model=EegSessionList)
 async def list_eeg_sessions(
-    page: int = 1,
-    per_page: int = 10,
     current_user: CurrentUser,
     db: DbDep,
+    page: int = 1,
+    per_page: int = 10,
 ):
     """Paginated list of the current user's EEG sessions."""
     sessions, total = await session_service.list_sessions(

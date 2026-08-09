@@ -1,4 +1,4 @@
-﻿"""
+"""
 Lifestyle models — sleep, trigger, and stress logging.
 """
 from datetime import datetime

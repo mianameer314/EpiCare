@@ -1,4 +1,4 @@
-﻿"""
+"""
 Emergency models — contacts, SOS events, and per-contact SMS delivery state.
 """
 from datetime import datetime
@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text, func
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship as orm_relationship
 
 from app.db.session import Base
 from app.models.base import TimestampMixin
@@ -28,7 +28,7 @@ class EmergencyContact(TimestampMixin, Base):
     is_primary: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
-    user: Mapped["User"] = relationship()
+    user: Mapped["User"] = orm_relationship()
 
 
 class SosEvent(TimestampMixin, Base):
@@ -47,8 +47,8 @@ class SosEvent(TimestampMixin, Base):
     status: Mapped[str] = mapped_column(String(30), default="SENDING", nullable=False)
     payload: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
 
-    user: Mapped["User"] = relationship()
-    deliveries: Mapped[list["SosDelivery"]] = relationship(
+    user: Mapped["User"] = orm_relationship()
+    deliveries: Mapped[list["SosDelivery"]] = orm_relationship(
         back_populates="sos_event", cascade="all, delete-orphan"
     )
 
@@ -72,4 +72,4 @@ class SosDelivery(Base):
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
 
-    sos_event: Mapped["SosEvent"] = relationship(back_populates="deliveries")
+    sos_event: Mapped["SosEvent"] = orm_relationship(back_populates="deliveries")

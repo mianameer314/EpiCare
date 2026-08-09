@@ -1,4 +1,4 @@
-﻿"""
+"""
 EEG preprocessing — the single, frozen preprocessing contract shared by
 training and inference (docs/model_contract.md). Every heavy step is
 CPU-bound and therefore executed via app.ml.executor.run_cpu_bound so the
@@ -113,10 +113,18 @@ def _stft_windows(
     freq_bins = nper // 2 + 1
     time_bins = (samples - nper) // (nper - noverlap) + 1
 
-    out = np.zeros((windows, channels, freq_bins, time_bins), dtype=np.float32)
+    # Determine the real frame count from a reference STFT (scipy pads the
+    # signal by nperseg//2 on both ends, so the shape cannot be hardcoded).
+    freqs, _, ref = stft(
+        data[0, 0],
+        fs=sampling_rate,
+        nperseg=nper,
+        noverlap=noverlap,
+    )
+    out = np.zeros((windows, channels, ref.shape[0], ref.shape[1]), dtype=np.float32)
     for w_idx in range(windows):
         for c_idx in range(channels):
-            freqs, _, zxx = stft(
+            _, _, zxx = stft(
                 data[w_idx, c_idx],
                 fs=sampling_rate,
                 nperseg=nper,

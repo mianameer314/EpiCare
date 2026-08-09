@@ -1,4 +1,4 @@
-﻿"""
+"""
 Unit tests for the EEG validation service (process-pool payload functions).
 
 These exercise the pure functions directly (no DB / no HTTP) so they run

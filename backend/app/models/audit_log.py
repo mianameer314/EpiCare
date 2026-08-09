@@ -1,4 +1,4 @@
-﻿"""
+"""
 Audit log model — immutable record of sensitive actions.
 """
 from datetime import datetime
@@ -20,7 +20,9 @@ class AuditLog(Base):
     action: Mapped[str] = mapped_column(String(100), nullable=False)
     entity_type: Mapped[str] = mapped_column(String(50), nullable=False)
     entity_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    metadata: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    # "metadata" is reserved by the Declarative API, so the Python attribute is
+    # renamed while the physical column stays `metadata`.
+    metadata_: Mapped[dict | None] = mapped_column("metadata", JSONB, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

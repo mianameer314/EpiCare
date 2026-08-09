@@ -1,4 +1,4 @@
-﻿"""
+"""
 Rate limit package — presets, dependencies, and the global limiter lifecycle.
 """
 from app.rate_limit.core import (

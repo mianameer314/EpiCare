@@ -1,4 +1,4 @@
-﻿{
+{
   "sampling_rate": 256,
   "window_seconds": 10,
   "window_samples": 2560,

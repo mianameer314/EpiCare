@@ -1,4 +1,4 @@
-﻿"""
+"""
 EpiCare FastAPI application — composition root.
 
 Wires middleware, exception handlers, API routers, and the async lifespan
