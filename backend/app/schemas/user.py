@@ -3,10 +3,23 @@ User schemas — authentication, registration, and profile management.
 """
 from datetime import datetime
 
-from pydantic import EmailStr, Field
+from pydantic import EmailStr, Field, BeforeValidator
+from typing import Annotated, Any
 
 from app.schemas.base import StrictDatetime, StrictModel
 from app.models.enums import UserRole
+
+def parse_user_role(value: Any) -> UserRole:
+    if isinstance(value, UserRole):
+        return value
+    if isinstance(value, str):
+        try:
+            return UserRole(value.upper())
+        except ValueError:
+            pass
+    raise ValueError("Invalid UserRole")
+
+StrictUserRole = Annotated[UserRole, BeforeValidator(parse_user_role)]
 
 
 # ------------------------------------------------------------------
@@ -20,7 +33,7 @@ class UserRegister(StrictModel):
     password: str = Field(..., min_length=8)
     phone_number: str = Field(..., min_length=10, max_length=15)
     full_name: str = Field(..., min_length=1, max_length=150)
-    role: UserRole = Field(default=UserRole.PATIENT)
+    role: StrictUserRole = Field(default=UserRole.PATIENT)
     
     # Optional field for doctor registration
     pmdc_number: str | None = Field(None, description="Required if role is DOCTOR")
@@ -87,7 +100,7 @@ class UserOut(StrictModel):
     email: EmailStr
     phone_number: str | None
     full_name: str
-    role: UserRole
+    role: StrictUserRole
     is_active: bool
     is_email_verified: bool
     is_phone_verified: bool

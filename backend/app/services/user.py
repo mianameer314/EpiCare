@@ -43,6 +43,8 @@ def _generate_otp() -> str:
 
 async def register_user(db: AsyncSession, data: UserRegister, background_tasks: BackgroundTasks) -> User:
     """Public user registration. Raises 409 on duplicate email or phone."""
+    from sqlalchemy.exc import IntegrityError
+    
     existing_email = await get_user_by_email(db, data.email)
     if existing_email:
         raise conflict_error("EMAIL_ALREADY_REGISTERED", "Email already registered")
@@ -71,33 +73,39 @@ async def register_user(db: AsyncSession, data: UserRegister, background_tasks: 
         otp_expires_at=datetime.now(timezone.utc) + timedelta(minutes=10)
     )
     db.add(user)
-    await db.commit()
-    await db.refresh(user)
     
-    # Create Role-Specific Profile
-    if user.role == UserRole.PATIENT:
-        from app.models.patient_profile import PatientProfile
-        profile = PatientProfile(
-            user_id=user.id,
-            date_of_birth=datetime.now(timezone.utc).date() # Placeholder, they should update later or pass in registration
-        )
-        db.add(profile)
-    elif user.role == UserRole.DOCTOR:
-        from app.models.doctor_profile import DoctorProfile
-        profile = DoctorProfile(
-            user_id=user.id,
-            pmdc_number=data.pmdc_number,
-            specialty="Neurologist"
-        )
-        db.add(profile)
-    elif user.role == UserRole.CARETAKER:
-        from app.models.caretaker_profile import CaretakerProfile
-        profile = CaretakerProfile(
-            user_id=user.id
-        )
-        db.add(profile)
+    try:
+        await db.flush()  # Gets user.id without committing the transaction
         
-    await db.commit()
+        # Create Role-Specific Profile
+        if user.role == UserRole.PATIENT:
+            from app.models.patient_profile import PatientProfile
+            profile = PatientProfile(
+                user_id=user.id,
+                date_of_birth=datetime.now(timezone.utc).date() # Placeholder, they should update later or pass in registration
+            )
+            db.add(profile)
+        elif user.role == UserRole.DOCTOR:
+            from app.models.doctor_profile import DoctorProfile
+            profile = DoctorProfile(
+                user_id=user.id,
+                pmdc_number=data.pmdc_number,
+                specialty="Neurologist"
+            )
+            db.add(profile)
+        elif user.role == UserRole.CARETAKER:
+            from app.models.caretaker_profile import CaretakerProfile
+            profile = CaretakerProfile(
+                user_id=user.id
+            )
+            db.add(profile)
+            
+        await db.commit()  # Single atomic commit for both user and profile
+    except IntegrityError:
+        await db.rollback()
+        raise conflict_error("ALREADY_REGISTERED", "User with this email, phone number, or PMDC number already exists.")
+        
+    await db.refresh(user)
     
     # Dispatch email
     background_tasks.add_task(send_verification_email, user.email, otp_plain, user.full_name)

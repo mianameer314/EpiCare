@@ -13,6 +13,7 @@ alembic
 # ---------- Validation / Config ----------
 pydantic[email]
 pydantic-settings
+redis
 
 # ---------- Authentication ----------
 PyJWT

@@ -15,11 +15,14 @@ Env vars MUST be set before any app import (settings is instantiated at
 import time).
 """
 import os
+import sys
 import tempfile
 from collections.abc import AsyncGenerator, Generator
 from pathlib import Path
 
 import pytest
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # ---------- Test environment (before any app import) ----------
 _TMP_ROOT = tempfile.mkdtemp(prefix="epicare_tests_")
@@ -111,8 +114,16 @@ def _apply_overrides() -> Generator[None, None, None]:
     def override_get_storage_service() -> StorageService:
         return test_storage
 
+    from app.rate_limit import REGISTER_LIMIT, LOGIN_LIMIT, REFRESH_LIMIT
+    async def bypass_rate_limit():
+        pass
+        
     app.dependency_overrides[get_db] = override_get_db
     app.dependency_overrides[get_storage_service] = override_get_storage_service
+    app.dependency_overrides[REGISTER_LIMIT] = bypass_rate_limit
+    app.dependency_overrides[LOGIN_LIMIT] = bypass_rate_limit
+    app.dependency_overrides[REFRESH_LIMIT] = bypass_rate_limit
+    
     yield
     app.dependency_overrides.clear()
 
@@ -135,15 +146,33 @@ def auth_headers(client) -> dict:
     """Register + login a throwaway user; return bearer auth headers."""
 
     def _register(email: str = "test@example.com") -> dict[str, str]:
+        import asyncio
+        from app.db.session import TestSessionLocal
+        from app.models.user import User
+        from sqlalchemy import select
+        
         response = client.post(
             "/api/v1/auth/register",
             json={
                 "email": email,
                 "password": "supersecret123",
                 "full_name": "Test User",
+                "phone_number": "+923000000000",
+                "role": "PATIENT"
             },
         )
         assert response.status_code == 201, response.text
+        
+        # Manually verify the user in DB
+        async def verify_user():
+            async with TestSessionLocal() as session:
+                result = await session.execute(select(User).where(User.email == email))
+                user = result.scalar_one()
+                user.is_email_verified = True
+                await session.commit()
+                
+        asyncio.run(verify_user())
+        
         login = client.post(
             "/api/v1/auth/login",
             json={"email": email, "password": "supersecret123"},

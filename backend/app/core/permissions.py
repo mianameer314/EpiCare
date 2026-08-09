@@ -10,41 +10,13 @@ from fastapi import Depends, HTTPException, status
 from app.models.enums import UserRole
 
 
-ROLE_PERMISSIONS: dict[UserRole, set[str]] = {
-    UserRole.PATIENT: {
-        "read_own",
-        "update_own",
-        "upload_eeg",
-        "read_predictions",
-        "read_reports",
-        "chat",
-        "manage_medications",
-        "manage_lifestyle",
-        "read_recommendations",
-        "manage_emergency",
-        "trigger_sos",
-    },
-    UserRole.ADMIN: {
-        "read_own",
-        "update_own",
-        "upload_eeg",
-        "read_predictions",
-        "read_reports",
-        "chat",
-        "manage_medications",
-        "manage_lifestyle",
-        "read_recommendations",
-        "manage_emergency",
-        "trigger_sos",
-        "manage_users",
-        "read_audit_logs",
-        "manage_rag",
-    },
-}
-
 PERMISSION_DESCRIPTIONS: dict[str, str] = {
+    # Common
     "read_own": "Read own profile",
     "update_own": "Update own profile",
+    "manage_connections": "Manage incoming and outgoing connection requests",
+    
+    # Patient-specific
     "upload_eeg": "Upload EEG recordings",
     "read_predictions": "Read own predictions/history",
     "read_reports": "Read AI reports",
@@ -54,9 +26,43 @@ PERMISSION_DESCRIPTIONS: dict[str, str] = {
     "read_recommendations": "Read recommendations",
     "manage_emergency": "Manage emergency contacts",
     "trigger_sos": "Trigger SOS alerts",
-    "manage_users": "Manage users (admin)",
-    "read_audit_logs": "Read audit logs (admin)",
-    "manage_rag": "Manage RAG ingestion (admin)",
+    
+    # Doctor-specific
+    "read_patient_profiles": "View linked patient medical profiles",
+    "read_patient_eeg": "View linked patient EEG signals and analysis",
+    "write_patient_reports": "Write clinical reports for linked patients",
+    "prescribe_medications": "Manage prescriptions for linked patients",
+    "chat_clinical": "Use the specialized clinical AI assistant",
+
+    # Caretaker-specific
+    "read_patient_status": "View high-level status of linked patients",
+    "receive_sos": "Receive and manage SOS alerts for linked patients",
+    "read_patient_medications": "View medication adherence for linked patients",
+
+    # Admin-specific
+    "manage_users": "Manage all system users (admin)",
+    "verify_doctors": "Verify PMDC licenses for doctors (admin)",
+    "read_audit_logs": "Read system audit logs (admin)",
+    "manage_rag": "Manage AI RAG document ingestion (admin)",
+}
+
+ROLE_PERMISSIONS: dict[UserRole, set[str]] = {
+    UserRole.PATIENT: {
+        "read_own", "update_own", "manage_connections",
+        "upload_eeg", "read_predictions", "read_reports", "chat",
+        "manage_medications", "manage_lifestyle", "read_recommendations",
+        "manage_emergency", "trigger_sos"
+    },
+    UserRole.DOCTOR: {
+        "read_own", "update_own", "manage_connections",
+        "read_patient_profiles", "read_patient_eeg", 
+        "write_patient_reports", "prescribe_medications", "chat_clinical"
+    },
+    UserRole.CARETAKER: {
+        "read_own", "update_own", "manage_connections",
+        "read_patient_status", "receive_sos", "read_patient_medications"
+    },
+    UserRole.ADMIN: set(PERMISSION_DESCRIPTIONS.keys())
 }
 
 

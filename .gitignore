@@ -51,3 +51,4 @@ rag/documents/*
 # ---------- Local runtime ----------
 backend/alembic/*.pyc
 tsconfig.tsbuildinfo
+Final main Proposal.pdf

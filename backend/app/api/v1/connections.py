@@ -95,7 +95,14 @@ async def request_connection(
         relationship_status=ConnectionStatus.PENDING
     )
     db.add(network)
-    await db.commit()
+    
+    from sqlalchemy.exc import IntegrityError
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(status_code=400, detail="Connection already exists or is pending")
+        
     await db.refresh(network)
     
     return network

@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Integer, func
+from sqlalchemy import DateTime, Enum, ForeignKey, Integer, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.session import Base
@@ -9,6 +9,9 @@ from app.models.enums import ConnectionStatus
 
 class PatientDoctorNetwork(Base):
     __tablename__ = "patient_doctor_networks"
+    __table_args__ = (
+        UniqueConstraint("patient_id", "doctor_id", name="uix_patient_doctor_network"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     patient_id: Mapped[int] = mapped_column(
@@ -34,6 +37,9 @@ class PatientDoctorNetwork(Base):
 
 class PatientCaretakerNetwork(Base):
     __tablename__ = "patient_caretaker_networks"
+    __table_args__ = (
+        UniqueConstraint("patient_id", "caretaker_id", name="uix_patient_caretaker_network"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     patient_id: Mapped[int] = mapped_column(
