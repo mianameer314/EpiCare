@@ -4,7 +4,7 @@ User schemas — authentication, registration, and profile management.
 from datetime import datetime
 
 from pydantic import EmailStr, Field, BeforeValidator
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 from app.schemas.base import StrictDatetime, StrictModel
 from app.models.enums import UserRole
@@ -26,14 +26,16 @@ StrictUserRole = Annotated[UserRole, BeforeValidator(parse_user_role)]
 # Registration
 # ------------------------------------------------------------------
 
+PublicRole = Literal[UserRole.PATIENT, UserRole.DOCTOR, UserRole.CARETAKER]
+
 class UserRegister(StrictModel):
     """Request body for public user registration."""
 
     email: EmailStr
     password: str = Field(..., min_length=8)
-    phone_number: str = Field(..., min_length=10, max_length=15)
+    phone_number: str = Field(..., pattern=r"^\+?[1-9]\d{1,14}$", min_length=10, max_length=15)
     full_name: str = Field(..., min_length=1, max_length=150)
-    role: StrictUserRole = Field(default=UserRole.PATIENT)
+    role: PublicRole = Field(default=UserRole.PATIENT)
     
     # Optional field for doctor registration
     pmdc_number: str | None = Field(None, description="Required if role is DOCTOR")
@@ -58,7 +60,7 @@ class UserProfileUpdate(StrictModel):
     """User updating their own account fields."""
 
     full_name: str | None = Field(None, min_length=1, max_length=150)
-    phone_number: str | None = Field(None, min_length=10, max_length=15)
+    phone_number: str | None = Field(None, pattern=r"^\+?[1-9]\d{1,14}$", min_length=10, max_length=15)
 
 
 # ------------------------------------------------------------------

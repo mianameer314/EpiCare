@@ -63,6 +63,7 @@ async def _prepare_database() -> AsyncGenerator[None, None]:
         if not vector_available:
             tables = [t for t in tables if t.name != "rag_chunks"]
 
+        await conn.run_sync(Base.metadata.drop_all, tables)
         await conn.run_sync(Base.metadata.create_all, tables)
     yield
     async with test_engine.begin() as conn:

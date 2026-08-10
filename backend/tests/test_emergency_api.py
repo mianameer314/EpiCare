@@ -19,7 +19,7 @@ def test_add_and_get_emergency_contacts(client, auth_headers):
     payload2 = {
         "name": "Dad",
         "relationship": "Father",
-        "phone_number": "+0987654321",
+        "phone_number": "+1987654321",
         "is_primary": False
     }
     client.post("/api/v1/emergency/contacts", json=payload2, headers=headers)

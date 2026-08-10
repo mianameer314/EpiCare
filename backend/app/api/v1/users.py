@@ -5,12 +5,10 @@ from fastapi import APIRouter, HTTPException, status
 
 from app.api.deps import CurrentUser, DbDep
 from app.schemas.profiles import (
-    PatientProfileCreate,
     PatientProfileOut,
     PatientProfileUpdate,
     DoctorProfileOut,
     DoctorProfileUpdate,
-    CaretakerProfileCreate,
     CaretakerProfileOut,
     CaretakerProfileUpdate,
 )
@@ -48,23 +46,6 @@ async def get_my_patient_profile(current_user: CurrentUser, db: DbDep):
     return profile
 
 
-@router.post(
-    "/me/patient-profile",
-    response_model=PatientProfileOut,
-    status_code=status.HTTP_201_CREATED,
-    tags=["Patient Management"],
-    summary="Create patient profile",
-    description="Create a new patient profile for the current user. Only users with the PATIENT role should create this profile.",
-    responses={
-        400: {"description": "Bad Request - Validation error or profile already exists"},
-        401: {"description": "Unauthorized - Missing or invalid token"},
-        409: {"description": "Conflict - Patient profile already exists"},
-    },
-)
-async def create_my_patient_profile(data: PatientProfileCreate, current_user: CurrentUser, db: DbDep):
-    """Create the current user's patient profile."""
-    # Note: The service layer should ideally handle unique constraints/conflicts.
-    return await patient_service.create_profile(db, current_user.id, data)
 
 
 @router.put(
@@ -195,22 +176,6 @@ async def get_my_caretaker_profile(current_user: CurrentUser, db: DbDep):
     return profile
 
 
-@router.post(
-    "/me/caretaker-profile",
-    response_model=CaretakerProfileOut,
-    status_code=status.HTTP_201_CREATED,
-    tags=["Caretaker Management"],
-    summary="Create caretaker profile",
-    description="Create a new caretaker profile for the current user.",
-    responses={
-        400: {"description": "Bad Request - Validation error"},
-        401: {"description": "Unauthorized - Missing or invalid token"},
-        409: {"description": "Conflict - Caretaker profile already exists"},
-    },
-)
-async def create_my_caretaker_profile(data: CaretakerProfileCreate, current_user: CurrentUser, db: DbDep):
-    """Create the current user's caretaker profile."""
-    return await caretaker_service.create_profile(db, current_user.id, data)
 
 
 @router.put(

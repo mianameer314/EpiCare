@@ -7,7 +7,7 @@ from app.api.deps import DbDep, CurrentUser, RoleChecker
 from app.models.enums import UserRole
 from app.models.user import User
 from app.models.seizure import ManualSeizureLog
-from app.schemas.seizure import ManualSeizureLogCreate, ManualSeizureLogOut
+from app.schemas.seizure import ManualSeizureLogCreate, ManualSeizureLogUpdate, ManualSeizureLogOut
 
 
 router = APIRouter(prefix="/seizures", tags=["Manual Seizure Logs"])
@@ -61,3 +61,60 @@ async def get_manual_seizures(db: DbDep, current_user: User = PatientUser):
         .order_by(ManualSeizureLog.occurred_at.desc())
     )
     return result.scalars().all()
+
+
+@router.put(
+    "/manual/{log_id}",
+    response_model=ManualSeizureLogOut,
+    summary="Update Manual Seizure Log",
+    description="Updates a manual seizure log to correct accidental mistakes.",
+)
+async def update_manual_seizure(
+    log_id: int,
+    log_in: ManualSeizureLogUpdate,
+    db: DbDep,
+    current_user: User = PatientUser,
+):
+    result = await db.execute(
+        select(ManualSeizureLog).where(
+            ManualSeizureLog.id == log_id,
+            ManualSeizureLog.user_id == current_user.id
+        )
+    )
+    log = result.scalar_one_or_none()
+    if not log:
+        raise HTTPException(status_code=404, detail="Manual seizure log not found")
+
+    update_data = log_in.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(log, key, value)
+
+    await db.commit()
+    await db.refresh(log)
+    return log
+
+
+@router.delete(
+    "/manual/{log_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete Manual Seizure Log",
+    description="Deletes a manual seizure log completely.",
+)
+async def delete_manual_seizure(
+    log_id: int,
+    db: DbDep,
+    current_user: User = PatientUser,
+):
+    result = await db.execute(
+        select(ManualSeizureLog).where(
+            ManualSeizureLog.id == log_id,
+            ManualSeizureLog.user_id == current_user.id
+        )
+    )
+    log = result.scalar_one_or_none()
+    if not log:
+        raise HTTPException(status_code=404, detail="Manual seizure log not found")
+
+    await db.delete(log)
+    await db.commit()
+    return None

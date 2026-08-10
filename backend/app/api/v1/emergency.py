@@ -9,6 +9,7 @@ from app.models.user import User
 from app.models.emergency import EmergencyContact, SosEvent, SosDelivery
 from app.schemas.emergency import (
     EmergencyContactCreate,
+    EmergencyContactUpdate,
     EmergencyContactOut,
     SosTriggerRequest,
     SosEventCreateResponse,
@@ -72,6 +73,63 @@ async def add_emergency_contact(
     await db.commit()
     await db.refresh(new_contact)
     return new_contact
+
+
+@router.put(
+    "/contacts/{contact_id}",
+    response_model=EmergencyContactOut,
+    summary="Update Emergency Contact",
+    description="Updates an existing emergency contact's details (e.g., phone number or name).",
+)
+async def update_emergency_contact(
+    contact_id: int,
+    contact_in: EmergencyContactUpdate,
+    db: DbDep,
+    current_user: User = PatientUser,
+):
+    result = await db.execute(
+        select(EmergencyContact).where(
+            EmergencyContact.id == contact_id,
+            EmergencyContact.user_id == current_user.id
+        )
+    )
+    contact = result.scalar_one_or_none()
+    if not contact:
+        raise HTTPException(status_code=404, detail="Emergency contact not found")
+
+    update_data = contact_in.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(contact, key, value)
+
+    await db.commit()
+    await db.refresh(contact)
+    return contact
+
+
+@router.delete(
+    "/contacts/{contact_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete Emergency Contact",
+    description="Removes an emergency contact from the patient's list.",
+)
+async def delete_emergency_contact(
+    contact_id: int,
+    db: DbDep,
+    current_user: User = PatientUser,
+):
+    result = await db.execute(
+        select(EmergencyContact).where(
+            EmergencyContact.id == contact_id,
+            EmergencyContact.user_id == current_user.id
+        )
+    )
+    contact = result.scalar_one_or_none()
+    if not contact:
+        raise HTTPException(status_code=404, detail="Emergency contact not found")
+
+    await db.delete(contact)
+    await db.commit()
+    return None
 
 
 async def process_sos_in_background(db: AsyncSession, event_id: int, user_id: int):

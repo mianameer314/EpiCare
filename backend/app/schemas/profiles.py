@@ -1,7 +1,8 @@
 from datetime import date
-from typing import Optional
+from typing import Optional, Literal
+from zoneinfo import available_timezones
 
-from pydantic import Field
+from pydantic import Field, field_validator
 
 from app.schemas.base import StrictDatetime, StrictModel, StrictDate
 
@@ -12,30 +13,42 @@ from app.schemas.base import StrictDatetime, StrictModel, StrictDate
 
 class PatientProfileCreate(StrictModel):
     date_of_birth: StrictDate
-    gender: Optional[str] = Field(None, max_length=30)
-    blood_type: Optional[str] = Field(None, max_length=10)
+    gender: Optional[Literal["Male", "Female", "Other", "Prefer not to say"]] = None
+    blood_type: Optional[str] = Field(None, pattern=r"^(A|B|AB|O)[+-]$", max_length=10)
     city: Optional[str] = Field(None, max_length=100)
     primary_diagnosis: Optional[str] = Field(None, max_length=100)
     emergency_contact_name: Optional[str] = Field(None, max_length=150)
     emergency_contact_relation: Optional[str] = Field(None, max_length=100)
-    emergency_contact_phone: Optional[str] = Field(None, max_length=30)
+    emergency_contact_phone: Optional[str] = Field(None, pattern=r"^\+?[1-9]\d{1,14}$", max_length=30)
     known_triggers: Optional[list[str]] = None
     notes: Optional[str] = None
     timezone: Optional[str] = Field("UTC", max_length=64)
 
+    @field_validator("timezone")
+    def validate_timezone(cls, v: str | None) -> str | None:
+        if v and v not in available_timezones():
+            raise ValueError(f"Invalid timezone: {v}. Must be a valid IANA timezone.")
+        return v
+
 
 class PatientProfileUpdate(StrictModel):
     date_of_birth: Optional[StrictDate] = None
-    gender: Optional[str] = Field(None, max_length=30)
-    blood_type: Optional[str] = Field(None, max_length=10)
+    gender: Optional[Literal["Male", "Female", "Other", "Prefer not to say"]] = None
+    blood_type: Optional[str] = Field(None, pattern=r"^(A|B|AB|O)[+-]$", max_length=10)
     city: Optional[str] = Field(None, max_length=100)
     primary_diagnosis: Optional[str] = Field(None, max_length=100)
     emergency_contact_name: Optional[str] = Field(None, max_length=150)
     emergency_contact_relation: Optional[str] = Field(None, max_length=100)
-    emergency_contact_phone: Optional[str] = Field(None, max_length=30)
+    emergency_contact_phone: Optional[str] = Field(None, pattern=r"^\+?[1-9]\d{1,14}$", max_length=30)
     known_triggers: Optional[list[str]] = None
     notes: Optional[str] = None
     timezone: Optional[str] = Field(None, max_length=64)
+
+    @field_validator("timezone")
+    def validate_timezone(cls, v: str | None) -> str | None:
+        if v and v not in available_timezones():
+            raise ValueError(f"Invalid timezone: {v}. Must be a valid IANA timezone.")
+        return v
 
 
 class PatientProfileOut(StrictModel):

@@ -108,9 +108,13 @@ class Settings(BaseSettings):
     MAIL_SSL_TLS: bool = False
 
     # ==========================================================
-    # Admin diagnostics
+    # Admin diagnostics and Superuser
     # ==========================================================
     ADMIN_API_KEY: str = ""
+    ADMIN_EMAIL: str = ""
+    ADMIN_PASSWORD: str = ""
+    ADMIN_PHONE_NUMBER: str = ""
+    ADMIN_FULL_NAME: str = ""
 
     # ==========================================================
     # Background Jobs

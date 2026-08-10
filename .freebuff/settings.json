@@ -1,0 +1,16 @@
+{
+  "preloadedSkills": [
+    "context7-mcp",
+    "brainstorming",
+    "verification-before-completion",
+    "frontend-design",
+    "web-design-guidelines",
+    "vercel-react-best-practices",
+    "vercel-react-native-skills",
+    "vercel-react-view-transitions",
+    "remotion-best-practices",
+    "tailwind-design-system",
+    "shadcn-ui",
+    "performance"
+  ]
+}

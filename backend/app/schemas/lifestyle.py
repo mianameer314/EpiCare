@@ -2,6 +2,7 @@
 Lifestyle schemas — sleep, trigger, and stress logs.
 """
 from pydantic import Field
+from typing import Literal
 
 from app.schemas.base import StrictDatetime, StrictModel
 
@@ -35,7 +36,7 @@ class StressLogCreate(StrictModel):
 class MenstruationLogCreate(StrictModel):
     """Request body for a menstruation cycle log."""
     occurred_at: StrictDatetime
-    flow_intensity: str = Field(..., description="e.g., Light, Medium, Heavy")
+    flow_intensity: Literal["Light", "Medium", "Heavy"] = Field(..., description="e.g., Light, Medium, Heavy")
     notes: str | None = None
 
 

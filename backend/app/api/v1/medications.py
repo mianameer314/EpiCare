@@ -10,6 +10,7 @@ from app.models.user import User
 from app.models.medication import Medication, MedicationSchedule, MedicationLog
 from app.schemas.medication import (
     MedicationCreate,
+    MedicationUpdate,
     MedicationOut,
     MedicationScheduleCreate,
     MedicationScheduleOut,
@@ -65,6 +66,61 @@ async def create_medication(
     await db.commit()
     await db.refresh(new_med)
     return new_med
+
+
+@router.put(
+    "/{med_id}",
+    response_model=MedicationOut,
+    summary="Update Medication Prescription",
+    description="Updates details for an existing medication (e.g. changing the dosage or making it inactive).",
+)
+async def update_medication(
+    med_id: int,
+    med_in: MedicationUpdate,
+    db: DbDep,
+    current_user: User = PatientUser,
+):
+    result = await db.execute(
+        select(Medication).where(
+            Medication.id == med_id, Medication.user_id == current_user.id
+        )
+    )
+    med = result.scalar_one_or_none()
+    if not med:
+        raise HTTPException(status_code=404, detail="Medication not found")
+
+    update_data = med_in.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(med, key, value)
+
+    await db.commit()
+    await db.refresh(med)
+    return med
+
+
+@router.delete(
+    "/{med_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete Medication (Soft)",
+    description="Soft deletes a medication by marking it as inactive. This preserves historical adherence logs.",
+)
+async def delete_medication(
+    med_id: int,
+    db: DbDep,
+    current_user: User = PatientUser,
+):
+    result = await db.execute(
+        select(Medication).where(
+            Medication.id == med_id, Medication.user_id == current_user.id
+        )
+    )
+    med = result.scalar_one_or_none()
+    if not med:
+        raise HTTPException(status_code=404, detail="Medication not found")
+
+    med.is_active = False
+    await db.commit()
+    return None
 
 
 @router.get(

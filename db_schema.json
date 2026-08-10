@@ -1,0 +1,2058 @@
+[
+  {
+    "table": "users",
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "primary_key": true,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "email",
+        "type": "VARCHAR(255)",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "password_hash",
+        "type": "VARCHAR(255)",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "phone_number",
+        "type": "VARCHAR(30)",
+        "primary_key": false,
+        "nullable": true,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "fcm_token",
+        "type": "VARCHAR(255)",
+        "primary_key": false,
+        "nullable": true,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "full_name",
+        "type": "VARCHAR(150)",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "role",
+        "type": "VARCHAR(9)",
+        "primary_key": false,
+        "nullable": false,
+        "default": "UserRole.PATIENT",
+        "foreign_keys": []
+      },
+      {
+        "name": "is_active",
+        "type": "BOOLEAN",
+        "primary_key": false,
+        "nullable": false,
+        "default": "True",
+        "foreign_keys": []
+      },
+      {
+        "name": "is_email_verified",
+        "type": "BOOLEAN",
+        "primary_key": false,
+        "nullable": false,
+        "default": "False",
+        "foreign_keys": []
+      },
+      {
+        "name": "is_phone_verified",
+        "type": "BOOLEAN",
+        "primary_key": false,
+        "nullable": false,
+        "default": "False",
+        "foreign_keys": []
+      },
+      {
+        "name": "otp_secret_hash",
+        "type": "VARCHAR(255)",
+        "primary_key": false,
+        "nullable": true,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "otp_expires_at",
+        "type": "DATETIME",
+        "primary_key": false,
+        "nullable": true,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "created_at",
+        "type": "DATETIME",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "updated_at",
+        "type": "DATETIME",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      }
+    ]
+  },
+  {
+    "table": "patient_profiles",
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "primary_key": true,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "user_id",
+        "type": "INTEGER",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": [
+          "users.id"
+        ]
+      },
+      {
+        "name": "date_of_birth",
+        "type": "DATE",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "gender",
+        "type": "VARCHAR(30)",
+        "primary_key": false,
+        "nullable": true,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "blood_type",
+        "type": "VARCHAR(10)",
+        "primary_key": false,
+        "nullable": true,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "city",
+        "type": "VARCHAR(100)",
+        "primary_key": false,
+        "nullable": true,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "primary_diagnosis",
+        "type": "VARCHAR(100)",
+        "primary_key": false,
+        "nullable": true,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "emergency_contact_name",
+        "type": "VARCHAR(150)",
+        "primary_key": false,
+        "nullable": true,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "emergency_contact_relation",
+        "type": "VARCHAR(100)",
+        "primary_key": false,
+        "nullable": true,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "emergency_contact_phone",
+        "type": "VARCHAR(30)",
+        "primary_key": false,
+        "nullable": true,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "known_triggers",
+        "type": "JSONB",
+        "primary_key": false,
+        "nullable": true,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "notes",
+        "type": "TEXT",
+        "primary_key": false,
+        "nullable": true,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "timezone",
+        "type": "VARCHAR(64)",
+        "primary_key": false,
+        "nullable": false,
+        "default": "UTC",
+        "foreign_keys": []
+      },
+      {
+        "name": "created_at",
+        "type": "DATETIME",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "updated_at",
+        "type": "DATETIME",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      }
+    ]
+  },
+  {
+    "table": "doctor_profiles",
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "primary_key": true,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "user_id",
+        "type": "INTEGER",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": [
+          "users.id"
+        ]
+      },
+      {
+        "name": "pmdc_number",
+        "type": "VARCHAR(50)",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "specialty",
+        "type": "VARCHAR(100)",
+        "primary_key": false,
+        "nullable": false,
+        "default": "Neurologist",
+        "foreign_keys": []
+      },
+      {
+        "name": "hospital_affiliation",
+        "type": "VARCHAR(200)",
+        "primary_key": false,
+        "nullable": true,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "license_image_url",
+        "type": "VARCHAR(500)",
+        "primary_key": false,
+        "nullable": true,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "is_pmdc_verified",
+        "type": "BOOLEAN",
+        "primary_key": false,
+        "nullable": false,
+        "default": "False",
+        "foreign_keys": []
+      },
+      {
+        "name": "created_at",
+        "type": "DATETIME",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "updated_at",
+        "type": "DATETIME",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      }
+    ]
+  },
+  {
+    "table": "caretaker_profiles",
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "primary_key": true,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "user_id",
+        "type": "INTEGER",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": [
+          "users.id"
+        ]
+      },
+      {
+        "name": "relationship_to_patient",
+        "type": "VARCHAR(100)",
+        "primary_key": false,
+        "nullable": true,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "crisis_phone_number",
+        "type": "VARCHAR(30)",
+        "primary_key": false,
+        "nullable": true,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "created_at",
+        "type": "DATETIME",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "updated_at",
+        "type": "DATETIME",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      }
+    ]
+  },
+  {
+    "table": "patient_doctor_networks",
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "primary_key": true,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "patient_id",
+        "type": "INTEGER",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": [
+          "patient_profiles.id"
+        ]
+      },
+      {
+        "name": "doctor_id",
+        "type": "INTEGER",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": [
+          "doctor_profiles.id"
+        ]
+      },
+      {
+        "name": "relationship_status",
+        "type": "VARCHAR(7)",
+        "primary_key": false,
+        "nullable": false,
+        "default": "ConnectionStatus.PENDING",
+        "foreign_keys": []
+      },
+      {
+        "name": "date_linked",
+        "type": "DATETIME",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "updated_at",
+        "type": "DATETIME",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      }
+    ]
+  },
+  {
+    "table": "patient_caretaker_networks",
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "primary_key": true,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "patient_id",
+        "type": "INTEGER",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": [
+          "patient_profiles.id"
+        ]
+      },
+      {
+        "name": "caretaker_id",
+        "type": "INTEGER",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": [
+          "caretaker_profiles.id"
+        ]
+      },
+      {
+        "name": "relationship_status",
+        "type": "VARCHAR(7)",
+        "primary_key": false,
+        "nullable": false,
+        "default": "ConnectionStatus.PENDING",
+        "foreign_keys": []
+      },
+      {
+        "name": "date_linked",
+        "type": "DATETIME",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "updated_at",
+        "type": "DATETIME",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      }
+    ]
+  },
+  {
+    "table": "eeg_sessions",
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "primary_key": true,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "user_id",
+        "type": "INTEGER",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": [
+          "users.id"
+        ]
+      },
+      {
+        "name": "original_filename",
+        "type": "VARCHAR(255)",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "stored_path",
+        "type": "VARCHAR(500)",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "file_size_bytes",
+        "type": "BIGINT",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "file_hash",
+        "type": "VARCHAR(64)",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "status",
+        "type": "VARCHAR(30)",
+        "primary_key": false,
+        "nullable": false,
+        "default": "UPLOADED",
+        "foreign_keys": []
+      },
+      {
+        "name": "validation_result",
+        "type": "JSONB",
+        "primary_key": false,
+        "nullable": true,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "error_message",
+        "type": "TEXT",
+        "primary_key": false,
+        "nullable": true,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "created_at",
+        "type": "DATETIME",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "updated_at",
+        "type": "DATETIME",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      }
+    ]
+  },
+  {
+    "table": "predictions",
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "primary_key": true,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "session_id",
+        "type": "INTEGER",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": [
+          "eeg_sessions.id"
+        ]
+      },
+      {
+        "name": "user_id",
+        "type": "INTEGER",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": [
+          "users.id"
+        ]
+      },
+      {
+        "name": "model_version_id",
+        "type": "INTEGER",
+        "primary_key": false,
+        "nullable": true,
+        "default": null,
+        "foreign_keys": [
+          "model_versions.id"
+        ]
+      },
+      {
+        "name": "predicted_class",
+        "type": "VARCHAR(20)",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "confidence",
+        "type": "FLOAT",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "threshold",
+        "type": "FLOAT",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "positive_windows",
+        "type": "INTEGER",
+        "primary_key": false,
+        "nullable": false,
+        "default": "0",
+        "foreign_keys": []
+      },
+      {
+        "name": "total_windows",
+        "type": "INTEGER",
+        "primary_key": false,
+        "nullable": false,
+        "default": "0",
+        "foreign_keys": []
+      },
+      {
+        "name": "max_probability",
+        "type": "FLOAT",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "mean_probability",
+        "type": "FLOAT",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "window_probabilities",
+        "type": "JSONB",
+        "primary_key": false,
+        "nullable": true,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "status",
+        "type": "VARCHAR(30)",
+        "primary_key": false,
+        "nullable": false,
+        "default": "COMPLETED",
+        "foreign_keys": []
+      },
+      {
+        "name": "error_message",
+        "type": "TEXT",
+        "primary_key": false,
+        "nullable": true,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "started_at",
+        "type": "DATETIME",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "completed_at",
+        "type": "DATETIME",
+        "primary_key": false,
+        "nullable": true,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "created_at",
+        "type": "DATETIME",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      }
+    ]
+  },
+  {
+    "table": "ai_reports",
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "primary_key": true,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "prediction_id",
+        "type": "INTEGER",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": [
+          "predictions.id"
+        ]
+      },
+      {
+        "name": "report_json",
+        "type": "JSONB",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "model_version",
+        "type": "VARCHAR(50)",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "status",
+        "type": "VARCHAR(30)",
+        "primary_key": false,
+        "nullable": false,
+        "default": "COMPLETED",
+        "foreign_keys": []
+      },
+      {
+        "name": "error_message",
+        "type": "TEXT",
+        "primary_key": false,
+        "nullable": true,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "created_at",
+        "type": "DATETIME",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "updated_at",
+        "type": "DATETIME",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      }
+    ]
+  },
+  {
+    "table": "medications",
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "primary_key": true,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "user_id",
+        "type": "INTEGER",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": [
+          "users.id"
+        ]
+      },
+      {
+        "name": "name",
+        "type": "VARCHAR(150)",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "dosage",
+        "type": "VARCHAR(100)",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "frequency",
+        "type": "VARCHAR(50)",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "start_date",
+        "type": "DATE",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "notes",
+        "type": "TEXT",
+        "primary_key": false,
+        "nullable": true,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "is_active",
+        "type": "BOOLEAN",
+        "primary_key": false,
+        "nullable": false,
+        "default": "True",
+        "foreign_keys": []
+      },
+      {
+        "name": "created_at",
+        "type": "DATETIME",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "updated_at",
+        "type": "DATETIME",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      }
+    ]
+  },
+  {
+    "table": "medication_schedules",
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "primary_key": true,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "medication_id",
+        "type": "INTEGER",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": [
+          "medications.id"
+        ]
+      },
+      {
+        "name": "scheduled_time",
+        "type": "TIME",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "days_of_week",
+        "type": "JSONB",
+        "primary_key": false,
+        "nullable": true,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "reminder_enabled",
+        "type": "BOOLEAN",
+        "primary_key": false,
+        "nullable": false,
+        "default": "True",
+        "foreign_keys": []
+      },
+      {
+        "name": "created_at",
+        "type": "DATETIME",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "updated_at",
+        "type": "DATETIME",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      }
+    ]
+  },
+  {
+    "table": "medication_logs",
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "primary_key": true,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "schedule_id",
+        "type": "INTEGER",
+        "primary_key": false,
+        "nullable": true,
+        "default": null,
+        "foreign_keys": [
+          "medication_schedules.id"
+        ]
+      },
+      {
+        "name": "medication_id",
+        "type": "INTEGER",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": [
+          "medications.id"
+        ]
+      },
+      {
+        "name": "user_id",
+        "type": "INTEGER",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": [
+          "users.id"
+        ]
+      },
+      {
+        "name": "taken_at",
+        "type": "DATETIME",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "status",
+        "type": "VARCHAR(20)",
+        "primary_key": false,
+        "nullable": false,
+        "default": "TAKEN",
+        "foreign_keys": []
+      },
+      {
+        "name": "dose_taken",
+        "type": "VARCHAR(100)",
+        "primary_key": false,
+        "nullable": true,
+        "default": null,
+        "foreign_keys": []
+      }
+    ]
+  },
+  {
+    "table": "lifestyle_logs",
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "primary_key": true,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "user_id",
+        "type": "INTEGER",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": [
+          "users.id"
+        ]
+      },
+      {
+        "name": "log_type",
+        "type": "VARCHAR(20)",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "occurred_at",
+        "type": "DATETIME",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "metadata_dict",
+        "type": "JSONB",
+        "primary_key": false,
+        "nullable": true,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "notes",
+        "type": "TEXT",
+        "primary_key": false,
+        "nullable": true,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "created_at",
+        "type": "DATETIME",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "updated_at",
+        "type": "DATETIME",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      }
+    ]
+  },
+  {
+    "table": "sleep_logs",
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "primary_key": true,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "user_id",
+        "type": "INTEGER",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": [
+          "users.id"
+        ]
+      },
+      {
+        "name": "slept_at",
+        "type": "DATETIME",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "woke_at",
+        "type": "DATETIME",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "duration_minutes",
+        "type": "INTEGER",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "quality",
+        "type": "INTEGER",
+        "primary_key": false,
+        "nullable": true,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "notes",
+        "type": "TEXT",
+        "primary_key": false,
+        "nullable": true,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "created_at",
+        "type": "DATETIME",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "updated_at",
+        "type": "DATETIME",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      }
+    ]
+  },
+  {
+    "table": "trigger_logs",
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "primary_key": true,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "user_id",
+        "type": "INTEGER",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": [
+          "users.id"
+        ]
+      },
+      {
+        "name": "trigger_name",
+        "type": "VARCHAR(100)",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "severity",
+        "type": "INTEGER",
+        "primary_key": false,
+        "nullable": false,
+        "default": "1",
+        "foreign_keys": []
+      },
+      {
+        "name": "occurred_at",
+        "type": "DATETIME",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "notes",
+        "type": "TEXT",
+        "primary_key": false,
+        "nullable": true,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "created_at",
+        "type": "DATETIME",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "updated_at",
+        "type": "DATETIME",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      }
+    ]
+  },
+  {
+    "table": "recommendations",
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "primary_key": true,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "user_id",
+        "type": "INTEGER",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": [
+          "users.id"
+        ]
+      },
+      {
+        "name": "category",
+        "type": "VARCHAR(50)",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "title",
+        "type": "VARCHAR(200)",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "body",
+        "type": "TEXT",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "rationale",
+        "type": "TEXT",
+        "primary_key": false,
+        "nullable": true,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "evidence_tags",
+        "type": "JSONB",
+        "primary_key": false,
+        "nullable": true,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "is_dismissed",
+        "type": "BOOLEAN",
+        "primary_key": false,
+        "nullable": false,
+        "default": "False",
+        "foreign_keys": []
+      },
+      {
+        "name": "created_at",
+        "type": "DATETIME",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      }
+    ]
+  },
+  {
+    "table": "emergency_contacts",
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "primary_key": true,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "user_id",
+        "type": "INTEGER",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": [
+          "users.id"
+        ]
+      },
+      {
+        "name": "name",
+        "type": "VARCHAR(150)",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "relationship",
+        "type": "VARCHAR(100)",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "phone_number",
+        "type": "VARCHAR(30)",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "is_primary",
+        "type": "BOOLEAN",
+        "primary_key": false,
+        "nullable": false,
+        "default": "False",
+        "foreign_keys": []
+      },
+      {
+        "name": "verified",
+        "type": "BOOLEAN",
+        "primary_key": false,
+        "nullable": false,
+        "default": "False",
+        "foreign_keys": []
+      },
+      {
+        "name": "created_at",
+        "type": "DATETIME",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "updated_at",
+        "type": "DATETIME",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      }
+    ]
+  },
+  {
+    "table": "sos_events",
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "primary_key": true,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "user_id",
+        "type": "INTEGER",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": [
+          "users.id"
+        ]
+      },
+      {
+        "name": "triggered_at",
+        "type": "DATETIME",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "latitude",
+        "type": "FLOAT",
+        "primary_key": false,
+        "nullable": true,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "longitude",
+        "type": "FLOAT",
+        "primary_key": false,
+        "nullable": true,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "location_available",
+        "type": "BOOLEAN",
+        "primary_key": false,
+        "nullable": false,
+        "default": "False",
+        "foreign_keys": []
+      },
+      {
+        "name": "status",
+        "type": "VARCHAR(30)",
+        "primary_key": false,
+        "nullable": false,
+        "default": "SENDING",
+        "foreign_keys": []
+      },
+      {
+        "name": "payload",
+        "type": "JSONB",
+        "primary_key": false,
+        "nullable": true,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "created_at",
+        "type": "DATETIME",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "updated_at",
+        "type": "DATETIME",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      }
+    ]
+  },
+  {
+    "table": "sos_deliveries",
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "primary_key": true,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "sos_event_id",
+        "type": "INTEGER",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": [
+          "sos_events.id"
+        ]
+      },
+      {
+        "name": "contact_id",
+        "type": "INTEGER",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": [
+          "emergency_contacts.id"
+        ]
+      },
+      {
+        "name": "delivery_status",
+        "type": "VARCHAR(30)",
+        "primary_key": false,
+        "nullable": false,
+        "default": "PENDING",
+        "foreign_keys": []
+      },
+      {
+        "name": "provider_message_id",
+        "type": "VARCHAR(100)",
+        "primary_key": false,
+        "nullable": true,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "error_message",
+        "type": "TEXT",
+        "primary_key": false,
+        "nullable": true,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "created_at",
+        "type": "DATETIME",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      }
+    ]
+  },
+  {
+    "table": "chat_sessions",
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "primary_key": true,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "user_id",
+        "type": "INTEGER",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": [
+          "users.id"
+        ]
+      },
+      {
+        "name": "title",
+        "type": "VARCHAR(200)",
+        "primary_key": false,
+        "nullable": false,
+        "default": "New chat",
+        "foreign_keys": []
+      },
+      {
+        "name": "created_at",
+        "type": "DATETIME",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "updated_at",
+        "type": "DATETIME",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      }
+    ]
+  },
+  {
+    "table": "chat_messages",
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "primary_key": true,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "session_id",
+        "type": "INTEGER",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": [
+          "chat_sessions.id"
+        ]
+      },
+      {
+        "name": "user_id",
+        "type": "INTEGER",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": [
+          "users.id"
+        ]
+      },
+      {
+        "name": "role",
+        "type": "VARCHAR(20)",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "content",
+        "type": "TEXT",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "sources",
+        "type": "JSONB",
+        "primary_key": false,
+        "nullable": true,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "created_at",
+        "type": "DATETIME",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      }
+    ]
+  },
+  {
+    "table": "rag_documents",
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "primary_key": true,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "title",
+        "type": "VARCHAR(300)",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "source_path",
+        "type": "VARCHAR(500)",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "checksum",
+        "type": "VARCHAR(64)",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "status",
+        "type": "VARCHAR(30)",
+        "primary_key": false,
+        "nullable": false,
+        "default": "INGESTED",
+        "foreign_keys": []
+      },
+      {
+        "name": "created_at",
+        "type": "DATETIME",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "updated_at",
+        "type": "DATETIME",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      }
+    ]
+  },
+  {
+    "table": "rag_chunks",
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "primary_key": true,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "document_id",
+        "type": "INTEGER",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": [
+          "rag_documents.id"
+        ]
+      },
+      {
+        "name": "chunk_index",
+        "type": "INTEGER",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "content",
+        "type": "VARCHAR",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "embedding",
+        "type": "VECTOR(1536)",
+        "primary_key": false,
+        "nullable": true,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "metadata",
+        "type": "JSONB",
+        "primary_key": false,
+        "nullable": true,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "created_at",
+        "type": "DATETIME",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      }
+    ]
+  },
+  {
+    "table": "model_versions",
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "primary_key": true,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "name",
+        "type": "VARCHAR(100)",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "version",
+        "type": "VARCHAR(20)",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "framework",
+        "type": "VARCHAR(50)",
+        "primary_key": false,
+        "nullable": false,
+        "default": "onnx",
+        "foreign_keys": []
+      },
+      {
+        "name": "path",
+        "type": "VARCHAR(500)",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "input_schema",
+        "type": "JSONB",
+        "primary_key": false,
+        "nullable": true,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "threshold",
+        "type": "FLOAT",
+        "primary_key": false,
+        "nullable": false,
+        "default": "0.5",
+        "foreign_keys": []
+      },
+      {
+        "name": "accuracy",
+        "type": "FLOAT",
+        "primary_key": false,
+        "nullable": true,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "sensitivity",
+        "type": "FLOAT",
+        "primary_key": false,
+        "nullable": true,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "specificity",
+        "type": "FLOAT",
+        "primary_key": false,
+        "nullable": true,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "f1",
+        "type": "FLOAT",
+        "primary_key": false,
+        "nullable": true,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "auroc",
+        "type": "FLOAT",
+        "primary_key": false,
+        "nullable": true,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "is_active",
+        "type": "BOOLEAN",
+        "primary_key": false,
+        "nullable": false,
+        "default": "True",
+        "foreign_keys": []
+      },
+      {
+        "name": "created_at",
+        "type": "DATETIME",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      }
+    ]
+  },
+  {
+    "table": "audit_logs",
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "primary_key": true,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "user_id",
+        "type": "INTEGER",
+        "primary_key": false,
+        "nullable": true,
+        "default": null,
+        "foreign_keys": [
+          "users.id"
+        ]
+      },
+      {
+        "name": "action",
+        "type": "VARCHAR(100)",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "entity_type",
+        "type": "VARCHAR(50)",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "entity_id",
+        "type": "INTEGER",
+        "primary_key": false,
+        "nullable": true,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "metadata",
+        "type": "JSONB",
+        "primary_key": false,
+        "nullable": true,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "created_at",
+        "type": "DATETIME",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      }
+    ]
+  },
+  {
+    "table": "manual_seizure_logs",
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "primary_key": true,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "user_id",
+        "type": "INTEGER",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": [
+          "users.id"
+        ]
+      },
+      {
+        "name": "occurred_at",
+        "type": "DATETIME",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "duration_seconds",
+        "type": "INTEGER",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "seizure_type",
+        "type": "VARCHAR(100)",
+        "primary_key": false,
+        "nullable": true,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "auras_felt",
+        "type": "TEXT",
+        "primary_key": false,
+        "nullable": true,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "post_ictal_symptoms",
+        "type": "TEXT",
+        "primary_key": false,
+        "nullable": true,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "notes",
+        "type": "TEXT",
+        "primary_key": false,
+        "nullable": true,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "created_at",
+        "type": "DATETIME",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      },
+      {
+        "name": "updated_at",
+        "type": "DATETIME",
+        "primary_key": false,
+        "nullable": false,
+        "default": null,
+        "foreign_keys": []
+      }
+    ]
+  }
+]

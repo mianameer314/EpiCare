@@ -5,7 +5,9 @@ Wires middleware, exception handlers, API routers, and the async lifespan
 (rate limiter, cache, scheduler, model loader warm-up, vector index warm-up).
 Startup is resilient: a missing model or unreachable Redis never blocks boot.
 """
+import asyncio
 import logging
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -44,8 +46,24 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Startup/shutdown lifecycle — never raises on degraded dependencies."""
+    # DB Connection and Superuser initialization
+    try:
+        # Simple query to check connection
+        async with engine.begin() as conn:
+            pass
+        logger.info("Database connected successfully.")
+        
+        from app.db.init_db import init_superuser
+        await init_superuser()
+    except Exception as exc:
+        logger.error(f"Database connection failed: {exc}")
+
     # Best-effort infra init (Redis fallbacks handled internally)
-    await init_rate_limiter(settings.REDIS_URL)
+    try:
+        await init_rate_limiter(settings.REDIS_URL)
+        logger.info("Redis connected successfully.")
+    except Exception as exc:
+        logger.error(f"Redis connection failed: {exc}")
 
     # Model load is non-fatal: /system/model reports unavailable instead
     try:
@@ -67,19 +85,36 @@ async def lifespan(app: FastAPI):
 
     yield
 
+    # Teardown with timeouts to prevent hanging on Ctrl+C (Windows / Uvicorn)
     try:
-        await get_scheduler().shutdown()
+        await asyncio.wait_for(get_scheduler().shutdown(), timeout=2.0)
     except Exception as exc:
         logger.error("scheduler_shutdown_failed", extra={"error": str(exc)})
-    await shutdown_executor()
-    await close_rate_limiter()
-    await engine.dispose()
+        
+    try:
+        await asyncio.wait_for(shutdown_executor(), timeout=2.0)
+    except Exception as exc:
+        logger.error("executor_shutdown_failed", extra={"error": str(exc)})
+        
+    try:
+        await asyncio.wait_for(close_rate_limiter(), timeout=2.0)
+    except Exception as exc:
+        logger.error("rate_limiter_shutdown_failed", extra={"error": str(exc)})
+        
+    try:
+        await asyncio.wait_for(engine.dispose(), timeout=3.0)
+    except Exception as exc:
+        logger.error("engine_dispose_failed", extra={"error": str(exc)})
 
 
 openapi_tags = [
     {
         "name": "Authentication",
         "description": "Operations for user registration, login, and token management.",
+    },
+    {
+        "name": "Admin",
+        "description": "Administrative actions and secure system diagnostics.",
     },
     {
         "name": "Patient Dashboard",
@@ -125,10 +160,6 @@ openapi_tags = [
         "name": "System Health & Status",
         "description": "Public system status and health checks.",
     },
-    {
-        "name": "Admin",
-        "description": "Administrative actions and secure system diagnostics.",
-    },
 ]
 
 app = FastAPI(
@@ -138,6 +169,7 @@ app = FastAPI(
 **EpiCare AI** is a robust and comprehensive platform designed to manage and analyze epilepsy-related data, facilitating seamless interactions between patients, doctors, and caretakers.
 
 ### Core Features
+- **Admin Dashboard**: Comprehensive system metrics and doctor PMDC verification tools.
 - **User Management**: Unified profiles tailored for Patients, Doctors, and Caretakers.
 - **Role-Based Authentication**: Secure access control with PMDC verification for doctors.
 - **Connection System**: Connect patients with verified medical professionals and trusted caretakers.
@@ -174,6 +206,7 @@ app.include_router(auth.router, prefix=api_prefix)
 app.include_router(users.router, prefix=api_prefix)
 app.include_router(eeg.router, prefix=api_prefix)
 app.include_router(admin.router, prefix=api_prefix)
+app.include_router(admin.diagnostics_router, prefix=api_prefix)
 app.include_router(connections.router, prefix=api_prefix)
 app.include_router(emergency.router, prefix=api_prefix)
 app.include_router(medications.router, prefix=api_prefix)

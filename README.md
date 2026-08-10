@@ -13,19 +13,19 @@ EpiCare is a full-stack AI web application for **epilepsy detection and daily ma
 ## Table of Contents
 
 1. [Project Overview](#1-project-overview)
-2. [Technology Stack](#2-technology-stack)
-3. [Repository Structure](#3-repository-structure)
+2. [Technology Stack](docs/development.md)
+3. [Repository Structure](docs/development.md)
 4. [Roles & Access Control (RBAC)](#4-roles--access-control-rbac)
 5. [Role-Specific Profiles](#5-role-specific-profiles)
 6. [Connection Networks (Request → Approve)](#6-connection-networks-request--approve)
 7. [Authentication & OTP Flow](#7-authentication--otp-flow)
-8. [Database Schema & Migrations](#8-database-schema--migrations)
+8. [Database Schema & Migrations](docs/database_schema.md)
 9. [EEG Pipeline (Upload → Inference)](#9-eeg-pipeline-upload--inference)
 10. [Model Registry & Artifacts](#10-model-registry--artifacts)
-11. [API Reference](#11-api-reference)
-12. [Configuration Reference](#12-configuration-reference)
-13. [Getting Started](#13-getting-started)
-14. [Testing](#14-testing)
+11. [API Reference](docs/api_contract.md)
+12. [Configuration Reference](docs/configuration.md)
+13. [Getting Started](docs/getting_started.md)
+14. [Testing](docs/testing.md)
 15. [Error Handling & Logging](#15-error-handling--logging)
 16. [Security & Guardrails](#16-security--guardrails)
 17. [Known Issues & Current State](#17-known-issues--current-state)
@@ -207,16 +207,13 @@ Doctor registers with pmdc_number  ──►  profile created (is_pmdc_verified 
 
 Until the admin flips `is_pmdc_verified = True`, the doctor **cannot log in** (login endpoint rejects with 403) and **cannot** call `VerifiedDoctor` endpoints.
 
-> **Admin verification currently manual:** there is no admin UI/API to set the flag — it is done directly in the database:
-> ```sql
-> UPDATE doctor_profiles SET is_pmdc_verified = TRUE WHERE user_id = <id>;
-> ```
+> **Admin Verification:** Verification is handled securely via the Admin Dashboard. Admins use the `PATCH /api/v1/admin/doctors/{user_id}/verify` endpoint to approve or reject doctors based on their credentials.
 
 ### 4.5 Permission matrix
 
 | Action / Endpoint | PATIENT | DOCTOR | CARETAKER | ADMIN |
 | --- | :-: | :-: | :-: | :-: |
-| Register / login / verify OTP | ✅ | ✅ | ✅ | ✅ |
+| Register / login / verify OTP | ✅ | ✅ | ✅ | ❌ (Seeded) |
 | `GET /users/me` | ✅ | ✅ | ✅ | ✅ |
 | Patient profile CRUD | ✅ | — | — | — |
 | Doctor profile (own) | — | ✅ | — | — |
@@ -225,7 +222,8 @@ Until the admin flips `is_pmdc_verified = True`, the doctor **cannot log in** (l
 | Request doctor connection | ✅ | — | — | — |
 | Approve connection | — | ✅ (verified) | — | — |
 | EEG upload / analyze | ✅ | (future) | — | — |
-| Admin diagnostics (`X-Admin-Key`) | — | — | — | ✅ (key) |
+| Admin Dashboard (Users, PMDC, Metrics) | — | — | — | ✅ (role) |
+| System diagnostics (`X-Admin-Key`) | — | — | — | ✅ (key) |
 
 > Not all planned endpoints exist yet — see [Known Issues](#17-known-issues--current-state).
 ---
@@ -376,6 +374,7 @@ Rules enforced in `backend/app/services/user.py`:
 - Duplicate **email** → `409 EMAIL_ALREADY_REGISTERED`
 - Duplicate **phone_number** → `409 PHONE_ALREADY_REGISTERED`
 - `role = DOCTOR` without `pmdc_number` → `400 "PMDC number is required for doctors"`
+- `role = ADMIN` → `422 Validation Error` (Admins must be seeded via DB or `.env` `ADMIN_EMAIL` / `ADMIN_PASSWORD` on startup).
 - A 6-digit OTP is generated, **bcrypt-hashed** into `otp_secret_hash`, with a **10-minute** expiry (`otp_expires_at`)
 - The role-specific profile is created after the user row
 - An email with the OTP is queued via `BackgroundTasks` (see `backend/app/services/email.py`)
@@ -565,6 +564,9 @@ Base path: **`/api/v1`**. Auth: `Authorization: Bearer <access_token>` (except a
 | GET | `/connections/doctors/search?pmdc_number=` | PATIENT | `200 [DoctorSearchResponse]` |
 | POST | `/connections/doctors/request` | PATIENT | `201 ConnectionResponse` |
 | POST | `/connections/doctors/approve/{id}` | DOCTOR verified | `200 ConnectionResponse` |
+| POST | `/connections/caretakers/request` | PATIENT | `201 ConnectionResponse` |
+| GET | `/connections/caretakers/pending` | CARETAKER | `200 [ConnectionResponse]` |
+| POST | `/connections/caretakers/approve/{id}` | CARETAKER | `200 ConnectionResponse` |
 
 ### 11.4 EEG
 
@@ -584,6 +586,11 @@ Base path: **`/api/v1`**. Auth: `Authorization: Bearer <access_token>` (except a
 | GET | `/system/health` | `200 {"status": "healthy"}` |
 | GET | `/system/model` | `200 ModelStatusOut` |
 | GET | `/admin/health/diagnostics` | `200 DiagnosticsOut` (requires `X-Admin-Key`) |
+| GET | `/admin/dashboard/metrics` | `200 AdminDashboardMetricsOut` (Admin Role) |
+| GET | `/admin/users` | `200 [UserOut]` (Admin Role) |
+| PATCH | `/admin/users/{id}/status` | `200 UserOut` (Admin Role) |
+| GET | `/admin/doctors/pending` | `200 [DoctorProfileOut]` (Admin Role) |
+| PATCH | `/admin/doctors/{id}/verify` | `200 DoctorProfileOut` (Admin Role) |
 
 ### 11.6 Lifestyle & Seizures (New)
 
@@ -709,8 +716,14 @@ Invoke-RestMethod -Uri http://127.0.0.1:8000/api/v1/users/me -Headers $headers
 $doc = @{ email='doc@example.com'; password='supersecret123'; phone_number='03019876543'; full_name='Dr. Ayesha'; role='DOCTOR'; pmdc_number='PMDC-12345' } | ConvertTo-Json
 Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/api/v1/auth/register -ContentType 'application/json' -Body $doc
 
-# Mark verified in DB (admin action)
-psql -U postgres -d EpiCare -c "UPDATE doctor_profiles SET is_pmdc_verified = TRUE WHERE user_id = (SELECT id FROM users WHERE email='doc@example.com');"
+# Mark verified via Admin API
+$admin_login = Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/api/v1/auth/login -ContentType 'application/json' `
+  -Body (@{ email='mianameer830@gmail.com'; password='superamdin123' } | ConvertTo-Json)
+$admin_headers = @{ Authorization = "Bearer $($admin_login.access_token)" }
+
+# Get the pending doctor's user ID from /api/v1/admin/doctors/pending, then verify:
+Invoke-RestMethod -Method Patch -Uri http://127.0.0.1:8000/api/v1/admin/doctors/2/verify -Headers $admin_headers -ContentType 'application/json' `
+  -Body (@{ status='approved'; notes='PMDC looks valid' } | ConvertTo-Json)
 
 # Doctor logs in, patient requests connection, doctor approves (see section 6.2)
 ```
@@ -727,6 +740,8 @@ psql -U postgres -d EpiCare -c "UPDATE doctor_profiles SET is_pmdc_verified = TR
 | `tests/test_channel_mapper.py` | channel mapping + fallback |
 | `tests/test_eeg_preprocessing.py` | bandpass / resample / windows / STFT |
 | `tests/test_eeg_validation.py` | sampling rate, channels, NaN/Inf, flat |
+| `tests/test_admin_api.py` | User suspension, doctor PMDC verification, admin dashboard metrics |
+| `tests/test_system_api.py` | System health, model status, diagnostics (with X-Admin-Key) |
 | `tests/conftest.py` | test DB fixtures, dependency overrides, pgvector tolerance |
 
 ### 14.2 Running the suite
@@ -745,9 +760,9 @@ psql -U postgres -c "CREATE DATABASE epicare_test OWNER epicare;"
 
 ### 14.3 Current status
 
-The test suite covers the new RBAC architecture, OTP verification, robust profile validation, connection requests between patients and doctors, and the entire EEG processing pipeline.
+The test suite covers the new RBAC architecture, OTP verification, robust profile validation, connection requests between patients and doctors, the entire EEG processing pipeline, and the comprehensive Admin Dashboard operations.
 
-All **36 tests are passing successfully**.
+All **59 tests are passing successfully**.
 
 ---
 
@@ -797,11 +812,9 @@ RequestContextMiddleware → SecurityHeadersMiddleware → TwilioSignatureMiddle
 | 2 | No `model.onnx` artifact | `/eeg/.../analyze` returns 503 | Train/export a model into `models/seizure_detector/versions/v1/` |
 | 3 | `users.role` default applies to new rows only; legacy rows may lack profiles | Old test users have no role-specific profile | Re-register users or backfill |
 | 4 | Patient `date_of_birth` placeholder = today at registration | Wrong DOB until user updates | Collect DOB during registration or update via profile endpoint |
-| 5 | Doctor PMDC verification is manual SQL | No admin self-service | Add admin endpoint/UI to flip `is_pmdc_verified` |
-| 6 | SMS OTP is a debug print | No real SMS | Swap in Twilio/Lifetimesms call in `services/user.py` |
-| 7 | Frontend is an empty skeleton | No UI yet | Build M4 (React/Vite) mirroring BRANDING-SYSTEM-FRONTEND |
-| 8 | `connection_status` has no "revoke" endpoint | REVOKED unused | Add revoke + list-connections endpoints |
-| 9 | Redis not installed in venv | Rate limiter always falls back to memory | Add `redis` package + Redis server |
+| 5 | SMS OTP is a debug print | No real SMS | Swap in Twilio/Lifetimesms call in `services/user.py` |
+| 6 | Frontend is an empty skeleton | No UI yet | Build M4 (React/Vite) mirroring BRANDING-SYSTEM-FRONTEND |
+| 7 | Redis not installed in venv | Rate limiter always falls back to memory | Add `redis` package + Redis server |
 
 ---
 
@@ -816,8 +829,8 @@ Progress tracking lives in `progress.md`. Milestone summary:
 | M3 — EEG upload → inference | ✅ backend done (pipeline + services + tests) |
 | M4 — Core frontend (upload → result) | ⬜ not started (empty `frontend/`) |
 | M5 — AI report + RAG chatbot | ⬜ planned (services stubs, no pgvector locally) |
-| M6 — Medication, lifestyle, recommendations | 🔄 partially done (seizure & lifestyle trackers built, med/recs pending) |
-| M7 — SOS + dashboard + background jobs | ⬜ planned |
+| M6 — Medication, lifestyle, recommendations | ✅ done (all trackers, scheduling, and recommender built) |
+| M7 — SOS + dashboard + background jobs | ✅ done (endpoints live, background tasks active) |
 | M8 — Security, testing, deployment | ✅ done (all tests passing, Docker compose present) |
 
 ---
@@ -831,7 +844,7 @@ A: Enums give DB-level integrity (no invalid roles) and map cleanly to Python `s
 A: Yes — `patient_doctor_networks` is a junction table; multiple rows per patient are allowed.
 
 **Q: Why can't a doctor log in right after registering?**
-A: `is_pmdc_verified` defaults to `False`; an admin must set it to `True` (currently manual SQL) before login/approve flows unlock.
+A: `is_pmdc_verified` defaults to `False`; an admin must set it to `True` using the Admin Dashboard API before login/approve flows unlock.
 
 **Q: How do I get the OTP in development?**
 A: If SMTP is configured, it's emailed; otherwise the server console prints `DEBUG (SMS Gateway Skipped): Sending OTP <code> ...` from `services/user.py`. When email settings are absent, `email.py` logs "Would have sent OTP ...".

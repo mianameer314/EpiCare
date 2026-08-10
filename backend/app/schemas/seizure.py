@@ -12,6 +12,15 @@ class ManualSeizureLogCreate(BaseModel):
     notes: Optional[str] = None
 
 
+class ManualSeizureLogUpdate(BaseModel):
+    occurred_at: Optional[datetime] = None
+    duration_seconds: Optional[int] = None
+    seizure_type: Optional[str] = None
+    auras_felt: Optional[str] = None
+    post_ictal_symptoms: Optional[str] = None
+    notes: Optional[str] = None
+
+
 class ManualSeizureLogOut(ManualSeizureLogCreate):
     id: int
     user_id: int

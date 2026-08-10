@@ -54,6 +54,7 @@ async def register_user(db: AsyncSession, data: UserRegister, background_tasks: 
         raise conflict_error("PHONE_ALREADY_REGISTERED", "Phone number already registered")
 
     from app.models.enums import UserRole
+    
     if data.role == UserRole.DOCTOR and not data.pmdc_number:
         from fastapi import HTTPException
         raise HTTPException(status_code=400, detail="PMDC number is required for doctors")

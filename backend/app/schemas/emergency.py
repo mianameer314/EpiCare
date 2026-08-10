@@ -1,4 +1,4 @@
-﻿"""
+"""
 Emergency schemas — contacts, SOS trigger, and delivery state.
 """
 from pydantic import Field
@@ -11,7 +11,7 @@ class EmergencyContactCreate(StrictModel):
 
     name: str = Field(..., min_length=1, max_length=150)
     relationship: str = Field(..., min_length=1, max_length=100)
-    phone_number: str = Field(..., min_length=7, max_length=30)
+    phone_number: str = Field(..., pattern=r"^\+?[1-9]\d{1,14}$", min_length=7, max_length=30)
     is_primary: bool = False
 
 
@@ -20,7 +20,7 @@ class EmergencyContactUpdate(StrictModel):
 
     name: str | None = None
     relationship: str | None = None
-    phone_number: str | None = None
+    phone_number: str | None = Field(None, pattern=r"^\+?[1-9]\d{1,14}$", min_length=7, max_length=30)
     is_primary: bool | None = None
 
 
