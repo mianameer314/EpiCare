@@ -21,12 +21,13 @@ from app.schemas.lifestyle import (
     LifestyleLogOut,
 )
 
-router = APIRouter(prefix="/lifestyle", tags=["Lifestyle & Diary"])
+router = APIRouter(prefix="/lifestyle")
 
 
 
 @router.post(
     "/sleep",
+    tags=['🤒 Patient - Health Tracking', '🤝 Caretaker - Proxy Actions'],
     response_model=SleepLogOut,
     status_code=status.HTTP_201_CREATED,
     summary="Log Daily Sleep",
@@ -64,6 +65,7 @@ from app.schemas.common import PaginatedResponse
 
 @router.get(
     "/sleep",
+    tags=['🤒 Patient - Health Tracking', '👨\u200d⚕️ Doctor - Diagnostics', '🤝 Caretaker - Proxy Actions'],
     response_model=PaginatedResponse[SleepLogOut],
     summary="List Sleep Logs",
     description="Retrieves a paginated descending history of all sleep logs recorded by the patient.",
@@ -99,6 +101,7 @@ async def get_sleep_logs(
 
 @router.post(
     "/triggers",
+    tags=['🤒 Patient - Health Tracking', '🤝 Caretaker - Proxy Actions'],
     response_model=TriggerLogOut,
     status_code=status.HTTP_201_CREATED,
     summary="Log Seizure Trigger",
@@ -128,6 +131,7 @@ async def log_trigger(
 
 @router.get(
     "/triggers",
+    tags=['🤒 Patient - Health Tracking', '👨\u200d⚕️ Doctor - Diagnostics', '🤝 Caretaker - Proxy Actions'],
     response_model=PaginatedResponse[TriggerLogOut],
     summary="List Trigger Logs",
     description="Fetches a paginated descending list of all documented triggers for the patient.",
@@ -166,6 +170,7 @@ async def get_trigger_logs(
 
 @router.post(
     "/stress",
+    tags=['🤒 Patient - Health Tracking', '🤝 Caretaker - Proxy Actions'],
     response_model=LifestyleLogOut,
     status_code=status.HTTP_201_CREATED,
     summary="Log Daily Stress Level",
@@ -195,6 +200,7 @@ async def log_stress(
 
 @router.post(
     "/menstruation",
+    tags=['🤒 Patient - Health Tracking', '🤝 Caretaker - Proxy Actions'],
     response_model=LifestyleLogOut,
     status_code=status.HTTP_201_CREATED,
     summary="Log Menstruation Cycle",
@@ -221,6 +227,7 @@ async def log_menstruation(
 
 @router.post(
     "/diet",
+    tags=['🤒 Patient - Health Tracking', '🤝 Caretaker - Proxy Actions'],
     response_model=LifestyleLogOut,
     status_code=status.HTTP_201_CREATED,
     summary="Log Diet & Alcohol",
@@ -253,6 +260,7 @@ async def log_diet(
 
 @router.post(
     "/illness",
+    tags=['🤒 Patient - Health Tracking', '🤝 Caretaker - Proxy Actions'],
     response_model=LifestyleLogOut,
     status_code=status.HTTP_201_CREATED,
     summary="Log Illness & Fever",
@@ -285,6 +293,7 @@ async def log_illness(
 
 @router.post(
     "/med-side-effects",
+    tags=['🤒 Patient - Health Tracking', '🤝 Caretaker - Proxy Actions'],
     response_model=LifestyleLogOut,
     status_code=status.HTTP_201_CREATED,
     summary="Log Medication Side Effects",
@@ -317,6 +326,7 @@ async def log_med_side_effect(
 
 @router.post(
     "/screen-time",
+    tags=['🤒 Patient - Health Tracking', '🤝 Caretaker - Proxy Actions'],
     response_model=LifestyleLogOut,
     status_code=status.HTTP_201_CREATED,
     summary="Log Screen Time",

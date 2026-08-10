@@ -11,7 +11,7 @@ from app.core.config import settings
 from app.ml.model_registry import get_model_registry
 from app.schemas.system import HealthOut, ModelStatusOut
 
-router = APIRouter(prefix="/system", tags=["System Health & Status"])
+router = APIRouter(prefix="/system", tags=["⚙️ System Health & Status"])
 
 
 @router.get(

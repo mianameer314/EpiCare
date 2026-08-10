@@ -8,11 +8,12 @@ from app.models.enums import UserRole
 from app.models.seizure import ManualSeizureLog
 from app.schemas.seizure import ManualSeizureLogCreate, ManualSeizureLogUpdate, ManualSeizureLogOut
 
-router = APIRouter(prefix="/seizures", tags=["Manual Seizure Logs"])
+router = APIRouter(prefix="/seizures")
 
 
 @router.post(
     "/manual",
+    tags=['🤒 Patient - Health Tracking', '🤝 Caretaker - Proxy Actions'],
     response_model=ManualSeizureLogOut,
     status_code=status.HTTP_201_CREATED,
     summary="Log Manual Seizure",
@@ -49,6 +50,7 @@ from app.schemas.common import PaginatedResponse
 
 @router.get(
     "/manual",
+    tags=['🤒 Patient - Health Tracking', '👨‍⚕️ Doctor - Diagnostics', '🤝 Caretaker - Proxy Actions'],
     response_model=PaginatedResponse[ManualSeizureLogOut],
     summary="List Manual Seizures",
     description="Retrieve a paginated history of all manually logged seizures for the authenticated patient.",
@@ -87,6 +89,7 @@ async def get_manual_seizures(
 
 @router.put(
     "/manual/{log_id}",
+    tags=['🤒 Patient - Health Tracking', '🤝 Caretaker - Proxy Actions'],
     response_model=ManualSeizureLogOut,
     summary="Update Manual Seizure Log",
     description="Updates a manual seizure log to correct accidental mistakes.",
@@ -118,6 +121,7 @@ async def update_manual_seizure(
 
 @router.delete(
     "/manual/{log_id}",
+    tags=['🤒 Patient - Health Tracking', '🤝 Caretaker - Proxy Actions'],
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete Manual Seizure Log",
     description="Deletes a manual seizure log completely.",

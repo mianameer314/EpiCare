@@ -11,7 +11,7 @@ from app.models.medication import MedicationLog
 from app.schemas.base import StrictModel
 from app.services.recommender import get_daily_recommendations
 
-router = APIRouter(prefix="/dashboard", tags=["Patient Dashboard"])
+router = APIRouter(prefix="/dashboard", tags=["🤒 Patient - Dashboard"])
 
 
 class DashboardStatsOut(StrictModel):

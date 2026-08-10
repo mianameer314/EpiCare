@@ -60,7 +60,7 @@ from app.schemas.common import PaginatedResponse
 
 @router.get(
     "/doctors/search",
-    tags=["Patient Management"],
+    tags=["🤒 Patient - Care Network"],
     response_model=PaginatedResponse[DoctorSearchResponse],
     summary="Search verified doctors",
     description="Search for PMDC-verified doctors by name, specialty, hospital, or PMDC number. Only patients can search for doctors.",
@@ -125,7 +125,7 @@ async def search_doctors(
 
 @router.post(
     "/doctors/request",
-    tags=["Patient Management"],
+    tags=["🤒 Patient - Care Network"],
     response_model=ConnectionResponse,
     summary="Request doctor connection",
     description="Patient sends a connection request to a doctor. A patient can only have one active/pending connection with a specific doctor.",
@@ -186,7 +186,7 @@ async def request_connection(
 
 @router.get(
     "/doctors/pending",
-    tags=["Doctor Management"],
+    tags=["👨‍⚕️ Doctor - Patients Network"],
     response_model=PaginatedResponse[ConnectedPatientOut],
     summary="List pending requests",
     description="Doctor views all pending connection requests with patient details.",
@@ -238,7 +238,7 @@ async def get_pending_doctor_requests(
 
 @router.get(
     "/doctor/patients",
-    tags=["Doctor Management"],
+    tags=["👨‍⚕️ Doctor - Patients Network"],
     response_model=PaginatedResponse[ConnectedPatientOut],
     summary="List doctor's active patients",
     description="Doctor views all their active patient connections with full details.",
@@ -291,7 +291,7 @@ async def get_doctor_patients(
 
 @router.post(
     "/doctors/approve/{connection_id}",
-    tags=["Doctor Management"],
+    tags=["👨‍⚕️ Doctor - Patients Network"],
     response_model=ConnectionResponse,
     summary="Approve connection request",
     description="A PMDC-verified doctor approves a pending connection request from a patient.",
@@ -335,7 +335,7 @@ async def approve_connection(
 
 @router.delete(
     "/doctors/{connection_id}",
-    tags=["Patient Management", "Doctor Management"],
+    tags=["🤒 Patient - Care Network", "👨‍⚕️ Doctor - Patients Network"],
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Revoke doctor connection",
     description="Patient or Doctor revokes an active or pending doctor connection.",
@@ -385,7 +385,7 @@ async def revoke_doctor_connection(
 
 @router.get(
     "/patient/doctors",
-    tags=["Patient Management"],
+    tags=["🤒 Patient - Care Network"],
     response_model=PaginatedResponse[PatientDoctorConnectionOut],
     summary="List patient's doctor connections",
     description="Patient views all their doctor connections (pending and active).",
@@ -441,7 +441,7 @@ CaretakerUser = Depends(RoleChecker([UserRole.CARETAKER]))
 
 @router.post(
     "/caretakers/request",
-    tags=["Patient Management"],
+    tags=["🤒 Patient - Care Network"],
     response_model=ConnectionResponse,
     summary="Request caretaker connection",
     description="Patient requests a connection using the caretaker's email.",
@@ -508,7 +508,7 @@ async def request_caretaker_connection(
 
 @router.get(
     "/caretakers/pending",
-    tags=["Caretaker Management"],
+    tags=["🤝 Caretaker - Patients Network"],
     response_model=PaginatedResponse[ConnectedPatientOut],
     summary="List pending requests",
     description="Caretaker views all pending connection requests.",
@@ -561,7 +561,7 @@ async def get_pending_caretaker_requests(
 
 @router.get(
     "/caretaker/patients",
-    tags=["Caretaker Management"],
+    tags=["🤝 Caretaker - Patients Network"],
     response_model=PaginatedResponse[ConnectedPatientOut],
     summary="List caretaker's active patients",
     description="Caretaker views all their active patient connections with full details.",
@@ -615,7 +615,7 @@ async def get_caretaker_patients(
 
 @router.post(
     "/caretakers/approve/{connection_id}",
-    tags=["Caretaker Management"],
+    tags=["🤝 Caretaker - Patients Network"],
     response_model=ConnectionResponse,
     summary="Approve connection request",
     description="Caretaker approves a pending connection request.",
@@ -657,7 +657,7 @@ async def approve_caretaker_connection(
 
 @router.put(
     "/caretakers/{connection_id}/proxy",
-    tags=["Patient Management"],
+    tags=["🤒 Patient - Care Network"],
     response_model=ConnectionResponse,
     summary="Update caretaker proxy access",
     description="Patient toggles write access (proxy) for a specific caretaker connection.",
@@ -694,7 +694,7 @@ async def update_caretaker_proxy(
 
 @router.delete(
     "/caretakers/{connection_id}",
-    tags=["Patient Management", "Caretaker Management"],
+    tags=["🤒 Patient - Care Network", "🤝 Caretaker - Patients Network"],
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Revoke caretaker connection",
     description="Patient or Caretaker revokes an active or pending caretaker connection.",
@@ -744,7 +744,7 @@ async def revoke_caretaker_connection(
 
 @router.get(
     "/patient/caretakers",
-    tags=["Patient Management"],
+    tags=["🤒 Patient - Care Network"],
     response_model=PaginatedResponse[PatientCaretakerConnectionOut],
     summary="List patient's caretaker connections",
     description="Patient views all their caretaker connections (pending and active).",

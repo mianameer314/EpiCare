@@ -109,52 +109,76 @@ async def lifespan(app: FastAPI):
 
 openapi_tags = [
     {
-        "name": "Authentication",
+        "name": "🔐 Authentication",
         "description": "Operations for user registration, login, and token management.",
     },
     {
-        "name": "Admin",
-        "description": "Administrative actions and secure system diagnostics.",
+        "name": "🤒 Patient - Profile & Management",
+        "description": "Manage your patient profile, update details, and view your account settings.",
     },
     {
-        "name": "Patient Dashboard",
-        "description": "Aggregated analytics and AI-driven recommendations for patients.",
+        "name": "🤒 Patient - Care Network",
+        "description": "Connect with verified doctors and assign trusted caretakers to your network.",
     },
     {
-        "name": "Emergency SOS",
-        "description": "Manage emergency contacts and trigger instant SOS alerts via multi-channel providers.",
+        "name": "🤒 Patient - Medications",
+        "description": "View your active prescriptions, check your daily schedules, and log your dose intakes.",
     },
     {
-        "name": "Manual Seizure Logs",
-        "description": "Log seizures manually if they occur while not wearing an EEG device.",
+        "name": "🤒 Patient - Health Tracking",
+        "description": "Log manual seizures, sleep quality, daily stress, and potential triggers for AI analysis.",
     },
     {
-        "name": "Medications",
-        "description": "Prescription logging, scheduling, and adherence tracking.",
+        "name": "🤒 Patient - Emergency SOS",
+        "description": "Manage your emergency contacts and trigger instant multi-channel SOS alerts.",
     },
     {
-        "name": "Lifestyle & Diary",
-        "description": "Log daily sleep, triggers, and stress levels for personalized AI insights.",
+        "name": "🤒 Patient - Dashboard",
+        "description": "View your aggregated health analytics and personalized AI-driven recommendations.",
     },
     {
-        "name": "EEG Analysis",
-        "description": "Endpoints for EEG file upload, session lifecycle tracking, and AI-driven seizure analysis.",
+        "name": "🤒 Patient - Diagnostics",
+        "description": "Upload EEG files and review AI-generated seizure prediction reports.",
     },
     {
-        "name": "Patient Management",
-        "description": "Operations for managing patient profiles.",
+        "name": "👨‍⚕️ Doctor - Profile & Management",
+        "description": "Manage your medical profile and track your PMDC verification status.",
     },
     {
-        "name": "Doctor Management",
-        "description": "Operations for managing doctor profiles and PMDC verification.",
+        "name": "👨‍⚕️ Doctor - Patients Network",
+        "description": "View pending connection requests and manage your list of active patients.",
     },
     {
-        "name": "Caretaker Management",
-        "description": "Operations for managing caretaker profiles.",
+        "name": "👨‍⚕️ Doctor - Prescriptions",
+        "description": "Write and adjust medication prescriptions for your active patients, and set their intake schedules.",
     },
     {
-        "name": "System Health & Status",
-        "description": "Public system status and health checks.",
+        "name": "👨‍⚕️ Doctor - Diagnostics",
+        "description": "Review patient-submitted health logs (seizures, lifestyle) and analyze their EEG prediction reports.",
+    },
+    {
+        "name": "🤝 Caretaker - Profile & Management",
+        "description": "Manage your caretaker profile and account settings.",
+    },
+    {
+        "name": "🤝 Caretaker - Patients Network",
+        "description": "Accept connection requests and view the patients you are currently assisting.",
+    },
+    {
+        "name": "🤝 Caretaker - Proxy Actions",
+        "description": "Act on behalf of your patients (if granted Proxy Write-Access): log their medications, track their seizures, and view their health data.",
+    },
+    {
+        "name": "🛡️ Admin - Platform Management",
+        "description": "System-wide administrative actions, including verifying Doctor PMDC credentials.",
+    },
+    {
+        "name": "🛡️ Admin - Diagnostics",
+        "description": "Secure diagnostics for monitoring backend health and performance metrics.",
+    },
+    {
+        "name": "⚙️ System Health & Status",
+        "description": "Public system status and operational health checks.",
     },
 ]
 

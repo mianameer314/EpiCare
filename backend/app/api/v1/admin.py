@@ -17,7 +17,7 @@ RequireAdmin = Depends(RoleChecker([UserRole.ADMIN]))
 
 router = APIRouter(
     prefix="/admin", 
-    tags=["Admin"],
+    tags=["🛡️ Admin - Platform Management"],
     dependencies=[RequireAdmin]
 )
 
@@ -133,7 +133,7 @@ def verify_admin_key(x_admin_key: str | None = Header(default=None)):
 
 diagnostics_router = APIRouter(
     prefix="/admin/health", 
-    tags=["Admin Diagnostics"],
+    tags=["🛡️ Admin - Diagnostics"],
     dependencies=[Depends(verify_admin_key)]
 )
 

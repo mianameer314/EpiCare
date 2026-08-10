@@ -18,7 +18,7 @@ from app.schemas.medication import (
     MedicationLogOut,
 )
 
-router = APIRouter(prefix="/medications", tags=["Medications"])
+router = APIRouter(prefix="/medications")
 
 
 from app.api.pagination import PaginationParams, get_pagination_params, get_total_count, apply_pagination, create_paginated_response
@@ -26,6 +26,7 @@ from app.schemas.common import PaginatedResponse
 
 @router.get(
     "",
+    tags=['🤒 Patient - Medications', '👨\u200d⚕️ Doctor - Prescriptions', '🤝 Caretaker - Proxy Actions'],
     response_model=PaginatedResponse[MedicationOut],
     summary="List Patient Medications",
     description="Fetches a paginated list of medication prescriptions registered to the authenticated patient.",
@@ -58,6 +59,7 @@ async def get_medications(
 
 @router.post(
     "",
+    tags=['👨‍⚕️ Doctor - Prescriptions'],
     response_model=MedicationOut,
     status_code=status.HTTP_201_CREATED,
     summary="Create Medication Prescription",
@@ -89,6 +91,7 @@ async def create_medication(
 
 @router.put(
     "/{med_id}",
+    tags=['👨‍⚕️ Doctor - Prescriptions'],
     response_model=MedicationOut,
     summary="Update Medication Prescription",
     description="Updates details for an existing medication (e.g. changing the dosage or making it inactive).",
@@ -119,6 +122,7 @@ async def update_medication(
 
 @router.delete(
     "/{med_id}",
+    tags=['👨‍⚕️ Doctor - Prescriptions'],
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete Medication (Soft)",
     description="Soft deletes a medication by marking it as inactive. This preserves historical adherence logs.",
@@ -144,6 +148,7 @@ async def delete_medication(
 
 @router.get(
     "/{med_id}/schedules",
+    tags=['🤒 Patient - Medications', '👨‍⚕️ Doctor - Prescriptions', '🤝 Caretaker - Proxy Actions'],
     response_model=PaginatedResponse[MedicationScheduleOut],
     summary="List Medication Schedules",
     description="Retrieves a paginated list of scheduled intake times for a specific medication.",
@@ -182,6 +187,7 @@ async def get_schedules(
 
 @router.post(
     "/{med_id}/schedules",
+    tags=['👨‍⚕️ Doctor - Prescriptions'],
     response_model=MedicationScheduleOut,
     status_code=status.HTTP_201_CREATED,
     summary="Add Medication Schedule",
@@ -221,6 +227,7 @@ async def create_schedule(
 
 @router.post(
     "/{med_id}/log",
+    tags=['🤒 Patient - Medications', '🤝 Caretaker - Proxy Actions'],
     response_model=MedicationLogOut,
     status_code=status.HTTP_201_CREATED,
     summary="Log Medication Intake",

@@ -16,13 +16,14 @@ from app.schemas.emergency import (
 )
 from app.services.sos_provider import get_sos_provider
 
-router = APIRouter(prefix="/emergency", tags=["Emergency SOS"])
+router = APIRouter(prefix="/emergency")
 
 # Only patients can manage contacts and trigger SOS
 
 
 @router.get(
     "/contacts",
+    tags=['🤒 Patient - Emergency SOS', '🤝 Caretaker - Proxy Actions'],
     response_model=List[EmergencyContactOut],
     summary="List Emergency Contacts",
     description="Retrieves the list of configured emergency contacts for the authenticated patient.",
@@ -39,6 +40,7 @@ async def get_emergency_contacts(
 
 @router.post(
     "/contacts",
+    tags=['🤒 Patient - Emergency SOS', '🤝 Caretaker - Proxy Actions'],
     response_model=EmergencyContactOut,
     status_code=status.HTTP_201_CREATED,
     summary="Add Emergency Contact",
@@ -76,6 +78,7 @@ async def add_emergency_contact(
 
 @router.put(
     "/contacts/{contact_id}",
+    tags=['🤒 Patient - Emergency SOS', '🤝 Caretaker - Proxy Actions'],
     response_model=EmergencyContactOut,
     summary="Update Emergency Contact",
     description="Updates an existing emergency contact's details (e.g., phone number or name).",
@@ -107,6 +110,7 @@ async def update_emergency_contact(
 
 @router.delete(
     "/contacts/{contact_id}",
+    tags=['🤒 Patient - Emergency SOS', '🤝 Caretaker - Proxy Actions'],
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete Emergency Contact",
     description="Removes an emergency contact from the patient's list.",
@@ -176,6 +180,7 @@ from sqlalchemy.orm import selectinload
 
 @router.get(
     "/sos",
+    tags=['🤒 Patient - Emergency SOS', '🤝 Caretaker - Proxy Actions'],
     response_model=PaginatedResponse[SosEventOut],
     summary="List SOS Events",
     description="Retrieves a paginated history of all triggered SOS events for the patient.",
@@ -214,6 +219,7 @@ async def get_sos_events(
 
 @router.post(
     "/sos/trigger",
+    tags=['🤒 Patient - Emergency SOS', '🤝 Caretaker - Proxy Actions'],
     response_model=SosEventCreateResponse,
     summary="Trigger Emergency SOS",
     description=(

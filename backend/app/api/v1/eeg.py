@@ -16,11 +16,12 @@ from app.schemas.prediction import PredictionOut
 from app.services import eeg_session as session_service
 from app.services.storage.service import get_storage_service
 
-router = APIRouter(prefix="/eeg", tags=["EEG Analysis"])
+router = APIRouter(prefix="/eeg")
 
 
 @router.post(
     "/upload",
+    tags=['🤒 Patient - Diagnostics', '👨\u200d⚕️ Doctor - Diagnostics'],
     response_model=EegSessionOut,
     status_code=201,
     dependencies=[Depends(UPLOAD_LIMIT)],
@@ -51,6 +52,7 @@ from sqlalchemy import select
 
 @router.get(
     "/sessions",
+    tags=['🤒 Patient - Diagnostics', '👨\u200d⚕️ Doctor - Diagnostics'],
     response_model=PaginatedResponse[EegSessionOut],
     summary="List EEG sessions",
     description="Retrieve a paginated list of all EEG sessions uploaded by the current authenticated user.",
@@ -92,6 +94,7 @@ async def list_eeg_sessions(
 
 @router.get(
     "/sessions/{session_id}",
+    tags=['🤒 Patient - Diagnostics', '👨\u200d⚕️ Doctor - Diagnostics'],
     response_model=EegSessionOut,
     summary="Get session details",
     description="Retrieve the details, validation result, and status pipeline for a single EEG session.",
@@ -114,6 +117,7 @@ async def get_eeg_session(
 
 @router.post(
     "/sessions/{session_id}/analyze",
+    tags=['🤒 Patient - Diagnostics', '👨\u200d⚕️ Doctor - Diagnostics'],
     response_model=PredictionOut,
     summary="Analyze EEG session",
     description="Trigger the full AI analysis pipeline for the given session (validation, preprocessing, inference) and return the generated seizure prediction report.",
@@ -135,6 +139,7 @@ async def analyze_eeg_session(
 
 @router.get(
     "/sessions/{session_id}/spectrogram",
+    tags=['🤒 Patient - Diagnostics', '👨\u200d⚕️ Doctor - Diagnostics'],
     summary="Get session spectrogram",
     description="Download or serve the generated spectrogram PNG image for a processed EEG session.",
     responses={
@@ -169,6 +174,7 @@ async def get_session_spectrogram(
 
 @router.get(
     "/sessions/{session_id}/predictions",
+    tags=['🤒 Patient - Diagnostics', '👨\u200d⚕️ Doctor - Diagnostics'],
     response_model=PaginatedResponse[PredictionOut],
     summary="List session predictions",
     description="Retrieve a paginated list of all AI predictions associated with this session.",

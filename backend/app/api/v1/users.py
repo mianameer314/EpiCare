@@ -27,7 +27,7 @@ router = APIRouter(prefix="/users")
 @router.get(
     "/me/patient-profile",
     response_model=PatientProfileOut,
-    tags=["Patient Management"],
+    tags=["🤒 Patient - Profile & Management"],
     summary="Get patient profile",
     description="Retrieve the current authenticated user's patient profile.",
     responses={
@@ -51,7 +51,7 @@ async def get_my_patient_profile(current_user: CurrentUser, db: DbDep):
 @router.put(
     "/me/patient-profile",
     response_model=PatientProfileOut,
-    tags=["Patient Management"],
+    tags=["🤒 Patient - Profile & Management"],
     summary="Update patient profile",
     description="Create or completely update the current user's patient profile.",
     responses={
@@ -67,7 +67,7 @@ async def update_my_patient_profile(data: PatientProfileUpdate, current_user: Cu
 @router.delete(
     "/me/patient-profile",
     status_code=status.HTTP_204_NO_CONTENT,
-    tags=["Patient Management"],
+    tags=["🤒 Patient - Profile & Management"],
     summary="Delete patient profile",
     description="Delete the current user's patient profile. The underlying user account remains active.",
     responses={
@@ -93,7 +93,7 @@ async def delete_my_patient_profile(current_user: CurrentUser, db: DbDep):
 @router.get(
     "/me/doctor-profile",
     response_model=DoctorProfileOut,
-    tags=["Doctor Management"],
+    tags=["👨‍⚕️ Doctor - Profile & Management"],
     summary="Get doctor profile",
     description="Retrieve the current authenticated user's doctor profile, including PMDC verification status.",
     responses={
@@ -115,7 +115,7 @@ async def get_my_doctor_profile(current_user: CurrentUser, db: DbDep):
 @router.put(
     "/me/doctor-profile",
     response_model=DoctorProfileOut,
-    tags=["Doctor Management"],
+    tags=["👨‍⚕️ Doctor - Profile & Management"],
     summary="Update doctor profile",
     description="Update the current user's doctor profile details.",
     responses={
@@ -131,7 +131,7 @@ async def update_my_doctor_profile(data: DoctorProfileUpdate, current_user: Curr
 @router.delete(
     "/me/doctor-profile",
     status_code=status.HTTP_204_NO_CONTENT,
-    tags=["Doctor Management"],
+    tags=["👨‍⚕️ Doctor - Profile & Management"],
     summary="Delete doctor profile",
     description="Delete the current user's doctor profile. The underlying user account remains active.",
     responses={
@@ -157,7 +157,7 @@ async def delete_my_doctor_profile(current_user: CurrentUser, db: DbDep):
 @router.get(
     "/me/caretaker-profile",
     response_model=CaretakerProfileOut,
-    tags=["Caretaker Management"],
+    tags=["🤝 Caretaker - Profile & Management"],
     summary="Get caretaker profile",
     description="Retrieve the current authenticated user's caretaker profile.",
     responses={
@@ -181,7 +181,7 @@ async def get_my_caretaker_profile(current_user: CurrentUser, db: DbDep):
 @router.put(
     "/me/caretaker-profile",
     response_model=CaretakerProfileOut,
-    tags=["Caretaker Management"],
+    tags=["🤝 Caretaker - Profile & Management"],
     summary="Update caretaker profile",
     description="Create or completely update the current user's caretaker profile.",
     responses={
@@ -197,7 +197,7 @@ async def update_my_caretaker_profile(data: CaretakerProfileUpdate, current_user
 @router.delete(
     "/me/caretaker-profile",
     status_code=status.HTTP_204_NO_CONTENT,
-    tags=["Caretaker Management"],
+    tags=["🤝 Caretaker - Profile & Management"],
     summary="Delete caretaker profile",
     description="Delete the current user's caretaker profile. The underlying user account remains active.",
     responses={

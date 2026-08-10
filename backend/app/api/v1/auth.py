@@ -18,7 +18,7 @@ from app.schemas.user import (
 )
 from app.services import user as user_service
 
-router = APIRouter(prefix="/auth", tags=["Authentication"])
+router = APIRouter(prefix="/auth", tags=["🔐 Authentication"])
 
 
 @router.post(
