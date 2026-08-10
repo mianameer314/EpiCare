@@ -117,7 +117,7 @@ async def _set_failed(db: AsyncSession, session: EegSession, message: str) -> No
 
 async def create_upload_session(
     db: AsyncSession,
-    user: User,
+    user_id: int,
     file: UploadFile,
     storage: StorageService | None = None,
 ) -> EegSession:
@@ -143,7 +143,7 @@ async def create_upload_session(
         ) from exc
 
     session = EegSession(
-        user_id=user.id,
+        user_id=user_id,
         original_filename=filename,
         stored_path=storage_key,
         file_size_bytes=len(data),
@@ -164,7 +164,7 @@ async def create_upload_session(
         "eeg_session_created",
         extra={
             "session_id": session.id,
-            "user_id": user.id,
+            "user_id": user_id,
             "bytes": len(data),
             "format": extension,
         },
@@ -178,7 +178,7 @@ async def create_upload_session(
 
 async def analyze_session(
     db: AsyncSession,
-    user: User,
+    user_id: int,
     session_id: int,
 ) -> Prediction:
     """
@@ -191,7 +191,7 @@ async def analyze_session(
         HTTPException(400): invalid EEG (validation errors surfaced).
         HTTPException(503): model unavailable or inference failure.
     """
-    session = await get_session(db, session_id, user.id)
+    session = await get_session(db, session_id, user_id)
     if session is None:
         raise not_found_error("EEG session")
 
@@ -272,7 +272,7 @@ async def analyze_session(
     model_version_id = await _resolve_model_version_id(db, inference.model_version)
     prediction = Prediction(
         session_id=session.id,
-        user_id=user.id,
+        user_id=user_id,
         model_version_id=model_version_id,
         predicted_class=inference.predicted_class,
         confidence=inference.confidence,

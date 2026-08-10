@@ -8,7 +8,7 @@ step observable so a future background-task refactor is drop-in.
 from fastapi import APIRouter, Depends, File, Form, UploadFile
 from fastapi.responses import FileResponse
 
-from app.api.deps import CurrentUser, DbDep
+from app.api.deps import CurrentUser, DbDep, TargetPatientIdForRead, TargetPatientIdForDiagnosticUpload
 from app.core.exceptions import not_found_error
 from app.rate_limit import UPLOAD_LIMIT
 from app.schemas.eeg_session import EegSessionList, EegSessionOut
@@ -34,13 +34,13 @@ router = APIRouter(prefix="/eeg")
     },
 )
 async def upload_eeg(
-    current_user: CurrentUser,
+    target_user_id: TargetPatientIdForDiagnosticUpload,
     db: DbDep,
     file: UploadFile = File(...),
     metadata: str | None = Form(None),
 ):
     """Upload an EEG file (EDF/CSV) and create an analysis session."""
-    return await session_service.create_upload_session(db, current_user, file)
+    return await session_service.create_upload_session(db, target_user_id, file)
 
 
 from datetime import date, datetime, time
@@ -61,7 +61,7 @@ from sqlalchemy import select
     },
 )
 async def list_eeg_sessions(
-    current_user: CurrentUser,
+    target_user_id: TargetPatientIdForRead,
     db: DbDep,
     params: PaginationParams = Depends(get_pagination_params),
     start_date: date | None = None,
@@ -69,7 +69,7 @@ async def list_eeg_sessions(
     status: str | None = None
 ):
     """Paginated list of the current user's EEG sessions."""
-    query = select(EegSession).where(EegSession.user_id == current_user.id)
+    query = select(EegSession).where(EegSession.user_id == target_user_id)
     
     if start_date:
         query = query.where(EegSession.created_at >= datetime.combine(start_date, time.min))
@@ -105,11 +105,11 @@ async def list_eeg_sessions(
 )
 async def get_eeg_session(
     session_id: int,
-    current_user: CurrentUser,
+    target_user_id: TargetPatientIdForRead,
     db: DbDep,
 ):
     """Get a single session with its validation result and status."""
-    session = await session_service.get_session(db, session_id, current_user.id)
+    session = await session_service.get_session(db, session_id, target_user_id)
     if session is None:
         raise not_found_error("EEG session")
     return session
@@ -130,11 +130,11 @@ async def get_eeg_session(
 )
 async def analyze_eeg_session(
     session_id: int,
-    current_user: CurrentUser,
+    target_user_id: TargetPatientIdForDiagnosticUpload,
     db: DbDep,
 ):
     """Run the full analysis pipeline and return the prediction."""
-    return await session_service.analyze_session(db, current_user, session_id)
+    return await session_service.analyze_session(db, target_user_id, session_id)
 
 
 @router.get(
@@ -150,11 +150,11 @@ async def analyze_eeg_session(
 )
 async def get_session_spectrogram(
     session_id: int,
-    current_user: CurrentUser,
+    target_user_id: TargetPatientIdForRead,
     db: DbDep,
 ):
     """Serve the stored spectrogram image for a session (if generated)."""
-    session = await session_service.get_session(db, session_id, current_user.id)
+    session = await session_service.get_session(db, session_id, target_user_id)
     if session is None:
         raise not_found_error("EEG session")
 
@@ -185,12 +185,12 @@ async def get_session_spectrogram(
 )
 async def get_session_predictions(
     session_id: int,
-    current_user: CurrentUser,
+    target_user_id: TargetPatientIdForRead,
     db: DbDep,
     params: PaginationParams = Depends(get_pagination_params),
 ):
     """Return all predictions for a session."""
-    session = await session_service.get_session(db, session_id, current_user.id)
+    session = await session_service.get_session(db, session_id, target_user_id)
     if session is None:
         raise not_found_error("EEG session")
 

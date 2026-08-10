@@ -280,6 +280,68 @@ async def get_target_patient_for_prescription(
     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Role not authorized to prescribe medications")
 
 
+async def get_target_patient_for_diagnostic_upload(
+    db: DbDep, 
+    current_user: CurrentUser, 
+    patient_user_id: int | None = Query(None, description="Target patient User ID (required for caretakers with proxy and doctors)")
+) -> int:
+    if current_user.role == UserRole.PATIENT:
+        if patient_user_id and patient_user_id != current_user.id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Patients can only access their own data")
+        return current_user.id
+        
+    if not patient_user_id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="patient_user_id is required for proxy write access and doctors")
+        
+    result = await db.execute(select(PatientProfile).where(PatientProfile.user_id == patient_user_id))
+    patient_profile = result.scalar_one_or_none()
+    if not patient_profile:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Target patient profile not found")
+        
+    if current_user.role == UserRole.DOCTOR:
+        result = await db.execute(select(DoctorProfile).where(DoctorProfile.user_id == current_user.id))
+        doctor_profile = result.scalar_one_or_none()
+        if not doctor_profile:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Doctor profile not found")
+            
+        result = await db.execute(
+            select(PatientDoctorNetwork).where(
+                PatientDoctorNetwork.doctor_id == doctor_profile.id,
+                PatientDoctorNetwork.patient_id == patient_profile.id,
+                PatientDoctorNetwork.relationship_status == ConnectionStatus.ACTIVE
+            )
+        )
+        if not result.scalar_one_or_none():
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No active connection to this patient")
+            
+        return patient_user_id
+        
+    if current_user.role == UserRole.CARETAKER:
+        result = await db.execute(select(CaretakerProfile).where(CaretakerProfile.user_id == current_user.id))
+        caretaker_profile = result.scalar_one_or_none()
+        if not caretaker_profile:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Caretaker profile not found")
+            
+        result = await db.execute(
+            select(PatientCaretakerNetwork).where(
+                PatientCaretakerNetwork.caretaker_id == caretaker_profile.id,
+                PatientCaretakerNetwork.patient_id == patient_profile.id,
+                PatientCaretakerNetwork.relationship_status == ConnectionStatus.ACTIVE
+            )
+        )
+        network = result.scalar_one_or_none()
+        if not network:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No active connection to this patient")
+            
+        if not network.can_proxy:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Patient has not granted you Write-Access proxy permissions")
+            
+        return patient_user_id
+        
+    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Role not authorized to upload diagnostic data")
+
+
 TargetPatientIdForRead = Annotated[int, Depends(get_target_patient_for_read)]
 TargetPatientIdForWrite = Annotated[int, Depends(get_target_patient_for_write)]
 TargetPatientIdForPrescription = Annotated[int, Depends(get_target_patient_for_prescription)]
+TargetPatientIdForDiagnosticUpload = Annotated[int, Depends(get_target_patient_for_diagnostic_upload)]

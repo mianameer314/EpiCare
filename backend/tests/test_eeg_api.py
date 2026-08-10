@@ -90,11 +90,11 @@ def test_analyze_routes_to_service(client: TestClient, monkeypatch) -> None:
     """The analyze endpoint must pass session_id + user and return the prediction."""
     headers = _auth(client)
 
-    async def fake_analyze(db, user, session_id):
+    async def fake_analyze(db, user_id, session_id):
         return {
             "id": 1,
             "session_id": session_id,
-            "user_id": user.id,
+            "user_id": user_id,
             "predicted_class": "no_seizure",
             "confidence": 0.9,
             "threshold": 0.5,
