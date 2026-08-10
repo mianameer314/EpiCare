@@ -243,5 +243,43 @@ async def get_target_patient_for_write(
     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Role not authorized to write patient data")
 
 
+async def get_target_patient_for_prescription(
+    db: DbDep, 
+    current_user: CurrentUser, 
+    patient_user_id: int = Query(..., description="Target patient User ID (required for prescriptions)")
+) -> int:
+    if current_user.role == UserRole.PATIENT:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Patients cannot prescribe medications")
+        
+    if current_user.role == UserRole.CARETAKER:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Caretakers cannot prescribe medications")
+        
+    if current_user.role == UserRole.DOCTOR:
+        result = await db.execute(select(PatientProfile).where(PatientProfile.user_id == patient_user_id))
+        patient_profile = result.scalar_one_or_none()
+        if not patient_profile:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Target patient profile not found")
+            
+        result = await db.execute(select(DoctorProfile).where(DoctorProfile.user_id == current_user.id))
+        doctor_profile = result.scalar_one_or_none()
+        if not doctor_profile:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Doctor profile not found")
+            
+        result = await db.execute(
+            select(PatientDoctorNetwork).where(
+                PatientDoctorNetwork.doctor_id == doctor_profile.id,
+                PatientDoctorNetwork.patient_id == patient_profile.id,
+                PatientDoctorNetwork.relationship_status == ConnectionStatus.ACTIVE
+            )
+        )
+        if not result.scalar_one_or_none():
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No active connection to this patient")
+            
+        return patient_user_id
+        
+    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Role not authorized to prescribe medications")
+
+
 TargetPatientIdForRead = Annotated[int, Depends(get_target_patient_for_read)]
 TargetPatientIdForWrite = Annotated[int, Depends(get_target_patient_for_write)]
+TargetPatientIdForPrescription = Annotated[int, Depends(get_target_patient_for_prescription)]

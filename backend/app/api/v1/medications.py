@@ -4,7 +4,7 @@ from sqlalchemy import select
 from typing import List
 from datetime import date
 
-from app.api.deps import DbDep, TargetPatientIdForRead, TargetPatientIdForWrite
+from app.api.deps import DbDep, TargetPatientIdForRead, TargetPatientIdForWrite, TargetPatientIdForPrescription
 from app.models.enums import UserRole
 from app.models.user import User
 from app.models.medication import Medication, MedicationSchedule, MedicationLog
@@ -70,7 +70,7 @@ async def get_medications(
 async def create_medication(
     med_in: MedicationCreate,
     db: DbDep,
-    target_user_id: TargetPatientIdForWrite,
+    target_user_id: TargetPatientIdForPrescription,
 ):
     new_med = Medication(
         user_id=target_user_id,
@@ -97,7 +97,7 @@ async def update_medication(
     med_id: int,
     med_in: MedicationUpdate,
     db: DbDep,
-    target_user_id: TargetPatientIdForWrite,
+    target_user_id: TargetPatientIdForPrescription,
 ):
     result = await db.execute(
         select(Medication).where(
@@ -126,7 +126,7 @@ async def update_medication(
 async def delete_medication(
     med_id: int,
     db: DbDep,
-    target_user_id: TargetPatientIdForWrite,
+    target_user_id: TargetPatientIdForPrescription,
 ):
     result = await db.execute(
         select(Medication).where(
@@ -196,7 +196,7 @@ async def create_schedule(
     med_id: int,
     sched_in: MedicationScheduleCreate,
     db: DbDep,
-    target_user_id: TargetPatientIdForWrite,
+    target_user_id: TargetPatientIdForPrescription,
 ):
     # Ensure medication belongs to user
     med_result = await db.execute(
