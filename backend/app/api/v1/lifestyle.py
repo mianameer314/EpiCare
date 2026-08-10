@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, status, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import List
@@ -19,6 +19,9 @@ from app.schemas.lifestyle import (
     MedSideEffectLogCreate,
     ScreenTimeLogCreate,
     LifestyleLogOut,
+    SleepLogUpdate,
+    TriggerLogUpdate,
+    LifestyleLogUpdate,
 )
 
 router = APIRouter(prefix="/lifestyle")
@@ -99,6 +102,63 @@ async def get_sleep_logs(
     return create_paginated_response(items, total, params.skip, params.limit)
 
 
+@router.put(
+    "/sleep/{log_id}",
+    tags=['🤒 Patient - Health Tracking', '🤝 Caretaker - Proxy Actions'],
+    response_model=SleepLogOut,
+    summary="Update Sleep Log",
+    description="Updates an existing sleep log."
+)
+async def update_sleep_log(
+    log_id: int,
+    log_in: SleepLogUpdate,
+    db: DbDep,
+    target_user_id: TargetPatientIdForWrite,
+):
+    query = select(SleepLog).where(SleepLog.id == log_id, SleepLog.user_id == target_user_id)
+    result = await db.execute(query)
+    log_obj = result.scalar_one_or_none()
+    
+    if not log_obj:
+        raise HTTPException(status_code=404, detail="Sleep log not found")
+        
+    update_data = log_in.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(log_obj, field, value)
+        
+    if "slept_at" in update_data or "woke_at" in update_data:
+        duration = (log_obj.woke_at - log_obj.slept_at).total_seconds() / 60.0
+        log_obj.duration_minutes = int(duration)
+        
+    await db.commit()
+    await db.refresh(log_obj)
+    return log_obj
+
+
+@router.delete(
+    "/sleep/{log_id}",
+    tags=['🤒 Patient - Health Tracking', '🤝 Caretaker - Proxy Actions'],
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete Sleep Log",
+    description="Deletes a sleep log."
+)
+async def delete_sleep_log(
+    log_id: int,
+    db: DbDep,
+    target_user_id: TargetPatientIdForWrite,
+):
+    query = select(SleepLog).where(SleepLog.id == log_id, SleepLog.user_id == target_user_id)
+    result = await db.execute(query)
+    log_obj = result.scalar_one_or_none()
+    
+    if not log_obj:
+        raise HTTPException(status_code=404, detail="Sleep log not found")
+        
+    await db.delete(log_obj)
+    await db.commit()
+    return None
+
+
 @router.post(
     "/triggers",
     tags=['🤒 Patient - Health Tracking', '🤝 Caretaker - Proxy Actions'],
@@ -166,6 +226,59 @@ async def get_trigger_logs(
     items = result.scalars().all()
     
     return create_paginated_response(items, total, params.skip, params.limit)
+
+
+@router.put(
+    "/triggers/{log_id}",
+    tags=['🤒 Patient - Health Tracking', '🤝 Caretaker - Proxy Actions'],
+    response_model=TriggerLogOut,
+    summary="Update Trigger Log",
+    description="Updates an existing trigger log."
+)
+async def update_trigger_log(
+    log_id: int,
+    log_in: TriggerLogUpdate,
+    db: DbDep,
+    target_user_id: TargetPatientIdForWrite,
+):
+    query = select(TriggerLog).where(TriggerLog.id == log_id, TriggerLog.user_id == target_user_id)
+    result = await db.execute(query)
+    log_obj = result.scalar_one_or_none()
+    
+    if not log_obj:
+        raise HTTPException(status_code=404, detail="Trigger log not found")
+        
+    update_data = log_in.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(log_obj, field, value)
+        
+    await db.commit()
+    await db.refresh(log_obj)
+    return log_obj
+
+
+@router.delete(
+    "/triggers/{log_id}",
+    tags=['🤒 Patient - Health Tracking', '🤝 Caretaker - Proxy Actions'],
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete Trigger Log",
+    description="Deletes a trigger log."
+)
+async def delete_trigger_log(
+    log_id: int,
+    db: DbDep,
+    target_user_id: TargetPatientIdForWrite,
+):
+    query = select(TriggerLog).where(TriggerLog.id == log_id, TriggerLog.user_id == target_user_id)
+    result = await db.execute(query)
+    log_obj = result.scalar_one_or_none()
+    
+    if not log_obj:
+        raise HTTPException(status_code=404, detail="Trigger log not found")
+        
+    await db.delete(log_obj)
+    await db.commit()
+    return None
 
 
 @router.post(
@@ -357,3 +470,102 @@ async def log_screen_time(
     await db.commit()
     await db.refresh(new_log)
     return new_log
+
+
+@router.get(
+    "/logs",
+    tags=['🤒 Patient - Health Tracking', '👨\u200d⚕️ Doctor - Diagnostics', '🤝 Caretaker - Proxy Actions'],
+    response_model=PaginatedResponse[LifestyleLogOut],
+    summary="List Generic Lifestyle Logs",
+    description="Fetches a paginated history of generic lifestyle logs (e.g. stress, diet, menstruation). Optionally filter by log_type."
+)
+async def get_lifestyle_logs(
+    db: DbDep, 
+    target_user_id: TargetPatientIdForRead,
+    params: PaginationParams = Depends(get_pagination_params),
+    log_type: str | None = None,
+    start_date: date | None = None,
+    end_date: date | None = None
+):
+    query = select(LifestyleLog).where(LifestyleLog.user_id == target_user_id)
+    
+    if log_type:
+        query = query.where(LifestyleLog.log_type == log_type.upper())
+    if start_date:
+        query = query.where(LifestyleLog.occurred_at >= datetime.combine(start_date, time.min))
+    if end_date:
+        query = query.where(LifestyleLog.occurred_at <= datetime.combine(end_date, time.max))
+        
+    if params.sort_by and hasattr(LifestyleLog, params.sort_by):
+        column = getattr(LifestyleLog, params.sort_by)
+        query = query.order_by(column.asc() if params.sort_order.lower() == "asc" else column.desc())
+    else:
+        query = query.order_by(LifestyleLog.occurred_at.desc())
+        
+    total = await get_total_count(db, query)
+    query = apply_pagination(query, params.skip, params.limit)
+    result = await db.execute(query)
+    items = result.scalars().all()
+    
+    return create_paginated_response(items, total, params.skip, params.limit)
+
+
+@router.put(
+    "/logs/{log_id}",
+    tags=['🤒 Patient - Health Tracking', '🤝 Caretaker - Proxy Actions'],
+    response_model=LifestyleLogOut,
+    summary="Update Generic Lifestyle Log",
+    description="Updates an existing generic lifestyle log."
+)
+async def update_lifestyle_log(
+    log_id: int,
+    log_in: LifestyleLogUpdate,
+    db: DbDep,
+    target_user_id: TargetPatientIdForWrite,
+):
+    query = select(LifestyleLog).where(LifestyleLog.id == log_id, LifestyleLog.user_id == target_user_id)
+    result = await db.execute(query)
+    log_obj = result.scalar_one_or_none()
+    
+    if not log_obj:
+        raise HTTPException(status_code=404, detail="Lifestyle log not found")
+        
+    update_data = log_in.model_dump(exclude_unset=True)
+    
+    if "occurred_at" in update_data and update_data["occurred_at"] is not None:
+        log_obj.occurred_at = update_data["occurred_at"]
+    if "notes" in update_data:
+        log_obj.notes = update_data["notes"]
+    if "metadata_dict" in update_data and update_data["metadata_dict"] is not None:
+        current_meta = log_obj.metadata_dict or {}
+        new_meta = update_data["metadata_dict"] or {}
+        current_meta.update(new_meta)
+        log_obj.metadata_dict = current_meta
+        
+    await db.commit()
+    await db.refresh(log_obj)
+    return log_obj
+
+
+@router.delete(
+    "/logs/{log_id}",
+    tags=['🤒 Patient - Health Tracking', '🤝 Caretaker - Proxy Actions'],
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete Generic Lifestyle Log",
+    description="Deletes a generic lifestyle log."
+)
+async def delete_lifestyle_log(
+    log_id: int,
+    db: DbDep,
+    target_user_id: TargetPatientIdForWrite,
+):
+    query = select(LifestyleLog).where(LifestyleLog.id == log_id, LifestyleLog.user_id == target_user_id)
+    result = await db.execute(query)
+    log_obj = result.scalar_one_or_none()
+    
+    if not log_obj:
+        raise HTTPException(status_code=404, detail="Lifestyle log not found")
+        
+    await db.delete(log_obj)
+    await db.commit()
+    return None

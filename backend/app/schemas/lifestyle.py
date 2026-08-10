@@ -114,3 +114,25 @@ class LifestyleLogOut(StrictModel):
     created_at: StrictDatetime
     updated_at: StrictDatetime
     model_config = {"from_attributes": True, "strict": True}
+
+
+class SleepLogUpdate(StrictModel):
+    """Request body for updating a sleep log entry."""
+    slept_at: StrictDatetime | None = None
+    woke_at: StrictDatetime | None = None
+    quality: int | None = Field(None, ge=1, le=5)
+    notes: str | None = None
+
+
+class TriggerLogUpdate(StrictModel):
+    """Request body for updating a trigger log entry."""
+    severity: int | None = Field(None, ge=1, le=5)
+    occurred_at: StrictDatetime | None = None
+    notes: str | None = None
+
+
+class LifestyleLogUpdate(StrictModel):
+    """Request body for updating a generic lifestyle log entry."""
+    occurred_at: StrictDatetime | None = None
+    metadata_dict: dict | None = None
+    notes: str | None = None
