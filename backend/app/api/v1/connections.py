@@ -204,28 +204,40 @@ async def approve_connection(
     "/doctors/{connection_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Revoke doctor connection",
-    description="Patient revokes an active or pending doctor connection.",
+    description="Patient or Doctor revokes an active or pending doctor connection.",
     responses={
         401: {"description": "Unauthorized"},
-        403: {"description": "Forbidden - Only patients can revoke doctor connections"},
-        404: {"description": "Not Found - Connection request not found"},
+        403: {"description": "Forbidden - Only patients or doctors can revoke doctor connections"},
+        404: {"description": "Not Found - Connection request or profile not found"},
     },
 )
 async def revoke_doctor_connection(
     connection_id: int, 
     db: DbDep, 
-    current_user: User = Depends(RoleChecker([UserRole.PATIENT]))
+    current_user: User = Depends(RoleChecker([UserRole.PATIENT, UserRole.DOCTOR]))
 ):
-    """Patient revokes a doctor connection."""
-    result = await db.execute(select(PatientProfile).where(PatientProfile.user_id == current_user.id))
-    patient_profile = result.scalar_one_or_none()
-    if not patient_profile:
-        raise HTTPException(status_code=404, detail="Patient profile not found")
-    
-    query = select(PatientDoctorNetwork).where(
-        PatientDoctorNetwork.id == connection_id,
-        PatientDoctorNetwork.patient_id == patient_profile.id
-    )
+    """Patient or Doctor revokes a doctor connection."""
+    if current_user.role == UserRole.PATIENT:
+        result = await db.execute(select(PatientProfile).where(PatientProfile.user_id == current_user.id))
+        patient_profile = result.scalar_one_or_none()
+        if not patient_profile:
+            raise HTTPException(status_code=404, detail="Patient profile not found")
+            
+        query = select(PatientDoctorNetwork).where(
+            PatientDoctorNetwork.id == connection_id,
+            PatientDoctorNetwork.patient_id == patient_profile.id
+        )
+    else:  # DOCTOR
+        result = await db.execute(select(DoctorProfile).where(DoctorProfile.user_id == current_user.id))
+        doctor_profile = result.scalar_one_or_none()
+        if not doctor_profile:
+            raise HTTPException(status_code=404, detail="Doctor profile not found")
+            
+        query = select(PatientDoctorNetwork).where(
+            PatientDoctorNetwork.id == connection_id,
+            PatientDoctorNetwork.doctor_id == doctor_profile.id
+        )
+
     result = await db.execute(query)
     connection = result.scalar_one_or_none()
     
@@ -377,28 +389,40 @@ async def approve_caretaker_connection(
     "/caretakers/{connection_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Revoke caretaker connection",
-    description="Patient revokes an active or pending caretaker connection.",
+    description="Patient or Caretaker revokes an active or pending caretaker connection.",
     responses={
         401: {"description": "Unauthorized"},
-        403: {"description": "Forbidden - Only patients can revoke caretaker connections"},
-        404: {"description": "Not Found - Connection request not found"},
+        403: {"description": "Forbidden - Only patients or caretakers can revoke caretaker connections"},
+        404: {"description": "Not Found - Connection request or profile not found"},
     },
 )
 async def revoke_caretaker_connection(
     connection_id: int, 
     db: DbDep, 
-    current_user: User = Depends(RoleChecker([UserRole.PATIENT]))
+    current_user: User = Depends(RoleChecker([UserRole.PATIENT, UserRole.CARETAKER]))
 ):
-    """Patient revokes a caretaker connection."""
-    result = await db.execute(select(PatientProfile).where(PatientProfile.user_id == current_user.id))
-    patient_profile = result.scalar_one_or_none()
-    if not patient_profile:
-        raise HTTPException(status_code=404, detail="Patient profile not found")
-    
-    query = select(PatientCaretakerNetwork).where(
-        PatientCaretakerNetwork.id == connection_id,
-        PatientCaretakerNetwork.patient_id == patient_profile.id
-    )
+    """Patient or Caretaker revokes a caretaker connection."""
+    if current_user.role == UserRole.PATIENT:
+        result = await db.execute(select(PatientProfile).where(PatientProfile.user_id == current_user.id))
+        patient_profile = result.scalar_one_or_none()
+        if not patient_profile:
+            raise HTTPException(status_code=404, detail="Patient profile not found")
+        
+        query = select(PatientCaretakerNetwork).where(
+            PatientCaretakerNetwork.id == connection_id,
+            PatientCaretakerNetwork.patient_id == patient_profile.id
+        )
+    else:  # CARETAKER
+        result = await db.execute(select(CaretakerProfile).where(CaretakerProfile.user_id == current_user.id))
+        caretaker_profile = result.scalar_one_or_none()
+        if not caretaker_profile:
+            raise HTTPException(status_code=404, detail="Caretaker profile not found")
+            
+        query = select(PatientCaretakerNetwork).where(
+            PatientCaretakerNetwork.id == connection_id,
+            PatientCaretakerNetwork.caretaker_id == caretaker_profile.id
+        )
+
     result = await db.execute(query)
     connection = result.scalar_one_or_none()
     
