@@ -1,4 +1,4 @@
-﻿# EpiCare — Progress Tracker
+# EpiCare — Progress Tracker
 
 > Keep this file updated at the end of every working session/prompt so context is never lost.
 > Conventions: `[x]` = done, `[~]` = in progress, `[ ]` = pending. Add a dated log entry for each session.
@@ -6,7 +6,7 @@
 ## Status Overview
 
 - **Current milestone:** M2 — Backend & Database Foundation
-- **Last updated:** 2026-08-08
+- **Last updated:** 2026-08-10
 - **Reference standard:** BRANDING-SYSTEM / BRANDING-SYSTEM-FRONTEND (O2Geeks)
 
 ---
@@ -89,7 +89,15 @@
 - Analyzed `BRANDING-SYSTEM` backend: layered FastAPI (api/v1 → schemas → services → models), `core/config.py` pydantic-settings, `core/security.py` JWT+bcrypt, `db/session.py`, model registry in `app/models/__init__.py`, `PaginatedResponse[T]`, storage provider abstraction with rollback, RBAC permissions, alembic env wiring, pytest conftest with dependency overrides.
 - Analyzed `BRANDING-SYSTEM-FRONTEND`: feature-based modules (`types.ts`/`api.ts`/`hooks.ts`), `config/env.ts` required-var validation, `api/axios.ts` with refresh queue, `api/endpoints.ts` centralized paths, QueryProvider/AuthProvider, ProtectedRoute/PublicRoute, Tailwind v4 `@theme` tokens, oxlint, strict tsconfig.
 - Created root guardrails: `.cursorrules`, `architecture.md`, `progress.md`.
-- Next session: M2 — config/env mirror, backend skeleton, models, migrations, auth.
+
+### 2026-08-10 — Session 2: API Enhancements, ABAC Security, and Swagger Overhaul
+- **Pagination & Filtering:** Enhanced the backend listing endpoints (Dashboard, Medications, EEG, Seizures, Lifestyle) with offset/limit pagination, sorting, and robust filtering logic.
+- **Connection Data Enrichment:** Upgraded `/api/v1/connections/doctor/patients` and `/api/v1/connections/caretaker/patients` to return rich patient profile data (names, demographics) instead of just raw IDs, mirroring the standard set by `BRANDING-SYSTEM`.
+- **ABAC Security Implementation:** Deployed a highly structured Role-Based & Relationship-Based Access Control system using modular FastAPI dependencies (`TargetPatientIdForRead`, `TargetPatientIdForWrite`, `TargetPatientIdForPrescription`, and `TargetPatientIdForDiagnosticUpload`). 
+- **Role Enforcement:** Hardcoded clinical logic rules: Doctors are strictly read-only for general patient data but can prescribe and upload EEG diagnostics. Caretakers require explicit proxy rights to write. Patients strictly own their data.
+- **Swagger UI Overhaul:** Fully redesigned the OpenAPI schema to group all endpoints intuitively by Role (e.g., `🤒 Patient - Health Tracking`, `👨‍⚕️ Doctor - Prescriptions`) using emojis and rich markdown metadata.
+- **Diagnostic Upgrades:** Refactored the `eeg_session.py` service to accept dynamic `user_id` routing, allowing Doctors to run and upload in-clinic EEGs directly to a patient's profile.
+- Next session: Core Frontend implementation or further hardening.
 
 ## Frozen Decisions (Do Not Change Without Discussion)
 1. Binary seizure/no-seizure only; no seizure type/location claims.

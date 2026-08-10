@@ -5,8 +5,8 @@
 EpiCare is a full-stack AI web application for **epilepsy detection and daily management**:
 
 - Upload an EEG recording (EDF / CSV) → validate → preprocess → run binary seizure detection → get a confidence-scored result → generate a structured AI report.
-- Role-based access control (`PATIENT`, `DOCTOR`, `CARETAKER`, `ADMIN`) with role-specific profiles and a patient↔doctor "request → approve" connection workflow.
-- Supporting modules: RAG medical chatbot, medication tracker, lifestyle/trigger/sleep logging, recommendations, emergency contacts + SOS, patient dashboard.
+- Role-based access control (`PATIENT`, `DOCTOR`, `CARETAKER`, `ADMIN`) with role-specific profiles, connection workflows, and strict ABAC security for data isolation.
+- Supporting modules: Pagination/Filtering, RAG medical chatbot, medication tracker, lifestyle/trigger/sleep logging, emergency contacts + SOS.
 
 ---
 
@@ -221,7 +221,7 @@ Until the admin flips `is_pmdc_verified = True`, the doctor **cannot log in** (l
 | Search doctors by PMDC | ✅ | — | — | — |
 | Request doctor connection | ✅ | — | — | — |
 | Approve connection | — | ✅ (verified) | — | — |
-| EEG upload / analyze | ✅ | (future) | — | — |
+| EEG upload / analyze | ✅ | ✅ (diagnostics) | ✅ (proxy) | — |
 | Admin Dashboard (Users, PMDC, Metrics) | — | — | — | ✅ (role) |
 | System diagnostics (`X-Admin-Key`) | — | — | — | ✅ (key) |
 
