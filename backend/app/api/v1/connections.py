@@ -163,7 +163,7 @@ async def request_connection(
     existing = result.scalar_one_or_none()
     
     if existing:
-        if existing.relationship_status in [ConnectionStatus.REVOKED, ConnectionStatus.REJECTED]:
+        if existing.relationship_status == ConnectionStatus.REVOKED:
             existing.relationship_status = ConnectionStatus.PENDING
             await db.commit()
             await db.refresh(existing)
@@ -491,7 +491,7 @@ async def request_caretaker_connection(
     existing = result.scalar_one_or_none()
     
     if existing:
-        if existing.relationship_status in [ConnectionStatus.REVOKED, ConnectionStatus.REJECTED]:
+        if existing.relationship_status == ConnectionStatus.REVOKED:
             existing.relationship_status = ConnectionStatus.PENDING
             await db.commit()
             await db.refresh(existing)
