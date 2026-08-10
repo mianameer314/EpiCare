@@ -16,7 +16,7 @@ from app.models.caretaker_profile import CaretakerProfile
 from app.models.networks import PatientDoctorNetwork, PatientCaretakerNetwork
 from pydantic import BaseModel, EmailStr
 
-router = APIRouter(prefix="/connections", tags=["Connections"])
+router = APIRouter(prefix="/connections")
 
 
 class DoctorSearchResponse(BaseModel):
@@ -45,6 +45,7 @@ class CaretakerConnectionRequest(BaseModel):
 
 @router.get(
     "/doctors/search",
+    tags=["Patient Management"],
     response_model=List[DoctorSearchResponse],
     summary="Search verified doctors",
     description="Search for PMDC-verified doctors by name, specialty, hospital, or PMDC number. Only patients can search for doctors.",
@@ -99,6 +100,7 @@ async def search_doctors(
 
 @router.post(
     "/doctors/request",
+    tags=["Patient Management"],
     response_model=ConnectionResponse,
     summary="Request doctor connection",
     description="Patient sends a connection request to a doctor. A patient can only have one active/pending connection with a specific doctor.",
@@ -159,6 +161,7 @@ async def request_connection(
 
 @router.get(
     "/doctors/pending",
+    tags=["Doctor Management"],
     response_model=List[ConnectionResponse],
     summary="List pending requests",
     description="Doctor views all pending connection requests.",
@@ -181,6 +184,7 @@ async def get_pending_doctor_requests(db: DbDep, current_user: VerifiedDoctor):
 
 @router.post(
     "/doctors/approve/{connection_id}",
+    tags=["Doctor Management"],
     response_model=ConnectionResponse,
     summary="Approve connection request",
     description="A PMDC-verified doctor approves a pending connection request from a patient.",
@@ -224,6 +228,7 @@ async def approve_connection(
 
 @router.delete(
     "/doctors/{connection_id}",
+    tags=["Patient Management", "Doctor Management"],
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Revoke doctor connection",
     description="Patient or Doctor revokes an active or pending doctor connection.",
@@ -280,6 +285,7 @@ CaretakerUser = Depends(RoleChecker([UserRole.CARETAKER]))
 
 @router.post(
     "/caretakers/request",
+    tags=["Patient Management"],
     response_model=ConnectionResponse,
     summary="Request caretaker connection",
     description="Patient requests a connection using the caretaker's email.",
@@ -346,6 +352,7 @@ async def request_caretaker_connection(
 
 @router.get(
     "/caretakers/pending",
+    tags=["Caretaker Management"],
     response_model=List[ConnectionResponse],
     summary="List pending requests",
     description="Caretaker views all pending connection requests.",
@@ -368,6 +375,7 @@ async def get_pending_caretaker_requests(db: DbDep, current_user: User = Caretak
 
 @router.post(
     "/caretakers/approve/{connection_id}",
+    tags=["Caretaker Management"],
     response_model=ConnectionResponse,
     summary="Approve connection request",
     description="Caretaker approves a pending connection request.",
@@ -409,6 +417,7 @@ async def approve_caretaker_connection(
 
 @router.delete(
     "/caretakers/{connection_id}",
+    tags=["Patient Management", "Caretaker Management"],
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Revoke caretaker connection",
     description="Patient or Caretaker revokes an active or pending caretaker connection.",
