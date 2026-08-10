@@ -47,33 +47,53 @@ class CaretakerConnectionRequest(BaseModel):
     "/doctors/search",
     response_model=List[DoctorSearchResponse],
     summary="Search verified doctors",
-    description="Search for a PMDC-verified doctor by their PMDC number. Only patients can search for doctors.",
+    description="Search for PMDC-verified doctors by name, specialty, hospital, or PMDC number. Only patients can search for doctors.",
     responses={
         401: {"description": "Unauthorized"},
         403: {"description": "Forbidden - Only patients can search for doctors"},
     },
 )
-async def search_doctors(pmdc_number: str, db: DbDep, current_user: User = Depends(RoleChecker([UserRole.PATIENT]))):
-    """Search for a verified doctor by their PMDC number."""
+async def search_doctors(
+    db: DbDep,
+    current_user: User = Depends(RoleChecker([UserRole.PATIENT])),
+    pmdc_number: str | None = None,
+    name: str | None = None,
+    specialty: str | None = None,
+    hospital: str | None = None,
+    skip: int = 0,
+    limit: int = 20,
+):
+    """Search for verified doctors with optional filters."""
     query = (
         select(DoctorProfile)
+        .join(User, DoctorProfile.user_id == User.id)
         .options(selectinload(DoctorProfile.user))
-        .where(DoctorProfile.pmdc_number == pmdc_number, DoctorProfile.is_pmdc_verified == True)
+        .where(DoctorProfile.is_pmdc_verified == True)
     )
-    result = await db.execute(query)
-    doctor_profile = result.scalar_one_or_none()
     
-    if not doctor_profile:
-        return []
+    if pmdc_number:
+        query = query.where(DoctorProfile.pmdc_number == pmdc_number)
+    if name:
+        query = query.where(User.full_name.ilike(f"%{name}%"))
+    if specialty:
+        query = query.where(DoctorProfile.specialty.ilike(f"%{specialty}%"))
+    if hospital:
+        query = query.where(DoctorProfile.hospital_affiliation.ilike(f"%{hospital}%"))
         
+    query = query.order_by(User.full_name.asc()).offset(skip).limit(limit)
+    
+    result = await db.execute(query)
+    doctors = result.scalars().all()
+    
     return [
         DoctorSearchResponse(
-            doctor_id=doctor_profile.id,
-            full_name=doctor_profile.user.full_name,
-            pmdc_number=doctor_profile.pmdc_number,
-            specialty=doctor_profile.specialty,
-            hospital_affiliation=doctor_profile.hospital_affiliation
+            doctor_id=doc.id,
+            full_name=doc.user.full_name,
+            pmdc_number=doc.pmdc_number,
+            specialty=doc.specialty,
+            hospital_affiliation=doc.hospital_affiliation
         )
+        for doc in doctors
     ]
 
 
