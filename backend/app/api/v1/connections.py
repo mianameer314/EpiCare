@@ -16,6 +16,13 @@ from app.models.caretaker_profile import CaretakerProfile
 from app.models.networks import PatientDoctorNetwork, PatientCaretakerNetwork
 from pydantic import BaseModel, EmailStr
 
+from app.schemas.connections import (
+    PatientDoctorConnectionOut,
+    PatientCaretakerConnectionOut,
+    ConnectedPatientOut,
+    EnrichedUserBase
+)
+
 router = APIRouter(prefix="/connections")
 
 
@@ -180,9 +187,9 @@ async def request_connection(
 @router.get(
     "/doctors/pending",
     tags=["Doctor Management"],
-    response_model=PaginatedResponse[ConnectionResponse],
+    response_model=PaginatedResponse[ConnectedPatientOut],
     summary="List pending requests",
-    description="Doctor views all pending connection requests.",
+    description="Doctor views all pending connection requests with patient details.",
 )
 async def get_pending_doctor_requests(
     db: DbDep, 
@@ -196,19 +203,89 @@ async def get_pending_doctor_requests(
     if not doctor_profile:
         return create_paginated_response([], 0, params.skip, params.limit)
 
-    query = select(PatientDoctorNetwork).where(
-        PatientDoctorNetwork.doctor_id == doctor_profile.id,
-        PatientDoctorNetwork.relationship_status == ConnectionStatus.PENDING
+    query = (
+        select(PatientDoctorNetwork, PatientProfile, User)
+        .join(PatientProfile, PatientDoctorNetwork.patient_id == PatientProfile.id)
+        .join(User, PatientProfile.user_id == User.id)
+        .where(
+            PatientDoctorNetwork.doctor_id == doctor_profile.id,
+            PatientDoctorNetwork.relationship_status == ConnectionStatus.PENDING
+        )
     )
     
-    if params.sort_by and hasattr(PatientDoctorNetwork, params.sort_by):
-        column = getattr(PatientDoctorNetwork, params.sort_by)
-        query = query.order_by(column.asc() if params.sort_order.lower() == "asc" else column.desc())
-        
     total = await get_total_count(db, query)
-    query = apply_pagination(query, params.skip, params.limit)
+    query = query.order_by(PatientDoctorNetwork.id.desc()).offset(params.skip).limit(params.limit)
     result = await db.execute(query)
-    items = result.scalars().all()
+    rows = result.all()
+    
+    items = []
+    for network, patient, user in rows:
+        items.append(ConnectedPatientOut(
+            connection_id=network.id,
+            relationship_status=network.relationship_status,
+            patient_id=patient.id,
+            patient=EnrichedUserBase(
+                id=user.id,
+                full_name=user.full_name,
+                email=user.email,
+                phone_number=user.phone_number
+            ),
+            date_of_birth=patient.date_of_birth,
+            gender=patient.gender
+        ))
+        
+    return create_paginated_response(items, total, params.skip, params.limit)
+
+@router.get(
+    "/doctor/patients",
+    tags=["Doctor Management"],
+    response_model=PaginatedResponse[ConnectedPatientOut],
+    summary="List doctor's active patients",
+    description="Doctor views all their active patient connections with full details.",
+)
+async def get_doctor_patients(
+    db: DbDep, 
+    current_user: VerifiedDoctor,
+    params: PaginationParams = Depends(get_pagination_params)
+):
+    # Get doctor profile
+    result = await db.execute(select(DoctorProfile).where(DoctorProfile.user_id == current_user.id))
+    doctor_profile = result.scalar_one_or_none()
+    
+    if not doctor_profile:
+        return create_paginated_response([], 0, params.skip, params.limit)
+
+    query = (
+        select(PatientDoctorNetwork, PatientProfile, User)
+        .join(PatientProfile, PatientDoctorNetwork.patient_id == PatientProfile.id)
+        .join(User, PatientProfile.user_id == User.id)
+        .where(
+            PatientDoctorNetwork.doctor_id == doctor_profile.id,
+            PatientDoctorNetwork.relationship_status == ConnectionStatus.ACTIVE
+        )
+    )
+    
+    total = await get_total_count(db, query)
+    query = query.order_by(PatientDoctorNetwork.id.desc()).offset(params.skip).limit(params.limit)
+    result = await db.execute(query)
+    rows = result.all()
+    
+    items = []
+    for network, patient, user in rows:
+        items.append(ConnectedPatientOut(
+            connection_id=network.id,
+            relationship_status=network.relationship_status,
+            patient_id=patient.id,
+            patient=EnrichedUserBase(
+                id=user.id,
+                full_name=user.full_name,
+                email=user.email,
+                phone_number=user.phone_number
+            ),
+            date_of_birth=patient.date_of_birth,
+            gender=patient.gender
+        ))
+        
     return create_paginated_response(items, total, params.skip, params.limit)
 
 
@@ -306,6 +383,55 @@ async def revoke_doctor_connection(
     return None
 
 
+@router.get(
+    "/patient/doctors",
+    tags=["Patient Management"],
+    response_model=PaginatedResponse[PatientDoctorConnectionOut],
+    summary="List patient's doctor connections",
+    description="Patient views all their doctor connections (pending and active).",
+)
+async def get_patient_doctors(
+    db: DbDep, 
+    current_user: User = Depends(RoleChecker([UserRole.PATIENT])),
+    params: PaginationParams = Depends(get_pagination_params)
+):
+    result = await db.execute(select(PatientProfile).where(PatientProfile.user_id == current_user.id))
+    patient_profile = result.scalar_one_or_none()
+    if not patient_profile:
+        raise HTTPException(status_code=404, detail="Patient profile not found")
+
+    query = (
+        select(PatientDoctorNetwork, DoctorProfile, User)
+        .join(DoctorProfile, PatientDoctorNetwork.doctor_id == DoctorProfile.id)
+        .join(User, DoctorProfile.user_id == User.id)
+        .where(PatientDoctorNetwork.patient_id == patient_profile.id)
+    )
+    
+    total = await get_total_count(db, query)
+    query = query.order_by(PatientDoctorNetwork.id.desc()).offset(params.skip).limit(params.limit)
+    result = await db.execute(query)
+    rows = result.all()
+    
+    items = []
+    for network, doctor, user in rows:
+        items.append(PatientDoctorConnectionOut(
+            connection_id=network.id,
+            relationship_status=network.relationship_status,
+            doctor_id=doctor.id,
+            doctor=EnrichedUserBase(
+                id=user.id,
+                full_name=user.full_name,
+                email=user.email,
+                phone_number=user.phone_number
+            ),
+            pmdc_number=doctor.pmdc_number,
+            specialty=doctor.specialty,
+            hospital_affiliation=doctor.hospital_affiliation
+        ))
+        
+    return create_paginated_response(items, total, params.skip, params.limit)
+
+
 # ==========================================
 # Caretaker Connections
 # ==========================================
@@ -383,7 +509,7 @@ async def request_caretaker_connection(
 @router.get(
     "/caretakers/pending",
     tags=["Caretaker Management"],
-    response_model=PaginatedResponse[ConnectionResponse],
+    response_model=PaginatedResponse[ConnectedPatientOut],
     summary="List pending requests",
     description="Caretaker views all pending connection requests.",
 )
@@ -399,19 +525,91 @@ async def get_pending_caretaker_requests(
     if not caretaker_profile:
         return create_paginated_response([], 0, params.skip, params.limit)
 
-    query = select(PatientCaretakerNetwork).where(
-        PatientCaretakerNetwork.caretaker_id == caretaker_profile.id,
-        PatientCaretakerNetwork.relationship_status == ConnectionStatus.PENDING
+    query = (
+        select(PatientCaretakerNetwork, PatientProfile, User)
+        .join(PatientProfile, PatientCaretakerNetwork.patient_id == PatientProfile.id)
+        .join(User, PatientProfile.user_id == User.id)
+        .where(
+            PatientCaretakerNetwork.caretaker_id == caretaker_profile.id,
+            PatientCaretakerNetwork.relationship_status == ConnectionStatus.PENDING
+        )
     )
     
-    if params.sort_by and hasattr(PatientCaretakerNetwork, params.sort_by):
-        column = getattr(PatientCaretakerNetwork, params.sort_by)
-        query = query.order_by(column.asc() if params.sort_order.lower() == "asc" else column.desc())
-        
     total = await get_total_count(db, query)
-    query = apply_pagination(query, params.skip, params.limit)
+    query = query.order_by(PatientCaretakerNetwork.id.desc()).offset(params.skip).limit(params.limit)
     result = await db.execute(query)
-    items = result.scalars().all()
+    rows = result.all()
+    
+    items = []
+    for network, patient, user in rows:
+        items.append(ConnectedPatientOut(
+            connection_id=network.id,
+            relationship_status=network.relationship_status,
+            patient_id=patient.id,
+            patient=EnrichedUserBase(
+                id=user.id,
+                full_name=user.full_name,
+                email=user.email,
+                phone_number=user.phone_number
+            ),
+            date_of_birth=patient.date_of_birth,
+            gender=patient.gender,
+            can_proxy=network.can_proxy
+        ))
+        
+    return create_paginated_response(items, total, params.skip, params.limit)
+
+@router.get(
+    "/caretaker/patients",
+    tags=["Caretaker Management"],
+    response_model=PaginatedResponse[ConnectedPatientOut],
+    summary="List caretaker's active patients",
+    description="Caretaker views all their active patient connections with full details.",
+)
+async def get_caretaker_patients(
+    db: DbDep, 
+    current_user: User = CaretakerUser,
+    params: PaginationParams = Depends(get_pagination_params)
+):
+    # Get caretaker profile
+    result = await db.execute(select(CaretakerProfile).where(CaretakerProfile.user_id == current_user.id))
+    caretaker_profile = result.scalar_one_or_none()
+    
+    if not caretaker_profile:
+        return create_paginated_response([], 0, params.skip, params.limit)
+
+    query = (
+        select(PatientCaretakerNetwork, PatientProfile, User)
+        .join(PatientProfile, PatientCaretakerNetwork.patient_id == PatientProfile.id)
+        .join(User, PatientProfile.user_id == User.id)
+        .where(
+            PatientCaretakerNetwork.caretaker_id == caretaker_profile.id,
+            PatientCaretakerNetwork.relationship_status == ConnectionStatus.ACTIVE
+        )
+    )
+    
+    total = await get_total_count(db, query)
+    query = query.order_by(PatientCaretakerNetwork.id.desc()).offset(params.skip).limit(params.limit)
+    result = await db.execute(query)
+    rows = result.all()
+    
+    items = []
+    for network, patient, user in rows:
+        items.append(ConnectedPatientOut(
+            connection_id=network.id,
+            relationship_status=network.relationship_status,
+            patient_id=patient.id,
+            patient=EnrichedUserBase(
+                id=user.id,
+                full_name=user.full_name,
+                email=user.email,
+                phone_number=user.phone_number
+            ),
+            date_of_birth=patient.date_of_birth,
+            gender=patient.gender,
+            can_proxy=network.can_proxy
+        ))
+        
     return create_paginated_response(items, total, params.skip, params.limit)
 
 
@@ -542,3 +740,50 @@ async def revoke_caretaker_connection(
     connection.relationship_status = ConnectionStatus.REVOKED
     await db.commit()
     return None
+
+
+@router.get(
+    "/patient/caretakers",
+    tags=["Patient Management"],
+    response_model=PaginatedResponse[PatientCaretakerConnectionOut],
+    summary="List patient's caretaker connections",
+    description="Patient views all their caretaker connections (pending and active).",
+)
+async def get_patient_caretakers(
+    db: DbDep, 
+    current_user: User = Depends(RoleChecker([UserRole.PATIENT])),
+    params: PaginationParams = Depends(get_pagination_params)
+):
+    result = await db.execute(select(PatientProfile).where(PatientProfile.user_id == current_user.id))
+    patient_profile = result.scalar_one_or_none()
+    if not patient_profile:
+        raise HTTPException(status_code=404, detail="Patient profile not found")
+
+    query = (
+        select(PatientCaretakerNetwork, CaretakerProfile, User)
+        .join(CaretakerProfile, PatientCaretakerNetwork.caretaker_id == CaretakerProfile.id)
+        .join(User, CaretakerProfile.user_id == User.id)
+        .where(PatientCaretakerNetwork.patient_id == patient_profile.id)
+    )
+    
+    total = await get_total_count(db, query)
+    query = query.order_by(PatientCaretakerNetwork.id.desc()).offset(params.skip).limit(params.limit)
+    result = await db.execute(query)
+    rows = result.all()
+    
+    items = []
+    for network, caretaker, user in rows:
+        items.append(PatientCaretakerConnectionOut(
+            connection_id=network.id,
+            relationship_status=network.relationship_status,
+            caretaker_id=caretaker.id,
+            caretaker=EnrichedUserBase(
+                id=user.id,
+                full_name=user.full_name,
+                email=user.email,
+                phone_number=user.phone_number
+            ),
+            can_proxy=network.can_proxy
+        ))
+        
+    return create_paginated_response(items, total, params.skip, params.limit)
