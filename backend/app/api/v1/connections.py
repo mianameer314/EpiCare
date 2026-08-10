@@ -157,6 +157,28 @@ async def request_connection(
     return network
 
 
+@router.get(
+    "/doctors/pending",
+    response_model=List[ConnectionResponse],
+    summary="List pending requests",
+    description="Doctor views all pending connection requests.",
+)
+async def get_pending_doctor_requests(db: DbDep, current_user: VerifiedDoctor):
+    # Get doctor profile
+    result = await db.execute(select(DoctorProfile).where(DoctorProfile.user_id == current_user.id))
+    doctor_profile = result.scalar_one_or_none()
+    
+    if not doctor_profile:
+        return []
+
+    query = select(PatientDoctorNetwork).where(
+        PatientDoctorNetwork.doctor_id == doctor_profile.id,
+        PatientDoctorNetwork.relationship_status == ConnectionStatus.PENDING
+    )
+    result = await db.execute(query)
+    return result.scalars().all()
+
+
 @router.post(
     "/doctors/approve/{connection_id}",
     response_model=ConnectionResponse,
