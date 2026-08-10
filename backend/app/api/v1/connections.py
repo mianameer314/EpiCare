@@ -163,7 +163,13 @@ async def request_connection(
     existing = result.scalar_one_or_none()
     
     if existing:
-        raise HTTPException(status_code=400, detail=f"Connection already exists with status: {existing.relationship_status}")
+        if existing.relationship_status in [ConnectionStatus.REVOKED, ConnectionStatus.REJECTED]:
+            existing.relationship_status = ConnectionStatus.PENDING
+            await db.commit()
+            await db.refresh(existing)
+            return existing
+        else:
+            raise HTTPException(status_code=400, detail=f"Connection already exists with status: {existing.relationship_status}")
         
     network = PatientDoctorNetwork(
         patient_id=patient_profile.id,
@@ -485,7 +491,13 @@ async def request_caretaker_connection(
     existing = result.scalar_one_or_none()
     
     if existing:
-        raise HTTPException(status_code=400, detail=f"Connection already exists with status: {existing.relationship_status}")
+        if existing.relationship_status in [ConnectionStatus.REVOKED, ConnectionStatus.REJECTED]:
+            existing.relationship_status = ConnectionStatus.PENDING
+            await db.commit()
+            await db.refresh(existing)
+            return existing
+        else:
+            raise HTTPException(status_code=400, detail=f"Connection already exists with status: {existing.relationship_status}")
         
     network = PatientCaretakerNetwork(
         patient_id=patient_profile.id,
