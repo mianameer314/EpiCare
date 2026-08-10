@@ -4,7 +4,7 @@ from sqlalchemy import select
 from typing import List
 from datetime import date
 
-from app.api.deps import DbDep, CurrentUser, RoleChecker
+from app.api.deps import DbDep, TargetPatientIdForRead, TargetPatientIdForWrite
 from app.models.enums import UserRole
 from app.models.user import User
 from app.models.medication import Medication, MedicationSchedule, MedicationLog
@@ -20,7 +20,6 @@ from app.schemas.medication import (
 
 router = APIRouter(prefix="/medications", tags=["Medications"])
 
-PatientUser = Depends(RoleChecker([UserRole.PATIENT]))
 
 
 @router.get(
@@ -30,9 +29,9 @@ PatientUser = Depends(RoleChecker([UserRole.PATIENT]))
     description="Fetches a list of all medication prescriptions registered to the authenticated patient.",
     response_description="A list of medication objects."
 )
-async def get_medications(db: DbDep, current_user: User = PatientUser):
+async def get_medications(db: DbDep, target_user_id: TargetPatientIdForRead):
     result = await db.execute(
-        select(Medication).where(Medication.user_id == current_user.id)
+        select(Medication).where(Medication.user_id == target_user_id)
     )
     return result.scalars().all()
 
@@ -51,10 +50,10 @@ async def get_medications(db: DbDep, current_user: User = PatientUser):
 async def create_medication(
     med_in: MedicationCreate,
     db: DbDep,
-    current_user: User = PatientUser,
+    target_user_id: TargetPatientIdForWrite,
 ):
     new_med = Medication(
-        user_id=current_user.id,
+        user_id=target_user_id,
         name=med_in.name,
         dosage=med_in.dosage,
         frequency=med_in.frequency,
@@ -78,11 +77,11 @@ async def update_medication(
     med_id: int,
     med_in: MedicationUpdate,
     db: DbDep,
-    current_user: User = PatientUser,
+    target_user_id: TargetPatientIdForWrite,
 ):
     result = await db.execute(
         select(Medication).where(
-            Medication.id == med_id, Medication.user_id == current_user.id
+            Medication.id == med_id, Medication.user_id == target_user_id
         )
     )
     med = result.scalar_one_or_none()
@@ -107,11 +106,11 @@ async def update_medication(
 async def delete_medication(
     med_id: int,
     db: DbDep,
-    current_user: User = PatientUser,
+    target_user_id: TargetPatientIdForWrite,
 ):
     result = await db.execute(
         select(Medication).where(
-            Medication.id == med_id, Medication.user_id == current_user.id
+            Medication.id == med_id, Medication.user_id == target_user_id
         )
     )
     med = result.scalar_one_or_none()
@@ -130,11 +129,11 @@ async def delete_medication(
     description="Retrieves all scheduled intake times for a specific medication.",
     response_description="A list of medication schedules."
 )
-async def get_schedules(med_id: int, db: DbDep, current_user: User = PatientUser):
+async def get_schedules(med_id: int, db: DbDep, target_user_id: TargetPatientIdForRead):
     # Ensure medication belongs to user
     med_result = await db.execute(
         select(Medication).where(
-            Medication.id == med_id, Medication.user_id == current_user.id
+            Medication.id == med_id, Medication.user_id == target_user_id
         )
     )
     if not med_result.scalar_one_or_none():
@@ -162,12 +161,12 @@ async def create_schedule(
     med_id: int,
     sched_in: MedicationScheduleCreate,
     db: DbDep,
-    current_user: User = PatientUser,
+    target_user_id: TargetPatientIdForWrite,
 ):
     # Ensure medication belongs to user
     med_result = await db.execute(
         select(Medication).where(
-            Medication.id == med_id, Medication.user_id == current_user.id
+            Medication.id == med_id, Medication.user_id == target_user_id
         )
     )
     if not med_result.scalar_one_or_none():
@@ -201,12 +200,12 @@ async def log_medication(
     med_id: int,
     log_in: MedicationLogCreate,
     db: DbDep,
-    current_user: User = PatientUser,
+    target_user_id: TargetPatientIdForWrite,
 ):
     # Ensure medication belongs to user
     med_result = await db.execute(
         select(Medication).where(
-            Medication.id == med_id, Medication.user_id == current_user.id
+            Medication.id == med_id, Medication.user_id == target_user_id
         )
     )
     if not med_result.scalar_one_or_none():
@@ -214,7 +213,7 @@ async def log_medication(
 
     new_log = MedicationLog(
         medication_id=med_id,
-        user_id=current_user.id,
+        user_id=target_user_id,
         status=log_in.status,
         dose_taken=log_in.dose_taken,
         # schedule_id could be passed in query or body if needed, omitting for simplicity

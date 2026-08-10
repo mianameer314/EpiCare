@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import List
 
-from app.api.deps import DbDep, CurrentUser, RoleChecker
+from app.api.deps import DbDep, TargetPatientIdForRead, TargetPatientIdForWrite
 from app.models.enums import UserRole
 from app.models.user import User
 from app.models.lifestyle import SleepLog, TriggerLog, LifestyleLog
@@ -23,7 +23,6 @@ from app.schemas.lifestyle import (
 
 router = APIRouter(prefix="/lifestyle", tags=["Lifestyle & Diary"])
 
-PatientUser = Depends(RoleChecker([UserRole.PATIENT]))
 
 
 @router.post(
@@ -40,13 +39,13 @@ PatientUser = Depends(RoleChecker([UserRole.PATIENT]))
 async def log_sleep(
     log_in: SleepLogCreate,
     db: DbDep,
-    current_user: User = PatientUser,
+    target_user_id: TargetPatientIdForWrite,
 ):
     # Calculate duration
     duration = (log_in.woke_at - log_in.slept_at).total_seconds() / 60.0
     
     new_log = SleepLog(
-        user_id=current_user.id,
+        user_id=target_user_id,
         slept_at=log_in.slept_at,
         woke_at=log_in.woke_at,
         duration_minutes=int(duration),
@@ -66,9 +65,9 @@ async def log_sleep(
     description="Retrieves a descending history of all sleep logs recorded by the patient.",
     response_description="A list of sleep log entries."
 )
-async def get_sleep_logs(db: DbDep, current_user: User = PatientUser):
+async def get_sleep_logs(db: DbDep, target_user_id: TargetPatientIdForRead):
     result = await db.execute(
-        select(SleepLog).where(SleepLog.user_id == current_user.id).order_by(SleepLog.woke_at.desc())
+        select(SleepLog).where(SleepLog.user_id == target_user_id).order_by(SleepLog.woke_at.desc())
     )
     return result.scalars().all()
 
@@ -87,10 +86,10 @@ async def get_sleep_logs(db: DbDep, current_user: User = PatientUser):
 async def log_trigger(
     log_in: TriggerLogCreate,
     db: DbDep,
-    current_user: User = PatientUser,
+    target_user_id: TargetPatientIdForWrite,
 ):
     new_log = TriggerLog(
-        user_id=current_user.id,
+        user_id=target_user_id,
         trigger_name=log_in.trigger_name,
         severity=log_in.severity,
         occurred_at=log_in.occurred_at,
@@ -109,9 +108,9 @@ async def log_trigger(
     description="Fetches a descending list of all documented triggers for the patient.",
     response_description="A list of trigger logs."
 )
-async def get_trigger_logs(db: DbDep, current_user: User = PatientUser):
+async def get_trigger_logs(db: DbDep, target_user_id: TargetPatientIdForRead):
     result = await db.execute(
-        select(TriggerLog).where(TriggerLog.user_id == current_user.id).order_by(TriggerLog.occurred_at.desc())
+        select(TriggerLog).where(TriggerLog.user_id == target_user_id).order_by(TriggerLog.occurred_at.desc())
     )
     return result.scalars().all()
 
@@ -130,10 +129,10 @@ async def get_trigger_logs(db: DbDep, current_user: User = PatientUser):
 async def log_stress(
     log_in: StressLogCreate,
     db: DbDep,
-    current_user: User = PatientUser,
+    target_user_id: TargetPatientIdForWrite,
 ):
     new_log = LifestyleLog(
-        user_id=current_user.id,
+        user_id=target_user_id,
         log_type="STRESS",
         occurred_at=log_in.occurred_at,
         notes=f"Severity: {log_in.severity}/5. {log_in.notes or ''}".strip(),
@@ -156,10 +155,10 @@ async def log_stress(
 async def log_menstruation(
     log_in: MenstruationLogCreate,
     db: DbDep,
-    current_user: User = PatientUser,
+    target_user_id: TargetPatientIdForWrite,
 ):
     new_log = LifestyleLog(
-        user_id=current_user.id,
+        user_id=target_user_id,
         log_type="MENSTRUATION",
         occurred_at=log_in.occurred_at,
         notes=log_in.notes,
@@ -182,7 +181,7 @@ async def log_menstruation(
 async def log_diet(
     log_in: DietLogCreate,
     db: DbDep,
-    current_user: User = PatientUser,
+    target_user_id: TargetPatientIdForWrite,
 ):
     metadata = {}
     if log_in.keto_compliant is not None:
@@ -191,7 +190,7 @@ async def log_diet(
         metadata["alcohol_units"] = log_in.alcohol_units
 
     new_log = LifestyleLog(
-        user_id=current_user.id,
+        user_id=target_user_id,
         log_type="DIET",
         occurred_at=log_in.occurred_at,
         notes=log_in.notes,
@@ -214,7 +213,7 @@ async def log_diet(
 async def log_illness(
     log_in: IllnessLogCreate,
     db: DbDep,
-    current_user: User = PatientUser,
+    target_user_id: TargetPatientIdForWrite,
 ):
     metadata = {}
     if log_in.temperature_f:
@@ -223,7 +222,7 @@ async def log_illness(
         metadata["illness_type"] = log_in.illness_type
 
     new_log = LifestyleLog(
-        user_id=current_user.id,
+        user_id=target_user_id,
         log_type="ILLNESS",
         occurred_at=log_in.occurred_at,
         notes=log_in.notes,
@@ -246,7 +245,7 @@ async def log_illness(
 async def log_med_side_effect(
     log_in: MedSideEffectLogCreate,
     db: DbDep,
-    current_user: User = PatientUser,
+    target_user_id: TargetPatientIdForWrite,
 ):
     metadata = {
         "medication_name": log_in.medication_name,
@@ -255,7 +254,7 @@ async def log_med_side_effect(
     }
 
     new_log = LifestyleLog(
-        user_id=current_user.id,
+        user_id=target_user_id,
         log_type="MED_SIDE_EFFECT",
         occurred_at=log_in.occurred_at,
         notes=log_in.notes,
@@ -278,7 +277,7 @@ async def log_med_side_effect(
 async def log_screen_time(
     log_in: ScreenTimeLogCreate,
     db: DbDep,
-    current_user: User = PatientUser,
+    target_user_id: TargetPatientIdForWrite,
 ):
     metadata = {
         "duration_hours": log_in.duration_hours,
@@ -289,7 +288,7 @@ async def log_screen_time(
         metadata["device_type"] = log_in.device_type
 
     new_log = LifestyleLog(
-        user_id=current_user.id,
+        user_id=target_user_id,
         log_type="SCREEN_TIME",
         occurred_at=log_in.occurred_at,
         notes=log_in.notes,

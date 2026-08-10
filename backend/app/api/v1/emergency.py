@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import List
 
-from app.api.deps import DbDep, CurrentUser, RoleChecker
+from app.api.deps import DbDep, TargetPatientIdForRead, TargetPatientIdForWrite
 from app.models.enums import UserRole
 from app.models.user import User
 from app.models.emergency import EmergencyContact, SosEvent, SosDelivery
@@ -19,7 +19,6 @@ from app.services.sos_provider import get_sos_provider
 router = APIRouter(prefix="/emergency", tags=["Emergency SOS"])
 
 # Only patients can manage contacts and trigger SOS
-PatientUser = Depends(RoleChecker([UserRole.PATIENT]))
 
 
 @router.get(
@@ -30,10 +29,10 @@ PatientUser = Depends(RoleChecker([UserRole.PATIENT]))
     response_description="A list of emergency contact objects."
 )
 async def get_emergency_contacts(
-    db: DbDep, current_user: User = PatientUser
+    db: DbDep, target_user_id: TargetPatientIdForRead
 ):
     result = await db.execute(
-        select(EmergencyContact).where(EmergencyContact.user_id == current_user.id)
+        select(EmergencyContact).where(EmergencyContact.user_id == target_user_id)
     )
     return result.scalars().all()
 
@@ -49,11 +48,11 @@ async def get_emergency_contacts(
 async def add_emergency_contact(
     contact_in: EmergencyContactCreate,
     db: DbDep,
-    current_user: User = PatientUser,
+    target_user_id: TargetPatientIdForWrite,
 ):
     # Check current count
     result = await db.execute(
-        select(EmergencyContact).where(EmergencyContact.user_id == current_user.id)
+        select(EmergencyContact).where(EmergencyContact.user_id == target_user_id)
     )
     current_contacts = result.scalars().all()
     if len(current_contacts) >= 3:
@@ -63,7 +62,7 @@ async def add_emergency_contact(
 
     # Add contact
     new_contact = EmergencyContact(
-        user_id=current_user.id,
+        user_id=target_user_id,
         name=contact_in.name,
         relationship=contact_in.relationship,
         phone_number=contact_in.phone_number,
@@ -85,12 +84,12 @@ async def update_emergency_contact(
     contact_id: int,
     contact_in: EmergencyContactUpdate,
     db: DbDep,
-    current_user: User = PatientUser,
+    target_user_id: TargetPatientIdForWrite,
 ):
     result = await db.execute(
         select(EmergencyContact).where(
             EmergencyContact.id == contact_id,
-            EmergencyContact.user_id == current_user.id
+            EmergencyContact.user_id == target_user_id
         )
     )
     contact = result.scalar_one_or_none()
@@ -115,12 +114,12 @@ async def update_emergency_contact(
 async def delete_emergency_contact(
     contact_id: int,
     db: DbDep,
-    current_user: User = PatientUser,
+    target_user_id: TargetPatientIdForWrite,
 ):
     result = await db.execute(
         select(EmergencyContact).where(
             EmergencyContact.id == contact_id,
-            EmergencyContact.user_id == current_user.id
+            EmergencyContact.user_id == target_user_id
         )
     )
     contact = result.scalar_one_or_none()
@@ -184,10 +183,10 @@ async def trigger_sos(
     request: SosTriggerRequest,
     background_tasks: BackgroundTasks,
     db: DbDep,
-    current_user: User = PatientUser,
+    target_user_id: TargetPatientIdForWrite,
 ):
     event = SosEvent(
-        user_id=current_user.id,
+        user_id=target_user_id,
         latitude=request.latitude,
         longitude=request.longitude,
         location_available=request.location_available,
@@ -198,7 +197,7 @@ async def trigger_sos(
     await db.refresh(event)
 
     # Dispatch to background
-    background_tasks.add_task(process_sos_in_background, db, event.id, current_user.id)
+    background_tasks.add_task(process_sos_in_background, db, event.id, target_user_id)
 
     return SosEventCreateResponse(
         event_id=event.id,

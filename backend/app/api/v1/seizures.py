@@ -1,18 +1,14 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, status, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import List
 
-from app.api.deps import DbDep, CurrentUser, RoleChecker
+from app.api.deps import DbDep, TargetPatientIdForRead, TargetPatientIdForWrite
 from app.models.enums import UserRole
-from app.models.user import User
 from app.models.seizure import ManualSeizureLog
 from app.schemas.seizure import ManualSeizureLogCreate, ManualSeizureLogUpdate, ManualSeizureLogOut
 
-
 router = APIRouter(prefix="/seizures", tags=["Manual Seizure Logs"])
-
-PatientUser = Depends(RoleChecker([UserRole.PATIENT]))
 
 
 @router.post(
@@ -30,10 +26,10 @@ PatientUser = Depends(RoleChecker([UserRole.PATIENT]))
 async def log_manual_seizure(
     log_in: ManualSeizureLogCreate,
     db: DbDep,
-    current_user: User = PatientUser,
+    target_user_id: TargetPatientIdForWrite,
 ):
     new_log = ManualSeizureLog(
-        user_id=current_user.id,
+        user_id=target_user_id,
         occurred_at=log_in.occurred_at,
         duration_seconds=log_in.duration_seconds,
         seizure_type=log_in.seizure_type,
@@ -54,10 +50,10 @@ async def log_manual_seizure(
     description="Retrieve a descending history of all manually logged seizures for the authenticated patient.",
     response_description="A list of manual seizure logs."
 )
-async def get_manual_seizures(db: DbDep, current_user: User = PatientUser):
+async def get_manual_seizures(db: DbDep, target_user_id: TargetPatientIdForRead):
     result = await db.execute(
         select(ManualSeizureLog)
-        .where(ManualSeizureLog.user_id == current_user.id)
+        .where(ManualSeizureLog.user_id == target_user_id)
         .order_by(ManualSeizureLog.occurred_at.desc())
     )
     return result.scalars().all()
@@ -73,12 +69,12 @@ async def update_manual_seizure(
     log_id: int,
     log_in: ManualSeizureLogUpdate,
     db: DbDep,
-    current_user: User = PatientUser,
+    target_user_id: TargetPatientIdForWrite,
 ):
     result = await db.execute(
         select(ManualSeizureLog).where(
             ManualSeizureLog.id == log_id,
-            ManualSeizureLog.user_id == current_user.id
+            ManualSeizureLog.user_id == target_user_id
         )
     )
     log = result.scalar_one_or_none()
@@ -103,12 +99,12 @@ async def update_manual_seizure(
 async def delete_manual_seizure(
     log_id: int,
     db: DbDep,
-    current_user: User = PatientUser,
+    target_user_id: TargetPatientIdForWrite,
 ):
     result = await db.execute(
         select(ManualSeizureLog).where(
             ManualSeizureLog.id == log_id,
-            ManualSeizureLog.user_id == current_user.id
+            ManualSeizureLog.user_id == target_user_id
         )
     )
     log = result.scalar_one_or_none()

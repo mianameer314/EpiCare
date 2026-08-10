@@ -3,9 +3,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from datetime import datetime, timedelta, timezone
 
-from app.api.deps import DbDep, CurrentUser, RoleChecker
+from app.api.deps import DbDep, TargetPatientIdForRead
 from app.models.enums import UserRole
-from app.models.user import User
 from app.models.prediction import Prediction
 from app.models.lifestyle import SleepLog
 from app.models.medication import MedicationLog
@@ -13,8 +12,6 @@ from app.schemas.base import StrictModel
 from app.services.recommender import get_daily_recommendations
 
 router = APIRouter(prefix="/dashboard", tags=["Patient Dashboard"])
-
-PatientUser = Depends(RoleChecker([UserRole.PATIENT]))
 
 
 class DashboardStatsOut(StrictModel):
@@ -37,7 +34,7 @@ class DashboardStatsOut(StrictModel):
     ),
     response_description="A JSON object containing the dashboard statistics and recommendations."
 )
-async def get_dashboard_stats(db: DbDep, current_user: User = PatientUser):
+async def get_dashboard_stats(db: DbDep, target_user_id: TargetPatientIdForRead):
     """
     Get aggregated dashboard stats for the past 30 days.
     - Total seizures detected
@@ -52,7 +49,7 @@ async def get_dashboard_stats(db: DbDep, current_user: User = PatientUser):
         select(func.count(Prediction.id))
         .join(EegSession, Prediction.session_id == EegSession.id)
         .where(Prediction.predicted_class == "seizure")
-        .where(EegSession.user_id == current_user.id)
+        .where(EegSession.user_id == target_user_id)
         .where(EegSession.created_at >= thirty_days_ago)
     )
     seizures = seizure_count_query.scalar() or 0
@@ -60,7 +57,7 @@ async def get_dashboard_stats(db: DbDep, current_user: User = PatientUser):
     # 2. Average sleep
     sleep_query = await db.execute(
         select(func.avg(SleepLog.duration_minutes))
-        .where(SleepLog.user_id == current_user.id)
+        .where(SleepLog.user_id == target_user_id)
         .where(SleepLog.woke_at >= thirty_days_ago)
     )
     avg_sleep_mins = sleep_query.scalar() or 0
@@ -72,14 +69,14 @@ async def get_dashboard_stats(db: DbDep, current_user: User = PatientUser):
             func.count(MedicationLog.id).filter(MedicationLog.status == "TAKEN"),
             func.count(MedicationLog.id)
         )
-        .where(MedicationLog.user_id == current_user.id)
+        .where(MedicationLog.user_id == target_user_id)
         .where(MedicationLog.taken_at >= thirty_days_ago)
     )
     taken, total = med_query.first() or (0, 0)
     adherence = round((taken / total * 100), 1) if total > 0 else 0.0
 
     # 4. Generate daily recommendations
-    recommendations = await get_daily_recommendations(current_user.id, db)
+    recommendations = await get_daily_recommendations(target_user_id, db)
 
     return DashboardStatsOut(
         seizures_past_30_days=seizures,

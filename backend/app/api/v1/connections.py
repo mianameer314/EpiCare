@@ -31,12 +31,17 @@ class ConnectionRequest(BaseModel):
     doctor_id: int
 
 
+class ProxyUpdateRequest(BaseModel):
+    can_proxy: bool
+
+
 class ConnectionResponse(BaseModel):
     id: int
     patient_id: int
     doctor_id: int | None = None
     caretaker_id: int | None = None
     relationship_status: ConnectionStatus
+    can_proxy: bool | None = None
 
 
 class CaretakerConnectionRequest(BaseModel):
@@ -409,6 +414,43 @@ async def approve_caretaker_connection(
         raise HTTPException(status_code=400, detail="Connection is not in pending status")
         
     connection.relationship_status = ConnectionStatus.ACTIVE
+    await db.commit()
+    await db.refresh(connection)
+    
+    return connection
+
+
+@router.put(
+    "/caretakers/{connection_id}/proxy",
+    tags=["Patient Management"],
+    response_model=ConnectionResponse,
+    summary="Update caretaker proxy access",
+    description="Patient toggles write access (proxy) for a specific caretaker connection.",
+)
+async def update_caretaker_proxy(
+    connection_id: int, 
+    data: ProxyUpdateRequest,
+    db: DbDep, 
+    current_user: User = Depends(RoleChecker([UserRole.PATIENT]))
+):
+    # Get patient profile
+    result = await db.execute(select(PatientProfile).where(PatientProfile.user_id == current_user.id))
+    patient_profile = result.scalar_one_or_none()
+    if not patient_profile:
+        raise HTTPException(status_code=404, detail="Patient profile not found")
+        
+    # Get connection
+    query = select(PatientCaretakerNetwork).where(
+        PatientCaretakerNetwork.id == connection_id,
+        PatientCaretakerNetwork.patient_id == patient_profile.id
+    )
+    result = await db.execute(query)
+    connection = result.scalar_one_or_none()
+    
+    if not connection:
+        raise HTTPException(status_code=404, detail="Connection not found")
+        
+    connection.can_proxy = data.can_proxy
     await db.commit()
     await db.refresh(connection)
     

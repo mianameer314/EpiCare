@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Integer, UniqueConstraint, func
+from sqlalchemy import DateTime, Enum, ForeignKey, Integer, UniqueConstraint, func, Boolean
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.session import Base
@@ -54,6 +54,8 @@ class PatientCaretakerNetwork(Base):
         default=ConnectionStatus.PENDING, 
         nullable=False
     )
+    
+    can_proxy: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, server_default="false")
 
     date_linked: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
