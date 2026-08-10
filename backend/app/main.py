@@ -153,10 +153,6 @@ openapi_tags = [
         "description": "Operations for managing caretaker profiles.",
     },
     {
-        "name": "Connections",
-        "description": "Manage relationships and connection requests between patients, doctors, and caretakers.",
-    },
-    {
         "name": "System Health & Status",
         "description": "Public system status and health checks.",
     },
