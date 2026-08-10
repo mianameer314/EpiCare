@@ -167,6 +167,51 @@ async def process_sos_in_background(db: AsyncSession, event_id: int, user_id: in
     await db.commit()
 
 
+from datetime import date, datetime, time
+from app.api.pagination import PaginationParams, get_pagination_params, get_total_count, apply_pagination, create_paginated_response
+from app.schemas.common import PaginatedResponse
+from app.schemas.emergency import SosEventOut
+
+from sqlalchemy.orm import selectinload
+
+@router.get(
+    "/sos",
+    response_model=PaginatedResponse[SosEventOut],
+    summary="List SOS Events",
+    description="Retrieves a paginated history of all triggered SOS events for the patient.",
+    response_description="A paginated list of SOS events."
+)
+async def get_sos_events(
+    db: DbDep, 
+    target_user_id: TargetPatientIdForRead,
+    params: PaginationParams = Depends(get_pagination_params),
+    start_date: date | None = None,
+    end_date: date | None = None,
+    status: str | None = None
+):
+    query = select(SosEvent).options(selectinload(SosEvent.deliveries)).where(SosEvent.user_id == target_user_id)
+    
+    if start_date:
+        query = query.where(SosEvent.triggered_at >= datetime.combine(start_date, time.min))
+    if end_date:
+        query = query.where(SosEvent.triggered_at <= datetime.combine(end_date, time.max))
+    if status:
+        query = query.where(SosEvent.status == status)
+        
+    if params.sort_by and hasattr(SosEvent, params.sort_by):
+        column = getattr(SosEvent, params.sort_by)
+        query = query.order_by(column.asc() if params.sort_order.lower() == "asc" else column.desc())
+    else:
+        query = query.order_by(SosEvent.triggered_at.desc())
+        
+    total = await get_total_count(db, query)
+    query = apply_pagination(query, params.skip, params.limit)
+    result = await db.execute(query)
+    items = result.scalars().all()
+    
+    return create_paginated_response(items, total, params.skip, params.limit)
+
+
 @router.post(
     "/sos/trigger",
     response_model=SosEventCreateResponse,

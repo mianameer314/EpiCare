@@ -62,7 +62,7 @@ def test_admin_list_users(client, admin_headers, patient_user):
     # patient_user fixture already creates a user
     response = client.get("/api/v1/admin/users", headers=admin_headers)
     assert response.status_code == 200
-    users = response.json()
+    users = response.json()["items"]
     assert len(users) >= 2  # At least the admin and the patient
 
 
@@ -72,7 +72,7 @@ def test_admin_update_user_status(client, admin_headers, patient_user):
     # First find the user ID
     users_resp = client.get("/api/v1/admin/users", headers=admin_headers)
     target_id = None
-    for u in users_resp.json():
+    for u in users_resp.json()["items"]:
         if u["email"] == target_email:
             target_id = u["id"]
             break

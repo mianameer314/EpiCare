@@ -42,9 +42,16 @@ async def upload_eeg(
     return await session_service.create_upload_session(db, current_user, file)
 
 
+from datetime import date, datetime, time
+from app.api.pagination import PaginationParams, get_pagination_params, get_total_count, apply_pagination, create_paginated_response
+from app.schemas.common import PaginatedResponse
+from app.models.eeg_session import EegSession
+from app.models.prediction import Prediction
+from sqlalchemy import select
+
 @router.get(
     "/sessions",
-    response_model=EegSessionList,
+    response_model=PaginatedResponse[EegSessionOut],
     summary="List EEG sessions",
     description="Retrieve a paginated list of all EEG sessions uploaded by the current authenticated user.",
     responses={
@@ -54,19 +61,33 @@ async def upload_eeg(
 async def list_eeg_sessions(
     current_user: CurrentUser,
     db: DbDep,
-    page: int = 1,
-    per_page: int = 10,
+    params: PaginationParams = Depends(get_pagination_params),
+    start_date: date | None = None,
+    end_date: date | None = None,
+    status: str | None = None
 ):
     """Paginated list of the current user's EEG sessions."""
-    sessions, total = await session_service.list_sessions(
-        db, current_user.id, page=page, per_page=per_page
-    )
-    return EegSessionList(
-        items=sessions,
-        total=total,
-        page=page,
-        per_page=per_page,
-    )
+    query = select(EegSession).where(EegSession.user_id == current_user.id)
+    
+    if start_date:
+        query = query.where(EegSession.created_at >= datetime.combine(start_date, time.min))
+    if end_date:
+        query = query.where(EegSession.created_at <= datetime.combine(end_date, time.max))
+    if status:
+        query = query.where(EegSession.status == status)
+        
+    if params.sort_by and hasattr(EegSession, params.sort_by):
+        column = getattr(EegSession, params.sort_by)
+        query = query.order_by(column.asc() if params.sort_order.lower() == "asc" else column.desc())
+    else:
+        query = query.order_by(EegSession.created_at.desc())
+        
+    total = await get_total_count(db, query)
+    query = apply_pagination(query, params.skip, params.limit)
+    result = await db.execute(query)
+    items = result.scalars().all()
+    
+    return create_paginated_response(items, total, params.skip, params.limit)
 
 
 @router.get(
@@ -147,26 +168,36 @@ async def get_session_spectrogram(
 
 
 @router.get(
-    "/sessions/{session_id}/prediction",
-    response_model=PredictionOut,
-    summary="Get session prediction",
-    description="Retrieve the latest seizure prediction and AI report associated with an analyzed session.",
+    "/sessions/{session_id}/predictions",
+    response_model=PaginatedResponse[PredictionOut],
+    summary="List session predictions",
+    description="Retrieve a paginated list of all AI predictions associated with this session.",
     responses={
         401: {"description": "Unauthorized"},
-        404: {"description": "Not Found - Session or prediction does not exist"},
+        404: {"description": "Not Found - Session does not exist"},
     },
 )
-async def get_session_prediction(
+async def get_session_predictions(
     session_id: int,
     current_user: CurrentUser,
     db: DbDep,
+    params: PaginationParams = Depends(get_pagination_params),
 ):
-    """Return the latest prediction for a session (404 when none exists)."""
+    """Return all predictions for a session."""
     session = await session_service.get_session(db, session_id, current_user.id)
     if session is None:
         raise not_found_error("EEG session")
 
-    prediction = await session_service.get_prediction_for_session(db, session_id)
-    if prediction is None:
-        raise not_found_error("Prediction")
-    return prediction
+    query = select(Prediction).where(Prediction.session_id == session_id)
+    if params.sort_by and hasattr(Prediction, params.sort_by):
+        column = getattr(Prediction, params.sort_by)
+        query = query.order_by(column.asc() if params.sort_order.lower() == "asc" else column.desc())
+    else:
+        query = query.order_by(Prediction.created_at.desc())
+        
+    total = await get_total_count(db, query)
+    query = apply_pagination(query, params.skip, params.limit)
+    result = await db.execute(query)
+    items = result.scalars().all()
+    
+    return create_paginated_response(items, total, params.skip, params.limit)

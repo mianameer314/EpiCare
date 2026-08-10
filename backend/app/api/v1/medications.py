@@ -21,19 +21,39 @@ from app.schemas.medication import (
 router = APIRouter(prefix="/medications", tags=["Medications"])
 
 
+from app.api.pagination import PaginationParams, get_pagination_params, get_total_count, apply_pagination, create_paginated_response
+from app.schemas.common import PaginatedResponse
 
 @router.get(
     "",
-    response_model=List[MedicationOut],
+    response_model=PaginatedResponse[MedicationOut],
     summary="List Patient Medications",
-    description="Fetches a list of all medication prescriptions registered to the authenticated patient.",
-    response_description="A list of medication objects."
+    description="Fetches a paginated list of medication prescriptions registered to the authenticated patient.",
+    response_description="A paginated list of medication objects."
 )
-async def get_medications(db: DbDep, target_user_id: TargetPatientIdForRead):
-    result = await db.execute(
-        select(Medication).where(Medication.user_id == target_user_id)
-    )
-    return result.scalars().all()
+async def get_medications(
+    db: DbDep, 
+    target_user_id: TargetPatientIdForRead,
+    params: PaginationParams = Depends(get_pagination_params),
+    is_active: bool | None = None
+):
+    query = select(Medication).where(Medication.user_id == target_user_id)
+    
+    if is_active is not None:
+        query = query.where(Medication.is_active == is_active)
+        
+    if params.sort_by and hasattr(Medication, params.sort_by):
+        column = getattr(Medication, params.sort_by)
+        query = query.order_by(column.asc() if params.sort_order.lower() == "asc" else column.desc())
+    else:
+        query = query.order_by(Medication.start_date.desc())
+        
+    total = await get_total_count(db, query)
+    query = apply_pagination(query, params.skip, params.limit)
+    result = await db.execute(query)
+    items = result.scalars().all()
+    
+    return create_paginated_response(items, total, params.skip, params.limit)
 
 
 @router.post(
@@ -124,12 +144,17 @@ async def delete_medication(
 
 @router.get(
     "/{med_id}/schedules",
-    response_model=List[MedicationScheduleOut],
+    response_model=PaginatedResponse[MedicationScheduleOut],
     summary="List Medication Schedules",
-    description="Retrieves all scheduled intake times for a specific medication.",
-    response_description="A list of medication schedules."
+    description="Retrieves a paginated list of scheduled intake times for a specific medication.",
+    response_description="A paginated list of medication schedules."
 )
-async def get_schedules(med_id: int, db: DbDep, target_user_id: TargetPatientIdForRead):
+async def get_schedules(
+    med_id: int, 
+    db: DbDep, 
+    target_user_id: TargetPatientIdForRead,
+    params: PaginationParams = Depends(get_pagination_params)
+):
     # Ensure medication belongs to user
     med_result = await db.execute(
         select(Medication).where(
@@ -139,10 +164,20 @@ async def get_schedules(med_id: int, db: DbDep, target_user_id: TargetPatientIdF
     if not med_result.scalar_one_or_none():
         raise HTTPException(status_code=404, detail="Medication not found")
 
-    sched_result = await db.execute(
-        select(MedicationSchedule).where(MedicationSchedule.medication_id == med_id)
-    )
-    return sched_result.scalars().all()
+    query = select(MedicationSchedule).where(MedicationSchedule.medication_id == med_id)
+    
+    if params.sort_by and hasattr(MedicationSchedule, params.sort_by):
+        column = getattr(MedicationSchedule, params.sort_by)
+        query = query.order_by(column.asc() if params.sort_order.lower() == "asc" else column.desc())
+    else:
+        query = query.order_by(MedicationSchedule.scheduled_time.asc())
+        
+    total = await get_total_count(db, query)
+    query = apply_pagination(query, params.skip, params.limit)
+    sched_result = await db.execute(query)
+    items = sched_result.scalars().all()
+    
+    return create_paginated_response(items, total, params.skip, params.limit)
 
 
 @router.post(

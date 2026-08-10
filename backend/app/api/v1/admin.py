@@ -32,20 +32,40 @@ async def get_metrics(db: DbDep):
     return await admin_service.get_platform_metrics(db)
 
 
+from app.api.pagination import PaginationParams, get_pagination_params, get_total_count, apply_pagination, create_paginated_response
+from app.schemas.common import PaginatedResponse
+from sqlalchemy import select
+from app.models.user import User
+from app.models.doctor_profile import DoctorProfile
+
 @router.get(
     "/users",
-    response_model=List[UserOut],
+    response_model=PaginatedResponse[UserOut],
     summary="List all users",
     description="Retrieve all users with optional pagination and role filtering.",
 )
 async def list_users(
     db: DbDep,
-    skip: int = Query(0, ge=0),
-    limit: int = Query(50, ge=1, le=100),
+    params: PaginationParams = Depends(get_pagination_params),
     role: UserRole | None = None,
 ):
     """List users for admin management."""
-    return await admin_service.get_all_users(db, skip=skip, limit=limit, role=role)
+    query = select(User)
+    if role:
+        query = query.where(User.role == role)
+        
+    if params.sort_by and hasattr(User, params.sort_by):
+        column = getattr(User, params.sort_by)
+        query = query.order_by(column.asc() if params.sort_order.lower() == "asc" else column.desc())
+    else:
+        query = query.order_by(User.id.desc())
+        
+    total = await get_total_count(db, query)
+    query = apply_pagination(query, params.skip, params.limit)
+    result = await db.execute(query)
+    items = result.scalars().all()
+    
+    return create_paginated_response(items, total, params.skip, params.limit)
 
 
 @router.get(
@@ -72,13 +92,27 @@ async def update_user_status(user_id: int, data: UserStatusUpdate, db: DbDep):
 
 @router.get(
     "/doctors/pending",
-    response_model=List[DoctorProfileOut],
+    response_model=PaginatedResponse[DoctorProfileOut],
     summary="List pending doctors",
     description="Fetch all doctors whose PMDC numbers are awaiting verification.",
 )
-async def get_pending_doctors(db: DbDep):
+async def get_pending_doctors(
+    db: DbDep,
+    params: PaginationParams = Depends(get_pagination_params)
+):
     """List unverified doctors."""
-    return await admin_service.get_pending_doctors(db)
+    query = select(DoctorProfile).where(DoctorProfile.is_pmdc_verified == False)
+    
+    if params.sort_by and hasattr(DoctorProfile, params.sort_by):
+        column = getattr(DoctorProfile, params.sort_by)
+        query = query.order_by(column.asc() if params.sort_order.lower() == "asc" else column.desc())
+        
+    total = await get_total_count(db, query)
+    query = apply_pagination(query, params.skip, params.limit)
+    result = await db.execute(query)
+    items = result.scalars().all()
+    
+    return create_paginated_response(items, total, params.skip, params.limit)
 
 
 @router.patch(

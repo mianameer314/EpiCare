@@ -20,9 +20,9 @@ def test_add_and_list_medications(client, auth_headers):
     
     # List medications
     response = client.get("/api/v1/medications", headers=headers)
-    assert response.status_code == 200, response.text
-    assert len(response.json()) == 1
-    assert response.json()[0]["name"] == "Keppra"
+    assert response.status_code == 200
+    assert len(response.json()["items"]) == 1
+    assert response.json()["items"][0]["name"] == "Keppra"
 
 def test_add_medication_schedule(client, auth_headers):
     headers = auth_headers("patient_meds_sch@example.com")

@@ -43,20 +43,46 @@ async def log_manual_seizure(
     return new_log
 
 
+from datetime import date, datetime, time
+from app.api.pagination import PaginationParams, get_pagination_params, get_total_count, apply_pagination, create_paginated_response
+from app.schemas.common import PaginatedResponse
+
 @router.get(
     "/manual",
-    response_model=List[ManualSeizureLogOut],
+    response_model=PaginatedResponse[ManualSeizureLogOut],
     summary="List Manual Seizures",
-    description="Retrieve a descending history of all manually logged seizures for the authenticated patient.",
-    response_description="A list of manual seizure logs."
+    description="Retrieve a paginated history of all manually logged seizures for the authenticated patient.",
+    response_description="A paginated list of manual seizure logs."
 )
-async def get_manual_seizures(db: DbDep, target_user_id: TargetPatientIdForRead):
-    result = await db.execute(
-        select(ManualSeizureLog)
-        .where(ManualSeizureLog.user_id == target_user_id)
-        .order_by(ManualSeizureLog.occurred_at.desc())
-    )
-    return result.scalars().all()
+async def get_manual_seizures(
+    db: DbDep, 
+    target_user_id: TargetPatientIdForRead,
+    params: PaginationParams = Depends(get_pagination_params),
+    start_date: date | None = None,
+    end_date: date | None = None,
+    seizure_type: str | None = None
+):
+    query = select(ManualSeizureLog).where(ManualSeizureLog.user_id == target_user_id)
+    
+    if start_date:
+        query = query.where(ManualSeizureLog.occurred_at >= datetime.combine(start_date, time.min))
+    if end_date:
+        query = query.where(ManualSeizureLog.occurred_at <= datetime.combine(end_date, time.max))
+    if seizure_type:
+        query = query.where(ManualSeizureLog.seizure_type.ilike(f"%{seizure_type}%"))
+        
+    if params.sort_by and hasattr(ManualSeizureLog, params.sort_by):
+        column = getattr(ManualSeizureLog, params.sort_by)
+        query = query.order_by(column.asc() if params.sort_order.lower() == "asc" else column.desc())
+    else:
+        query = query.order_by(ManualSeizureLog.occurred_at.desc())
+        
+    total = await get_total_count(db, query)
+    query = apply_pagination(query, params.skip, params.limit)
+    result = await db.execute(query)
+    items = result.scalars().all()
+    
+    return create_paginated_response(items, total, params.skip, params.limit)
 
 
 @router.put(

@@ -47,5 +47,6 @@ def test_get_manual_seizures_list(client, auth_headers):
     # Retrieve the list
     response = client.get("/api/v1/seizures/manual", headers=headers)
     assert response.status_code == 200, response.text
-    data = response.json()
+    data = response.json()["items"]
     assert len(data) == 2
+    assert data[0]["duration_seconds"] == 90

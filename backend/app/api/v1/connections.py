@@ -48,10 +48,13 @@ class CaretakerConnectionRequest(BaseModel):
     caretaker_email: EmailStr
 
 
+from app.api.pagination import PaginationParams, get_pagination_params, get_total_count, apply_pagination, create_paginated_response
+from app.schemas.common import PaginatedResponse
+
 @router.get(
     "/doctors/search",
     tags=["Patient Management"],
-    response_model=List[DoctorSearchResponse],
+    response_model=PaginatedResponse[DoctorSearchResponse],
     summary="Search verified doctors",
     description="Search for PMDC-verified doctors by name, specialty, hospital, or PMDC number. Only patients can search for doctors.",
     responses={
@@ -62,12 +65,11 @@ class CaretakerConnectionRequest(BaseModel):
 async def search_doctors(
     db: DbDep,
     current_user: User = Depends(RoleChecker([UserRole.PATIENT])),
+    params: PaginationParams = Depends(get_pagination_params),
     pmdc_number: str | None = None,
     name: str | None = None,
     specialty: str | None = None,
     hospital: str | None = None,
-    skip: int = 0,
-    limit: int = 20,
 ):
     """Search for verified doctors with optional filters."""
     query = (
@@ -86,12 +88,22 @@ async def search_doctors(
     if hospital:
         query = query.where(DoctorProfile.hospital_affiliation.ilike(f"%{hospital}%"))
         
-    query = query.order_by(User.full_name.asc()).offset(skip).limit(limit)
+    if params.sort_by and hasattr(DoctorProfile, params.sort_by):
+        column = getattr(DoctorProfile, params.sort_by)
+        query = query.order_by(column.asc() if params.sort_order.lower() == "asc" else column.desc())
+    elif params.sort_by and hasattr(User, params.sort_by):
+        column = getattr(User, params.sort_by)
+        query = query.order_by(column.asc() if params.sort_order.lower() == "asc" else column.desc())
+    else:
+        query = query.order_by(User.full_name.asc())
+        
+    total = await get_total_count(db, query)
+    query = apply_pagination(query, params.skip, params.limit)
     
     result = await db.execute(query)
     doctors = result.scalars().all()
     
-    return [
+    items = [
         DoctorSearchResponse(
             doctor_id=doc.id,
             full_name=doc.user.full_name,
@@ -101,6 +113,7 @@ async def search_doctors(
         )
         for doc in doctors
     ]
+    return create_paginated_response(items, total, params.skip, params.limit)
 
 
 @router.post(
@@ -167,24 +180,36 @@ async def request_connection(
 @router.get(
     "/doctors/pending",
     tags=["Doctor Management"],
-    response_model=List[ConnectionResponse],
+    response_model=PaginatedResponse[ConnectionResponse],
     summary="List pending requests",
     description="Doctor views all pending connection requests.",
 )
-async def get_pending_doctor_requests(db: DbDep, current_user: VerifiedDoctor):
+async def get_pending_doctor_requests(
+    db: DbDep, 
+    current_user: VerifiedDoctor,
+    params: PaginationParams = Depends(get_pagination_params)
+):
     # Get doctor profile
     result = await db.execute(select(DoctorProfile).where(DoctorProfile.user_id == current_user.id))
     doctor_profile = result.scalar_one_or_none()
     
     if not doctor_profile:
-        return []
+        return create_paginated_response([], 0, params.skip, params.limit)
 
     query = select(PatientDoctorNetwork).where(
         PatientDoctorNetwork.doctor_id == doctor_profile.id,
         PatientDoctorNetwork.relationship_status == ConnectionStatus.PENDING
     )
+    
+    if params.sort_by and hasattr(PatientDoctorNetwork, params.sort_by):
+        column = getattr(PatientDoctorNetwork, params.sort_by)
+        query = query.order_by(column.asc() if params.sort_order.lower() == "asc" else column.desc())
+        
+    total = await get_total_count(db, query)
+    query = apply_pagination(query, params.skip, params.limit)
     result = await db.execute(query)
-    return result.scalars().all()
+    items = result.scalars().all()
+    return create_paginated_response(items, total, params.skip, params.limit)
 
 
 @router.post(
@@ -358,24 +383,36 @@ async def request_caretaker_connection(
 @router.get(
     "/caretakers/pending",
     tags=["Caretaker Management"],
-    response_model=List[ConnectionResponse],
+    response_model=PaginatedResponse[ConnectionResponse],
     summary="List pending requests",
     description="Caretaker views all pending connection requests.",
 )
-async def get_pending_caretaker_requests(db: DbDep, current_user: User = CaretakerUser):
+async def get_pending_caretaker_requests(
+    db: DbDep, 
+    current_user: User = CaretakerUser,
+    params: PaginationParams = Depends(get_pagination_params)
+):
     # Get caretaker profile
     result = await db.execute(select(CaretakerProfile).where(CaretakerProfile.user_id == current_user.id))
     caretaker_profile = result.scalar_one_or_none()
     
     if not caretaker_profile:
-        return []
+        return create_paginated_response([], 0, params.skip, params.limit)
 
     query = select(PatientCaretakerNetwork).where(
         PatientCaretakerNetwork.caretaker_id == caretaker_profile.id,
         PatientCaretakerNetwork.relationship_status == ConnectionStatus.PENDING
     )
+    
+    if params.sort_by and hasattr(PatientCaretakerNetwork, params.sort_by):
+        column = getattr(PatientCaretakerNetwork, params.sort_by)
+        query = query.order_by(column.asc() if params.sort_order.lower() == "asc" else column.desc())
+        
+    total = await get_total_count(db, query)
+    query = apply_pagination(query, params.skip, params.limit)
     result = await db.execute(query)
-    return result.scalars().all()
+    items = result.scalars().all()
+    return create_paginated_response(items, total, params.skip, params.limit)
 
 
 @router.post(

@@ -66,7 +66,7 @@ def test_doctor_search_and_request_connection(client: TestClient) -> None:
         headers=patient_headers
     )
     assert search_response.status_code == 200
-    results = search_response.json()
+    results = search_response.json()["items"]
     assert len(results) == 1
     doctor_id = results[0]["doctor_id"]
     
