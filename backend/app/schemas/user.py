@@ -92,6 +92,24 @@ class ResendOTPRequest(StrictModel):
 
 
 # ------------------------------------------------------------------
+# Password Reset
+# ------------------------------------------------------------------
+
+class ForgotPasswordRequest(StrictModel):
+    """Request to initiate password reset."""
+    
+    email: EmailStr
+
+
+class ResetPasswordRequest(StrictModel):
+    """Request to complete password reset."""
+    
+    email: EmailStr
+    otp: str = Field(..., min_length=6, max_length=6)
+    new_password: str = Field(..., min_length=8)
+
+
+# ------------------------------------------------------------------
 # User Response
 # ------------------------------------------------------------------
 

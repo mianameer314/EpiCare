@@ -15,6 +15,8 @@ from app.schemas.user import (
     UserRegister,
     VerifyOTPRequest,
     ResendOTPRequest,
+    ForgotPasswordRequest,
+    ResetPasswordRequest,
 )
 from app.services import user as user_service
 
@@ -138,6 +140,48 @@ async def resend_otp(data: ResendOTPRequest, db: DbDep, background_tasks: Backgr
         
     await user_service.generate_and_send_otp(db, user, background_tasks)
     return {"message": "If an account exists, a new OTP has been sent."}
+
+
+@router.post(
+    "/forgot-password",
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(REGISTER_LIMIT)],
+    summary="Request password reset",
+    description="Sends an OTP to the user's email if the account exists. Protects against enumeration by always returning success.",
+    responses={
+        429: {"description": "Too Many Requests - Rate limit exceeded"},
+    },
+)
+async def forgot_password(data: ForgotPasswordRequest, db: DbDep, background_tasks: BackgroundTasks):
+    """Initiate password reset by sending an OTP."""
+    user = await user_service.get_user_by_email(db, data.email)
+    if user:
+        await user_service.generate_and_send_otp(db, user, background_tasks)
+        
+    return {"message": "OTP sent successfully to your email address."}
+
+
+@router.post(
+    "/reset-password",
+    status_code=status.HTTP_200_OK,
+    summary="Reset password",
+    description="Verify OTP and reset password for the user.",
+    responses={
+        400: {"description": "Bad Request - Invalid or expired OTP"},
+        404: {"description": "Not Found - User not found"},
+    },
+)
+async def reset_password(data: ResetPasswordRequest, db: DbDep):
+    """Verify OTP and set new password."""
+    user = await user_service.get_user_by_email(db, data.email)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        
+    is_valid = await user_service.reset_user_password(db, user, data.otp, data.new_password)
+    if not is_valid:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired OTP")
+        
+    return {"message": "Password reset successfully"}
 
 
 @router.post(
