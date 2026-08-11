@@ -24,7 +24,7 @@ async def send_chat_message(
     # Get or create active session
     result = await db.execute(
         select(ChatSession)
-        .where(ChatSession.user_id == current_user.id, ChatSession.is_active == True)
+        .where(ChatSession.user_id == current_user.id)
         .order_by(ChatSession.created_at.desc())
         .limit(1)
     )
@@ -38,6 +38,7 @@ async def send_chat_message(
     # Save user message
     user_msg = ChatMessage(
         session_id=chat_session.id,
+        user_id=current_user.id,
         role="user",
         content=payload.content
     )
@@ -49,6 +50,7 @@ async def send_chat_message(
     
     ai_msg = ChatMessage(
         session_id=chat_session.id,
+        user_id=current_user.id,
         role="assistant",
         content=ai_text
     )
