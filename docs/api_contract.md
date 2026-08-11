@@ -1,6 +1,6 @@
 # EpiCare API Contract
 
-This document is 100% matched to the FastAPI codebase.
+This document is  the 100% matched to the FastAPI codebase.
 
 ## System health & status
 
