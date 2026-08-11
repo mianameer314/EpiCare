@@ -52,5 +52,4 @@ pytest
 pytest-asyncio
 
 firebase-admin
-
-
+fpdf2

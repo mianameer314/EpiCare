@@ -1,7 +1,9 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, BackgroundTasks
+from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, desc
 from datetime import datetime, timedelta, timezone
+import io
 
 from app.api.deps import DbDep, TargetPatientIdForRead
 from app.models.enums import UserRole
@@ -30,6 +32,7 @@ class DashboardStatsOut(StrictModel):
     medication_adherence_percent: float
     medications_taken: int
     medications_missed: int
+    medication_streak: int
     
     # Lifestyle Analytics
     avg_sleep_hours: float
@@ -158,6 +161,36 @@ async def get_dashboard_stats(db: DbDep, target_user_id: TargetPatientIdForRead)
     taken, missed, total = med_query.first() or (0, 0, 0)
     adherence = round((taken / total * 100), 1) if total > 0 else 0.0
 
+    # Calculate streak (consecutive days taken without a MISSED log)
+    logs_query = await db.execute(
+        select(func.date(MedicationLog.taken_at).label("d"), MedicationLog.status)
+        .where(MedicationLog.user_id == target_user_id)
+        .where(MedicationLog.status.in_(["TAKEN", "MISSED"]))
+        .order_by(desc("d"))
+    )
+    logs = logs_query.all()
+    
+    streak = 0
+    current_date = datetime.now(timezone.utc).date()
+    
+    # Group by date to see if any MISSED occurred on that date
+    daily_status = {}
+    for d, status in logs:
+        if d not in daily_status:
+            daily_status[d] = []
+        daily_status[d].append(status)
+        
+    for i in range(365): # Check up to a year back
+        check_date = current_date - timedelta(days=i)
+        statuses = daily_status.get(check_date)
+        if statuses:
+            if "MISSED" in statuses:
+                break
+            if "TAKEN" in statuses:
+                streak += 1
+        elif i > 0: # If there's a day with no logs at all, break streak
+            break
+
     # 4. Stress level (from generic LifestyleLog)
     stress_query = await db.execute(
         select(LifestyleLog.metadata_dict)
@@ -192,8 +225,85 @@ async def get_dashboard_stats(db: DbDep, target_user_id: TargetPatientIdForRead)
         medication_adherence_percent=adherence,
         medications_taken=taken,
         medications_missed=missed,
+        medication_streak=streak,
         avg_sleep_hours=avg_sleep_hours,
         avg_stress_level=avg_stress_level,
         most_frequent_triggers=most_frequent_triggers,
         recommendations=recommendations,
+    )
+
+
+@router.get(
+    "/export-pdf",
+    tags=["🤒 Patient - Dashboard"],
+    summary="Export PDF Summary for Neurologist",
+    description="Generates a downloadable PDF report summarizing the patient's seizure history, medication adherence, and lifestyle trends.",
+)
+async def export_dashboard_pdf(db: DbDep, target_user_id: TargetPatientIdForRead):
+    from fpdf import FPDF
+    
+    # Get the stats first
+    stats = await get_dashboard_stats(db, target_user_id)
+    
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("helvetica", "B", 16)
+    pdf.cell(0, 10, "EpiCare Patient Summary Report", new_x="LMARGIN", new_y="NEXT", align="C")
+    
+    pdf.set_font("helvetica", "", 12)
+    pdf.cell(0, 10, f"Generated on: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')} UTC", new_x="LMARGIN", new_y="NEXT")
+    pdf.ln(5)
+    
+    # Seizures Section
+    pdf.set_font("helvetica", "B", 14)
+    pdf.cell(0, 10, "1. Seizure Analytics", new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font("helvetica", "", 12)
+    pdf.cell(0, 10, f"- Total Seizures (Past 30 Days): {stats.total_seizures_past_30_days}", new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(0, 10, f"- Total Seizures (All Time): {stats.total_seizures_all_time}", new_x="LMARGIN", new_y="NEXT")
+    days_since = str(stats.days_since_last_seizure) if stats.days_since_last_seizure is not None else "N/A"
+    pdf.cell(0, 10, f"- Days Since Last Seizure: {days_since}", new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(0, 10, f"- Common Seizure Types: {', '.join(stats.most_common_seizure_types) if stats.most_common_seizure_types else 'None'}", new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(0, 10, f"- Recent Auras: {', '.join(stats.recent_auras) if stats.recent_auras else 'None'}", new_x="LMARGIN", new_y="NEXT")
+    pdf.ln(5)
+    
+    # Medication Section
+    pdf.set_font("helvetica", "B", 14)
+    pdf.cell(0, 10, "2. Medication Adherence", new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font("helvetica", "", 12)
+    pdf.cell(0, 10, f"- Overall Adherence (30 Days): {stats.medication_adherence_percent}%", new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(0, 10, f"- Doses Taken: {stats.medications_taken} | Missed: {stats.medications_missed}", new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(0, 10, f"- Current Streak: {stats.medication_streak} consecutive days", new_x="LMARGIN", new_y="NEXT")
+    pdf.ln(5)
+    
+    # Lifestyle Section
+    pdf.set_font("helvetica", "B", 14)
+    pdf.cell(0, 10, "3. Lifestyle & Triggers", new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font("helvetica", "", 12)
+    pdf.cell(0, 10, f"- Average Sleep: {stats.avg_sleep_hours} hours/night", new_x="LMARGIN", new_y="NEXT")
+    stress = str(stats.avg_stress_level) if stats.avg_stress_level is not None else "N/A"
+    pdf.cell(0, 10, f"- Average Stress Level: {stress}/10", new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(0, 10, f"- Most Frequent Triggers: {', '.join(stats.most_frequent_triggers) if stats.most_frequent_triggers else 'None'}", new_x="LMARGIN", new_y="NEXT")
+    pdf.ln(5)
+    
+    # Recommendations
+    pdf.set_font("helvetica", "B", 14)
+    pdf.cell(0, 10, "4. AI Recommendations", new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font("helvetica", "", 12)
+    if stats.recommendations:
+        for rec in stats.recommendations:
+            # Simple handling of long text
+            pdf.multi_cell(0, 8, f"* {rec}", new_x="LMARGIN", new_y="NEXT")
+    else:
+        pdf.cell(0, 10, "No recommendations generated.", new_x="LMARGIN", new_y="NEXT")
+    
+    # Output PDF to bytes
+    pdf_bytes = pdf.output()
+    if isinstance(pdf_bytes, str):
+        # fpdf2 might return string depending on python version, fallback to bytes
+        pdf_bytes = pdf_bytes.encode('latin1')
+        
+    return StreamingResponse(
+        io.BytesIO(pdf_bytes),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename=EpiCare_Report_{datetime.now().strftime('%Y%m%d')}.pdf"}
     )
