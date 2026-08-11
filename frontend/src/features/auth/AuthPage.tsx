@@ -14,7 +14,7 @@ export function AuthPage() {
   return (
     <main className="auth-page-bg">
       <div className="auth-split-card glass-panel">
-        
+
         {/* Background Forms Layer */}
         <div className="auth-forms-layer">
           {/* Sign Up Form (Left Side) */}
@@ -53,7 +53,7 @@ export function AuthPage() {
         </div>
 
         {/* Sliding Overlay Panel (Foreground) */}
-        <motion.div 
+        <motion.div
           className="auth-overlay-panel"
           initial={false}
           animate={{
@@ -66,21 +66,21 @@ export function AuthPage() {
           transition={{ type: "spring", stiffness: 200, damping: 25 }}
         >
           {/* High Quality Video Background */}
-          <video 
+          <video
             className="auth-overlay-video"
-            autoPlay 
-            muted 
-            loop 
+            autoPlay
+            muted
+            loop
             playsInline
             aria-hidden="true"
           >
             <source src="/first.mp4" type="video/mp4" />
           </video>
-          
+
           <div className="auth-overlay-content">
             <AnimatePresence mode="wait">
               {isLogin ? (
-                <motion.div 
+                <motion.div
                   key="login-prompt"
                   className="overlay-text"
                   initial={{ opacity: 0, scale: 0.9 }}
@@ -89,13 +89,13 @@ export function AuthPage() {
                   transition={{ duration: 0.3 }}
                 >
                   <h2>New to EpiCare?</h2>
-                  <p>Join us and take control of your health journey with advanced, compassionate care.</p>
+                  <p>AI-powered epilepsy detection, seizure tracking, and personalized care — all in one platform.</p>
                   <Button variant="outline" className="overlay-btn" onClick={handleToggle}>
                     Sign Up Now
                   </Button>
                 </motion.div>
               ) : (
-                <motion.div 
+                <motion.div
                   key="signup-prompt"
                   className="overlay-text"
                   initial={{ opacity: 0, scale: 0.9 }}
@@ -104,7 +104,7 @@ export function AuthPage() {
                   transition={{ duration: 0.3 }}
                 >
                   <h2>Welcome Back!</h2>
-                  <p>To keep connected with us, please login with your personal information.</p>
+                  <p>Your EEG analyses, medication logs, and care insights are waiting for you.</p>
                   <Button variant="outline" className="overlay-btn" onClick={handleToggle}>
                     Sign In
                   </Button>
@@ -113,7 +113,7 @@ export function AuthPage() {
             </AnimatePresence>
           </div>
         </motion.div>
-        
+
       </div>
     </main>
   );

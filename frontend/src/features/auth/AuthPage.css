@@ -5,29 +5,31 @@
   justify-content: center;
   background: linear-gradient(135deg, #e9ecef 0%, #b7e4c7 100%);
   background-image: radial-gradient(circle at top left, rgba(45, 90, 63, 0.15) 0%, transparent 40%),
-                    radial-gradient(circle at bottom right, rgba(0, 119, 182, 0.15) 0%, transparent 40%);
+    radial-gradient(circle at bottom right, rgba(0, 119, 182, 0.15) 0%, transparent 40%);
   padding: var(--space-4);
 }
 
 @keyframes breathing-border {
   0% {
-    box-shadow: 
+    box-shadow:
       0 20px 40px rgba(0, 0, 0, 0.1),
       0 0 15px rgba(45, 90, 63, 0.2),
       inset 0 1px 0 rgba(255, 255, 255, 0.8),
       inset 0 -1px 0 rgba(0, 0, 0, 0.05);
     border-color: rgba(255, 255, 255, 0.6);
   }
+
   50% {
-    box-shadow: 
+    box-shadow:
       0 20px 40px rgba(0, 0, 0, 0.2),
       0 0 40px rgba(45, 90, 63, 0.6),
       inset 0 1px 0 rgba(255, 255, 255, 0.8),
       inset 0 -1px 0 rgba(0, 0, 0, 0.05);
     border-color: rgba(45, 90, 63, 0.8);
   }
+
   100% {
-    box-shadow: 
+    box-shadow:
       0 20px 40px rgba(0, 0, 0, 0.1),
       0 0 15px rgba(45, 90, 63, 0.2),
       inset 0 1px 0 rgba(255, 255, 255, 0.8),
@@ -66,12 +68,14 @@
   justify-content: center;
   background: var(--color-surface);
   overflow-y: auto;
-  scrollbar-width: thin; /* For Firefox */
+  scrollbar-width: thin;
+  /* For Firefox */
 }
 
 .auth-form-half::-webkit-scrollbar {
   width: 6px;
 }
+
 .auth-form-half::-webkit-scrollbar-thumb {
   background-color: rgba(45, 90, 63, 0.2);
   border-radius: 4px;
@@ -79,7 +83,8 @@
 
 .auth-form-content {
   width: 100%;
-  max-width: 520px; /* Widened for elegant layout */
+  max-width: 520px;
+  /* Widened for elegant layout */
   margin: 0 auto;
 }
 
@@ -91,7 +96,7 @@
   height: 100%;
   z-index: 10;
   overflow: hidden;
-  box-shadow: 0 0 30px rgba(0,0,0,0.1);
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.1);
   will-change: transform, border-radius;
 }
 
@@ -100,7 +105,8 @@
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover; /* Back to cover to ensure no black bars */
+  object-fit: cover;
+  /* Back to cover to ensure no black bars */
   z-index: 1;
 }
 
@@ -108,7 +114,8 @@
   position: absolute;
   inset: 0;
   z-index: 2;
-  background: rgba(26, 30, 27, 0.6); /* Dark overlay to make text readable */
+  background: rgba(26, 30, 27, 0.6);
+  /* Dark overlay to make text readable */
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
   display: flex;
@@ -121,15 +128,22 @@
 
 .overlay-text h2 {
   color: var(--color-text-inverse);
-  font-size: var(--text-3xl);
-  margin-bottom: var(--space-4);
+  font-size: 2.4rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: var(--space-3);
 }
 
 .overlay-text p {
-  color: rgba(255, 255, 255, 0.9);
+  color: rgba(255, 255, 255, 0.85);
   margin-bottom: var(--space-8);
-  font-size: var(--text-lg);
-  line-height: 1.6;
+  font-size: 1.05rem;
+  line-height: 1.7;
+  max-width: 320px;
+  margin-left: auto;
+  margin-right: auto;
+  font-weight: 300;
+  letter-spacing: 0.01em;
 }
 
 .auth-header {
@@ -166,7 +180,7 @@
   background: white !important;
   color: var(--color-primary-dark) !important;
   border-color: white !important;
-  box-shadow: 0 4px 15px rgba(255,255,255,0.3);
+  box-shadow: 0 4px 15px rgba(255, 255, 255, 0.3);
 }
 
 /* Adjustments for the inner forms */
@@ -181,7 +195,7 @@
   margin-bottom: var(--space-4);
 }
 
-.auth-form-row > * {
+.auth-form-row>* {
   flex: 1;
 }
 
@@ -193,6 +207,36 @@
   width: 100%;
 }
 
+/* Brand identity inside form headers */
+.auth-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: var(--space-4);
+}
+
+.auth-brand-logo {
+  height: 48px;
+  width: 48px;
+  object-fit: contain;
+  border-radius: var(--radius-md);
+}
+
+.auth-brand-name {
+  font-size: 1.75rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.brand-epi {
+  color: var(--color-primary-dark);
+}
+
+.brand-care {
+  color: var(--color-primary);
+}
+
 /* Mobile Fallback: stacked */
 @media (max-width: 768px) {
   .auth-split-card {
@@ -200,9 +244,10 @@
     flex-direction: column;
     overflow: visible;
   }
-  
+
   .auth-overlay-panel {
-    display: none; /* Hide fancy overlay on small screens */
+    display: none;
+    /* Hide fancy overlay on small screens */
   }
 
   .auth-forms-layer {

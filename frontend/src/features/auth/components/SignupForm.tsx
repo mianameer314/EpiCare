@@ -107,8 +107,14 @@ export function SignupForm() {
   return (
     <form onSubmit={handleSubmit} className="auth-form" noValidate>
       <div className="auth-form-header">
+        <div className="auth-brand">
+          <img src="/logo.png" alt="EpiCare" className="auth-brand-logo" />
+          <span className="auth-brand-name">
+            <span className="brand-epi">Epi</span>
+            <span className="brand-care">Care</span>
+          </span>
+        </div>
         <h2>Create an account</h2>
-        <p>Join EpiCare to manage and monitor your health journey.</p>
       </div>
 
       {globalError && (
