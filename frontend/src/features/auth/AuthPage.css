@@ -237,26 +237,82 @@
   color: var(--color-primary);
 }
 
+.mobile-video-toggle {
+  display: none;
+}
+
 /* Mobile Fallback: stacked */
 @media (max-width: 768px) {
   .auth-split-card {
+    display: flex;
     min-height: auto;
     flex-direction: column;
-    overflow: visible;
+    overflow: hidden;
   }
 
   .auth-overlay-panel {
-    display: none;
-    /* Hide fancy overlay on small screens */
+    display: block !important;
+    position: relative !important;
+    width: 100% !important;
+    height: 220px !important;
+    transform: none !important;
+    border-radius: 0 !important;
+    order: -1; /* Force it to the top! */
+  }
+
+  .auth-overlay-content {
+    padding: var(--space-4);
+  }
+
+  .auth-overlay-content .overlay-btn {
+    display: none; /* Hide the desktop toggle button on mobile */
+  }
+
+  .overlay-text h2 {
+    font-size: 1.8rem;
+    margin-bottom: var(--space-2);
+  }
+
+  .overlay-text p {
+    font-size: 0.9rem;
+    margin-bottom: 0;
   }
 
   .auth-forms-layer {
     position: relative;
     flex-direction: column;
+    order: 2;
   }
 
   .auth-form-half {
     width: 100%;
+    padding: 0 !important; /* Remove padding from the wrapper so empty wrappers collapse */
+  }
+
+  .auth-form-content {
     padding: var(--space-6) var(--space-4);
+  }
+
+  .auth-form-row {
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .mobile-video-toggle {
+    display: block;
+    margin-top: var(--space-3);
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.9);
+  }
+  
+  .mobile-video-toggle .text-link {
+    color: white;
+    font-weight: 700;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    font-size: 0.9rem;
+    text-decoration: underline;
   }
 }

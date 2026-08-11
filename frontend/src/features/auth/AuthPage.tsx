@@ -93,6 +93,9 @@ export function AuthPage() {
                   <Button variant="outline" className="overlay-btn" onClick={handleToggle}>
                     Sign Up Now
                   </Button>
+                  <div className="mobile-video-toggle">
+                    <button type="button" className="text-link" onClick={handleToggle}>Sign Up</button>
+                  </div>
                 </motion.div>
               ) : (
                 <motion.div
@@ -108,6 +111,9 @@ export function AuthPage() {
                   <Button variant="outline" className="overlay-btn" onClick={handleToggle}>
                     Sign In
                   </Button>
+                  <div className="mobile-video-toggle">
+                    <button type="button" className="text-link" onClick={handleToggle}>Sign In</button>
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>

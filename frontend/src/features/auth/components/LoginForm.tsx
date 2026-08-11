@@ -10,7 +10,7 @@ export function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [globalError, setGlobalError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof LoginPayload, string>>>({});
-  
+
   const [formData, setFormData] = useState<LoginPayload>({
     email: '',
     password: '',
@@ -28,9 +28,9 @@ export function LoginForm() {
     e.preventDefault();
     setIsLoading(true);
     setGlobalError('');
-    
+
     const errors: Partial<Record<keyof LoginPayload, string>> = {};
-    
+
     if (!formData.email.trim()) {
       errors.email = "Email is required";
     } else if (!/^\S+@\S+\.\S+$/.test(formData.email)) {
@@ -102,14 +102,14 @@ export function LoginForm() {
           onChange={handleChange}
           error={fieldErrors.password}
         />
-        <a 
-          href="#" 
-          style={{ 
-            position: 'absolute', 
-            right: 0, 
-            top: 0, 
-            fontSize: 'var(--text-sm)', 
-            color: 'var(--color-primary)', 
+        <a
+          href="#"
+          style={{
+            position: 'absolute',
+            right: 0,
+            top: 0,
+            fontSize: 'var(--text-sm)',
+            color: 'var(--color-primary)',
             textDecoration: 'none',
             fontWeight: 500
           }}
