@@ -1,4 +1,4 @@
-﻿"""
+"""
 Inference — runs the dual-domain model over preprocessed windows.
 
 Window probabilities are aggregated into a session-level decision using the
@@ -9,7 +9,7 @@ from typing import Any
 
 import numpy as np
 
-from app.core.exceptions import service_unavailable_error
+from app.core.exceptions import service_unavailable_error, error_response
 from app.ml.contracts import InferenceResult
 from app.ml.model_loader import get_model_loader
 
@@ -29,7 +29,11 @@ def predict(raw_windows: np.ndarray, spectrogram_windows: np.ndarray) -> Inferen
     """
     loader = get_model_loader()
     if not loader.is_ready or loader.session is None or loader.config is None:
-        raise service_unavailable_error("Seizure detection model is not available")
+        raise error_response(
+            code="MODEL_NOT_TRAINED",
+            message="Seizure detection model is not trained yet. Awaiting AI team.",
+            status_code=503
+        )
 
     session = loader.session
     config = loader.config

@@ -16,6 +16,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.v1 import (
     admin,
     auth,
+    chat,
     connections,
     eeg,
     system,
@@ -25,6 +26,7 @@ from app.api.v1 import (
     lifestyle,
     dashboard,
     seizures,
+    rag,
 )
 from app.core.config import settings
 from app.core.exceptions import register_exception_handlers
@@ -228,6 +230,8 @@ app.include_router(eeg.router, prefix=api_prefix)
 app.include_router(admin.router, prefix=api_prefix)
 app.include_router(admin.diagnostics_router, prefix=api_prefix)
 app.include_router(connections.router, prefix=api_prefix)
+app.include_router(chat.router, prefix=api_prefix)
+app.include_router(rag.router, prefix=api_prefix)
 app.include_router(emergency.router, prefix=api_prefix)
 app.include_router(medications.router, prefix=api_prefix)
 app.include_router(lifestyle.router, prefix=api_prefix)

@@ -33,7 +33,7 @@ SUPPORTED_SAMPLING_RATES: set[int] = {128, 256, 512, 1024}
 STFT_NPERSEG: int = 256
 STFT_NOVERLAP: int = 128
 STFT_FMIN: float = 0.5
-STFT_FMAX: float = 40.0
+STFT_FMAX: float = 70.0
 
 
 @dataclass
@@ -52,7 +52,7 @@ def _butterworth_bandpass(
     data: np.ndarray,
     sampling_rate: float,
     low: float = 0.5,
-    high: float = 40.0,
+    high: float = 70.0,
     order: int = 4,
 ) -> np.ndarray:
     """Zero-phase bandpass filter along the last axis (samples)."""

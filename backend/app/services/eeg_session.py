@@ -24,6 +24,7 @@ from app.models.prediction import Prediction
 from app.models.user import User
 from app.schemas.eeg_session import EegSessionStatus
 from app.services import eeg_reader, eeg_validation
+from app.services.vlm_report import generate_vlm_report
 from app.services.channel_mapper import map_channels
 from app.services.eeg_preprocessing import preprocess_eeg
 from app.services.storage.service import StorageService, get_storage_service
@@ -292,6 +293,14 @@ async def analyze_session(
     session.error_message = None
     await db.commit()
     await db.refresh(prediction)
+
+    # 6) Optional: VLM Report Generation
+    # This checks if the VLM model is trained. If not, it skips report generation gracefully.
+    try:
+        await generate_vlm_report(db, prediction.id)
+    except Exception as e:
+        logger.info(f"VLM Report generation skipped or pending: {e}")
+
 
     logger.info(
         "eeg_analysis_completed",

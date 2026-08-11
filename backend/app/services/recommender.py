@@ -7,14 +7,37 @@ from sqlalchemy import select, func
 
 from app.models.lifestyle import SleepLog, TriggerLog
 from app.models.medication import MedicationLog
+import os
+from pathlib import Path
+import logging
+
+logger = logging.getLogger(__name__)
+
+# The AI team is expected to put their KNN/RF models here
+RECOMMENDER_MODEL_DIR = Path("E:/BS_INTERN/EpiCare/training/recommender")
 
 
 async def get_daily_recommendations(user_id: int, db: AsyncSession) -> list[str]:
     """
     Analyzes the patient's data over the past 7 days to generate actionable recommendations.
-    Provides strict, production-grade logic for Sleep, Adherence, and Triggers.
+    Dynamically checks if the AI team has pushed ML models; if not, falls back to SQL rules.
     """
     recommendations = []
+    
+    # 1. Dynamic Check: Do we have ML models from the AI team?
+    is_ml_ready = RECOMMENDER_MODEL_DIR.exists() and any(
+        f.name != ".gitkeep" for f in RECOMMENDER_MODEL_DIR.iterdir()
+    )
+    
+    if is_ml_ready:
+        logger.info(f"ML Recommender model found in {RECOMMENDER_MODEL_DIR}. Using ML inference...")
+        # --- AI TEAM: PASTE YOUR KNN/RF INFERENCE CODE HERE ---
+        # recommendations = my_knn_model.predict(user_data)
+        recommendations.append("[ML Output] AI Recommender is running...")
+        return recommendations
+    
+    logger.info("ML Recommender models not found. Falling back to SQL rule-based recommender.")
+    
     seven_days_ago = datetime.now(timezone.utc) - timedelta(days=7)
 
     # 1. Sleep Analysis
