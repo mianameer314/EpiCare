@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { authApi } from '../../../api/auth';
@@ -18,7 +18,7 @@ export function LoginForm() {
   const [globalSuccess, setGlobalSuccess] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof FormState, string>>>({});
   
-  const [forgotPasswordStep, setForgotPasswordStep] = useState<'none' | 'email' | 'reset'>('none');
+  const [forgotPasswordStep, setForgotPasswordStep] = useState<'none' | 'email' | 'otp' | 'reset'>('none');
 
   const [formData, setFormData] = useState<FormState>({
     email: '',
@@ -27,6 +27,17 @@ export function LoginForm() {
     new_password: '',
     confirm_password: '',
   });
+
+  const [otpArray, setOtpArray] = useState<string[]>(Array(6).fill(''));
+  const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const [otpError, setOtpError] = useState(false);
+  const [otpSuccess, setOtpSuccess] = useState(false);
+
+  useEffect(() => {
+    if (forgotPasswordStep === 'otp' && otpInputRefs.current[0]) {
+      otpInputRefs.current[0].focus();
+    }
+  }, [forgotPasswordStep]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const field = e.target.id as keyof FormState;
@@ -75,7 +86,7 @@ export function LoginForm() {
     try {
       await authApi.forgotPassword({ email: formData.email });
       setGlobalSuccess('OTP sent successfully to your email address.');
-      setForgotPasswordStep('reset');
+      setForgotPasswordStep('otp');
     } catch (err: any) {
       setGlobalError(err.message || 'Failed to send OTP.');
     } finally {
@@ -83,10 +94,54 @@ export function LoginForm() {
     }
   };
 
+  const handleOtpChange = async (index: number, value: string) => {
+    if (!/^[0-9]*$/.test(value)) return;
+    
+    setOtpError(false);
+    const newOtp = [...otpArray];
+    newOtp[index] = value;
+    setOtpArray(newOtp);
+
+    if (value && index < 5) {
+      otpInputRefs.current[index + 1]?.focus();
+    }
+
+    if (newOtp.every(d => d !== '')) {
+      const otpCode = newOtp.join('');
+      setIsLoading(true);
+      try {
+        await authApi.verifyResetOtp({ email: formData.email, otp: otpCode });
+        setOtpSuccess(true);
+        setGlobalSuccess('OTP Verified!');
+        setGlobalError('');
+        setTimeout(() => {
+          setForgotPasswordStep('reset');
+          setFormData(prev => ({ ...prev, otp: otpCode }));
+          setOtpSuccess(false);
+          setOtpArray(Array(6).fill(''));
+        }, 800);
+      } catch (err: any) {
+        setOtpError(true);
+        setGlobalError('Invalid OTP. Please try again.');
+        setTimeout(() => {
+          setOtpArray(Array(6).fill(''));
+          setOtpError(false);
+          otpInputRefs.current[0]?.focus();
+        }, 1000);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  };
+
+  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent) => {
+    if (e.key === 'Backspace' && !otpArray[index] && index > 0) {
+      otpInputRefs.current[index - 1]?.focus();
+    }
+  };
+
   const handleResetSubmit = async () => {
     const errors: Partial<Record<keyof FormState, string>> = {};
-    if (!formData.otp.trim()) errors.otp = "OTP is required";
-    else if (formData.otp.length !== 6) errors.otp = "OTP must be 6 digits";
     
     if (!formData.new_password) errors.new_password = "New password is required";
     else if (formData.new_password.length < 8) errors.new_password = "Password must be at least 8 characters";
@@ -111,7 +166,7 @@ export function LoginForm() {
       setForgotPasswordStep('none');
       setFormData(prev => ({ ...prev, password: '', otp: '', new_password: '', confirm_password: '' }));
     } catch (err: any) {
-      setGlobalError(err.message || 'Failed to reset password. Check OTP.');
+      setGlobalError(err.message || 'Failed to reset password.');
     } finally {
       setIsLoading(false);
     }
@@ -141,7 +196,17 @@ export function LoginForm() {
             <span className="brand-care">Care</span>
           </span>
         </div>
-        <h2>{forgotPasswordStep === 'none' ? 'Welcome back' : 'Reset Password'}</h2>
+        <h2>
+          {forgotPasswordStep === 'none' && 'Welcome back'}
+          {forgotPasswordStep === 'email' && 'Forgot Password'}
+          {forgotPasswordStep === 'otp' && 'OTP Verification'}
+          {forgotPasswordStep === 'reset' && 'Create New Password'}
+        </h2>
+        {forgotPasswordStep === 'otp' && (
+          <p style={{ fontSize: '0.9rem', color: 'var(--color-text-light)', marginTop: '8px' }}>
+            Enter the 6-digit code sent to<br/><strong>{formData.email}</strong>
+          </p>
+        )}
       </div>
 
       {globalError && (
@@ -150,24 +215,26 @@ export function LoginForm() {
         </div>
       )}
       
-      {globalSuccess && (
+      {globalSuccess && forgotPasswordStep !== 'otp' && (
         <div className="auth-success-banner" role="alert" style={{ background: 'rgba(46, 204, 113, 0.1)', color: '#27ae60', padding: '12px', borderRadius: '8px', marginBottom: '16px', border: '1px solid rgba(46, 204, 113, 0.3)', fontSize: '0.9rem' }}>
           {globalSuccess}
         </div>
       )}
 
-      <Input
-        id="email"
-        type="email"
-        label="Email address"
-        placeholder="Enter your email address"
-        autoComplete="email"
-        required
-        value={formData.email}
-        onChange={handleChange}
-        error={fieldErrors.email}
-        disabled={forgotPasswordStep === 'reset'}
-      />
+      {forgotPasswordStep !== 'otp' && (
+        <Input
+          id="email"
+          type="email"
+          label="Email address"
+          placeholder="Enter your email address"
+          autoComplete="email"
+          required
+          value={formData.email}
+          onChange={handleChange}
+          error={fieldErrors.email}
+          disabled={forgotPasswordStep === 'reset'}
+        />
+      )}
 
       {forgotPasswordStep === 'none' && (
         <div style={{ position: 'relative' }}>
@@ -206,19 +273,44 @@ export function LoginForm() {
         </div>
       )}
 
+      {forgotPasswordStep === 'otp' && (
+        <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', margin: '24px 0' }}>
+          {otpArray.map((digit, index) => (
+            <input
+              key={index}
+              ref={(el) => (otpInputRefs.current[index] = el)}
+              type="text"
+              maxLength={1}
+              value={digit}
+              onChange={(e) => handleOtpChange(index, e.target.value)}
+              onKeyDown={(e) => handleOtpKeyDown(index, e)}
+              style={{
+                width: '45px',
+                height: '55px',
+                textAlign: 'center',
+                fontSize: '1.5rem',
+                fontWeight: 'bold',
+                borderRadius: '8px',
+                border: `2px solid ${
+                  otpError ? '#e74c3c' : 
+                  otpSuccess ? '#2ecc71' : 
+                  digit ? 'var(--color-primary)' : 
+                  '#e2e8f0'
+                }`,
+                background: otpError ? 'rgba(231, 76, 60, 0.05)' : otpSuccess ? 'rgba(46, 204, 113, 0.05)' : '#f8fafc',
+                color: otpError ? '#c0392b' : otpSuccess ? '#27ae60' : 'var(--color-text-main)',
+                transition: 'all 0.2s',
+                outline: 'none',
+                boxShadow: digit && !otpError && !otpSuccess ? '0 0 0 3px rgba(45, 90, 63, 0.1)' : 'none'
+              }}
+              disabled={isLoading || otpSuccess}
+            />
+          ))}
+        </div>
+      )}
+
       {forgotPasswordStep === 'reset' && (
         <>
-          <Input
-            id="otp"
-            type="text"
-            label="6-Digit OTP"
-            placeholder="Enter OTP sent to email"
-            required
-            value={formData.otp}
-            onChange={handleChange}
-            error={fieldErrors.otp}
-            maxLength={6}
-          />
           <Input
             id="new_password"
             type="password"
@@ -243,11 +335,13 @@ export function LoginForm() {
       )}
 
       <div className="auth-form-actions" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        <Button type="submit" className="w-full" isLoading={isLoading}>
-          {forgotPasswordStep === 'none' && 'Sign In'}
-          {forgotPasswordStep === 'email' && 'Send OTP'}
-          {forgotPasswordStep === 'reset' && 'Reset Password'}
-        </Button>
+        {forgotPasswordStep !== 'otp' && (
+          <Button type="submit" className="w-full" isLoading={isLoading}>
+            {forgotPasswordStep === 'none' && 'Sign In'}
+            {forgotPasswordStep === 'email' && 'Send OTP'}
+            {forgotPasswordStep === 'reset' && 'Reset Password'}
+          </Button>
+        )}
         
         {forgotPasswordStep !== 'none' && (
           <button 
@@ -256,6 +350,7 @@ export function LoginForm() {
               setForgotPasswordStep('none');
               setGlobalError('');
               setGlobalSuccess('');
+              setOtpArray(Array(6).fill(''));
             }}
             style={{ background: 'none', border: 'none', color: 'var(--color-text-main)', cursor: 'pointer', fontSize: '0.9rem' }}
           >

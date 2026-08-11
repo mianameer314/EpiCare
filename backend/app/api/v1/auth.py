@@ -16,6 +16,7 @@ from app.schemas.user import (
     VerifyOTPRequest,
     ResendOTPRequest,
     ForgotPasswordRequest,
+    VerifyResetOTPRequest,
     ResetPasswordRequest,
 )
 from app.services import user as user_service
@@ -159,6 +160,29 @@ async def forgot_password(data: ForgotPasswordRequest, db: DbDep, background_tas
         await user_service.generate_and_send_otp(db, user, background_tasks)
         
     return {"message": "OTP sent successfully to your email address."}
+
+
+@router.post(
+    "/verify-reset-otp",
+    status_code=status.HTTP_200_OK,
+    summary="Verify reset OTP",
+    description="Check if the OTP is valid without resetting the password.",
+    responses={
+        400: {"description": "Bad Request - Invalid or expired OTP"},
+        404: {"description": "Not Found - User not found"},
+    },
+)
+async def verify_reset_otp(data: VerifyResetOTPRequest, db: DbDep):
+    """Verify OTP before moving to password reset screen."""
+    user = await user_service.get_user_by_email(db, data.email)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        
+    is_valid = await user_service.check_reset_otp(db, user, data.otp)
+    if not is_valid:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired OTP")
+        
+    return {"message": "OTP is valid"}
 
 
 @router.post(

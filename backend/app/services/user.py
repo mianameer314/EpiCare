@@ -147,6 +147,22 @@ async def verify_user_otp(db: AsyncSession, user: User, otp: str) -> bool:
     return True
 
 
+async def check_reset_otp(db: AsyncSession, user: User, otp: str) -> bool:
+    """Verify the OTP is valid without consuming it."""
+    from app.core.security import verify_password
+    
+    if not user.otp_secret_hash or not user.otp_expires_at:
+        return False
+        
+    if datetime.now(timezone.utc) > user.otp_expires_at:
+        return False
+        
+    if not verify_password(otp, user.otp_secret_hash):
+        return False
+        
+    return True
+
+
 async def reset_user_password(db: AsyncSession, user: User, otp: str, new_password: str) -> bool:
     """Verify OTP and update the user's password."""
     from app.core.security import verify_password

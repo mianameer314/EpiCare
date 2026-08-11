@@ -17,6 +17,9 @@ export const authApi = {
   forgotPassword: (data: { email: string }) =>
     apiClient.post<{ message: string }>('/auth/forgot-password', data),
 
+  verifyResetOtp: (data: { email: string; otp: string }) =>
+    apiClient.post<{ message: string }>('/auth/verify-reset-otp', data),
+
   resetPassword: (data: { email: string; otp: string; new_password: string }) =>
     apiClient.post<{ message: string }>('/auth/reset-password', data),
 };
