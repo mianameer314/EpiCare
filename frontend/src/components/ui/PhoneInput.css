@@ -1,0 +1,66 @@
+/* Container styling to match our Input.css 3D tunnel and glass effects */
+.custom-phone-container .PhoneInput {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 44px;
+  background-color: rgba(255, 255, 255, 0.8);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+  box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.5), 0 2px 5px rgba(0, 0, 0, 0.05);
+  overflow: hidden; /* Ensure focus rings don't leak out */
+}
+
+.custom-phone-container .PhoneInput:hover {
+  border-color: rgba(45, 90, 63, 0.4);
+}
+
+.custom-phone-container .PhoneInput:focus-within {
+  outline: none;
+  border-color: var(--color-primary);
+  /* 3D Tunnel focus effect */
+  box-shadow: inset 0 4px 8px rgba(0,0,0,0.1), 0 0 0 4px rgba(45, 90, 63, 0.15);
+  background-color: #fff;
+  transform: scale(0.995);
+}
+
+.custom-phone-container.has-error .PhoneInput {
+  border-color: var(--color-error);
+}
+
+/* Internal input field */
+.custom-phone-container .PhoneInputInput {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: none;
+  background: transparent;
+  padding: 0 var(--space-3) 0 var(--space-2);
+  font-size: var(--text-base);
+  color: var(--color-text-main);
+  font-family: var(--font-family-base);
+}
+
+.custom-phone-container .PhoneInputInput:focus {
+  outline: none;
+}
+
+/* Country selector flag area */
+.custom-phone-container .PhoneInputCountry {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-left: var(--space-3);
+  padding-right: var(--space-2);
+  margin-right: 0;
+  border-right: 1px solid rgba(0,0,0,0.05);
+  height: 100%;
+}
+
+.custom-phone-container .PhoneInputCountryIcon {
+  width: 24px;
+  height: 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  border: 1px solid rgba(0,0,0,0.1);
+}

@@ -1,0 +1,90 @@
+/* 
+  EpiCare Global Design Tokens 
+  ============================
+  Defines the core variables for the visual system based on AGENTS.md invariants:
+  - Earthy greens, warm beige, soft sand, medical blues, white.
+  - Premium glass surfaces, backdrop blurs, soft gradients.
+  - Accessible typography and spacing.
+*/
+
+:root {
+  /* Brand Colors - Earthy & Medical */
+  --color-primary: #2d5a3f; /* Deep Earthy Green */
+  --color-primary-light: #447a59; 
+  --color-primary-dark: #1e402c;
+  
+  --color-secondary: #0077b6; /* Medical Blue */
+  --color-secondary-light: #0096c7;
+  --color-secondary-dark: #03045e;
+
+  /* Neutrals */
+  --color-background: #f7f5f0; /* Warm Beige / Soft Sand */
+  --color-surface: #ffffff; /* Clean White for cards */
+  --color-surface-hover: #f0eee9;
+  
+  --color-text-main: #1a1e1b;
+  --color-text-muted: #5e6b63;
+  --color-text-inverse: #ffffff;
+
+  /* Status Colors */
+  --color-success: #2b9348;
+  --color-error: #d90429;
+  --color-warning: #e9c46a;
+  --color-info: #48cae4;
+
+  /* Typography */
+  --font-family-base: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-family-display: 'Outfit', 'Inter', system-ui, sans-serif;
+  
+  /* Scale */
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 1.875rem;
+  --text-4xl: 2.25rem;
+
+  /* Spacing */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-24: 6rem;
+
+  /* Border Radius */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-full: 9999px;
+
+  /* Glassmorphism & Depth */
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.5);
+  --glass-blur: 12px;
+  
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-glass: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+
+  /* Motion & Transitions */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-spring: 500ms cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* Reduced Motion Override */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --transition-fast: 0ms;
+    --transition-normal: 0ms;
+    --transition-spring: 0ms;
+  }
+}
