@@ -102,6 +102,17 @@ async function request<T>(endpoint: string, options: RequestInit = {}, retryCoun
     headers.set('Authorization', `Bearer ${token}`);
   }
 
+  const method = (options.method || 'GET').toUpperCase();
+  const isMutating = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method);
+
+  // Project-wide automatic Idempotency Key for all mutating operations
+  if (isMutating && !headers.has('X-Idempotency-Key')) {
+    const idemKey = typeof crypto !== 'undefined' && crypto.randomUUID
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+    headers.set('X-Idempotency-Key', idemKey);
+  }
+
   let response: Response;
   try {
     response = await fetch(`${API_BASE_URL}${endpoint}`, {

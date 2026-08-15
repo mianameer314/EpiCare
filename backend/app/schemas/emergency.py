@@ -47,6 +47,7 @@ class SosTriggerRequest(StrictModel):
     longitude: float | None = None
     location_available: bool = False
     patient_user_id: int | None = None
+    idempotency_key: str | None = None
 
 
 class SosDeliveryOut(StrictModel):

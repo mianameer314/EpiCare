@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Siren, Phone, X, Check, Loader2 } from 'lucide-react';
 import { emergencyApi } from '../../../api/emergency';
@@ -7,7 +7,7 @@ import './SOSButton.css';
 
 /* ────────────────────────────────────────────────────
    SOS Button — High-visibility emergency trigger
-   with confirmation dialog and backend wiring.
+   with confirmation dialog, backend wiring and idempotency.
    ──────────────────────────────────────────────────── */
 
 type SOSState = 'idle' | 'confirming' | 'loading' | 'success' | 'error';
@@ -15,29 +15,37 @@ type SOSState = 'idle' | 'confirming' | 'loading' | 'success' | 'error';
 export function SOSButton() {
   const [state, setState] = useState<SOSState>('idle');
   const [errorMessage, setErrorMessage] = useState('');
+  const isSubmittingRef = useRef(false);
 
   const handleTrigger = () => {
     setState('confirming');
   };
 
   const handleConfirm = async () => {
+    if (isSubmittingRef.current || state === 'loading') return;
+    isSubmittingRef.current = true;
     setState('loading');
     setErrorMessage('');
 
-    const geo = await getAccurateLocation();
-
     try {
+      const geo = await getAccurateLocation();
       await emergencyApi.triggerSOS({
         latitude: geo.latitude,
         longitude: geo.longitude,
         location_available: geo.location_available,
       });
       setState('success');
-      setTimeout(() => setState('idle'), 3000);
+      setTimeout(() => {
+        setState('idle');
+        isSubmittingRef.current = false;
+      }, 3000);
     } catch (err: any) {
       setErrorMessage(err.message || 'Failed to send SOS. Try calling emergency services directly.');
       setState('error');
-      setTimeout(() => setState('idle'), 4000);
+      setTimeout(() => {
+        setState('idle');
+        isSubmittingRef.current = false;
+      }, 4000);
     }
   };
 

@@ -12,6 +12,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.openapi.utils import get_openapi
 
 from app.api.v1 import (
     admin,
@@ -32,6 +33,7 @@ from app.core.config import settings
 from app.core.exceptions import register_exception_handlers
 from app.core.logging import configure_logging
 from app.db.session import engine
+from app.middleware.idempotency import IdempotencyMiddleware
 from app.middleware.request_context import RequestContextMiddleware
 from app.middleware.security_headers import SecurityHeadersMiddleware
 from app.middleware.twilio import TwilioSignatureMiddleware
@@ -206,8 +208,9 @@ This API adheres strictly to REST principles, delivering standardized responses 
     openapi_tags=openapi_tags,
 )
 
-# ---------- Middleware (order matters: context -> security -> twilio) ----------
+# ---------- Middleware (order matters: context -> idempotency -> security -> twilio) ----------
 app.add_middleware(RequestContextMiddleware)
+app.add_middleware(IdempotencyMiddleware)
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(TwilioSignatureMiddleware)
 app.add_middleware(
@@ -243,3 +246,41 @@ app.include_router(seizures.router, prefix=api_prefix)
 async def root():
     """Minimal root probe (Docker healthcheck target)."""
     return {"app": settings.APP_NAME, "docs": "/docs"}
+
+
+def custom_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+    openapi_schema = get_openapi(
+        title=settings.APP_NAME,
+        version="0.1.0",
+        description=app.description,
+        routes=app.routes,
+        tags=openapi_tags,
+    )
+
+    # In Swagger UI, document X-Idempotency-Key for all mutating endpoints
+    idempotency_param = {
+        "name": "X-Idempotency-Key",
+        "in": "header",
+        "required": False,
+        "schema": {
+            "type": "string",
+            "format": "uuid",
+            "example": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
+        },
+        "description": "Optional unique UUID idempotency key to prevent accidental duplicate actions and double-clicks.",
+    }
+
+    for path, methods in openapi_schema.get("paths", {}).items():
+        for method, operation in methods.items():
+            if method.lower() in ("post", "put", "patch", "delete") and not path.startswith("/system"):
+                params = operation.setdefault("parameters", [])
+                if not any(p.get("name") == "X-Idempotency-Key" for p in params):
+                    params.append(idempotency_param)
+
+    app.openapi_schema = openapi_schema
+    return app.openapi_schema
+
+
+app.openapi = custom_openapi

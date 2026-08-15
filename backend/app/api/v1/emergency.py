@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, status
+from datetime import date, datetime, time, timedelta, timezone
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Header, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import List
@@ -268,13 +269,58 @@ async def trigger_sos(
     background_tasks: BackgroundTasks,
     db: DbDep,
     target_user_id: TargetPatientIdForWrite,
+    x_idempotency_key: str | None = Header(None, alias="X-Idempotency-Key"),
 ):
+    now = datetime.now(timezone.utc)
+    cooldown_cutoff = now - timedelta(seconds=15)
+    idem_key = request.idempotency_key or x_idempotency_key
+
+    # 1. Idempotency Key check: if an event was created with this key, return it idempotently
+    if idem_key:
+        idem_query = await db.execute(
+            select(SosEvent).where(
+                SosEvent.user_id == target_user_id,
+                SosEvent.payload["idempotency_key"].astext == idem_key,
+            )
+        )
+        existing_idem = idem_query.scalar_one_or_none()
+        if existing_idem:
+            return SosEventCreateResponse(
+                event_id=existing_idem.id,
+                status=existing_idem.status,
+                message="SOS alert already active and being dispatched (idempotent duplicate prevented).",
+            )
+
+    # 2. Accidental double-click debounce check (within 15-second window)
+    recent_query = await db.execute(
+        select(SosEvent)
+        .where(
+            SosEvent.user_id == target_user_id,
+            SosEvent.triggered_at >= cooldown_cutoff,
+        )
+        .order_by(SosEvent.triggered_at.desc())
+        .limit(1)
+    )
+    recent_event = recent_query.scalar_one_or_none()
+    if recent_event:
+        return SosEventCreateResponse(
+            event_id=recent_event.id,
+            status=recent_event.status,
+            message="Active SOS alert already in progress (double-click prevented).",
+        )
+
+    # 3. Create new SOS Event with idempotency metadata
+    payload_data = {}
+    if idem_key:
+        payload_data["idempotency_key"] = idem_key
+
     event = SosEvent(
         user_id=target_user_id,
         latitude=request.latitude,
         longitude=request.longitude,
         location_available=bool(request.latitude is not None and request.longitude is not None),
         status="SENDING",
+        payload=payload_data if payload_data else None,
     )
     db.add(event)
     await db.commit()

@@ -51,6 +51,7 @@ export function EmergencyPage() {
   });
 
   const handleTriggerSOS = () => {
+    if (sosMutation.isPending || isLocating) return;
     setTriggerError('');
     setIsLocating(true);
     sosMutation.mutate(undefined, {

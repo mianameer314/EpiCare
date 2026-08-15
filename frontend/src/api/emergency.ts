@@ -36,6 +36,7 @@ export interface SosTriggerRequest {
   longitude?: number | null;
   location_available?: boolean;
   patient_user_id?: number;
+  idempotency_key?: string;
 }
 
 export interface SosEventCreateResponse {
@@ -48,15 +49,14 @@ export interface SosDelivery {
   contact_name: string;
   phone_number: string;
   delivery_status: string;
-  error_message: string | null;
+  error_message?: string;
 }
 
 export interface SosEvent {
   id: number;
-  user_id: number;
   triggered_at: string;
-  latitude: number | null;
-  longitude: number | null;
+  latitude?: number | null;
+  longitude?: number | null;
   location_available: boolean;
   status: string;
   deliveries: SosDelivery[];
@@ -82,8 +82,16 @@ export const emergencyApi = {
   deleteContact: (id: number) =>
     apiClient.delete<void>(`/emergency/contacts/${id}`),
 
-  triggerSOS: (data?: SosTriggerRequest) =>
-    apiClient.post<SosEventCreateResponse>('/emergency/sos/trigger', data || { location_available: false }),
+  triggerSOS: (data?: SosTriggerRequest) => {
+    const payload = data || { location_available: false };
+    const idemKey = payload.idempotency_key || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : undefined);
+    return apiClient.post<SosEventCreateResponse>('/emergency/sos/trigger', {
+      ...payload,
+      idempotency_key: idemKey,
+    }, {
+      headers: idemKey ? { 'X-Idempotency-Key': idemKey } : undefined,
+    });
+  },
 
   getSOSEvents: (params?: { skip?: number; limit?: number; status?: string; patient_user_id?: number }) => {
     const searchParams = new URLSearchParams();
