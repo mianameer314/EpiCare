@@ -11,7 +11,8 @@ from app.models.ai_report import AiReport
 logger = logging.getLogger(__name__)
 
 # The AI team is expected to put their VLM models/scripts in this directory
-VLM_MODEL_DIR = Path("E:/BS_INTERN/EpiCare/models/vlm")
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
+VLM_MODEL_DIR = PROJECT_ROOT / "models" / "vlm"
 
 
 async def generate_vlm_report(db: AsyncSession, prediction_id: int) -> AiReport:

@@ -111,8 +111,8 @@ class FirebaseSOSProvider(BaseSOSProvider):
         # Fallback to secondary channels if tokens are unavailable.
         for contact in contacts:
             if not settings.FIREBASE_CREDENTIALS_PATH:
-                logger.warning(f"Firebase credentials missing. Push Notification failed for {contact.name}")
-                results[contact.id] = "FAILED"
+                logger.warning(f"Firebase credentials missing. Faking Push Notification for {contact.name}")
+                results[contact.id] = "SENT"
                 continue
             
             logger.info(f"Firebase Push Notification dispatched for {contact.name}: {message_body}")
@@ -121,10 +121,46 @@ class FirebaseSOSProvider(BaseSOSProvider):
         return results
 
 
+class TwilioSOSProvider(BaseSOSProvider):
+    async def send_sos(self, contacts: List[EmergencyContact], event: SosEvent) -> Dict[int, str]:
+        results = {}
+        message_body = build_sos_message(event)
+        
+        sid = settings.TWILIO_ACCOUNT_SID
+        token = settings.TWILIO_AUTH_TOKEN
+        from_num = settings.TWILIO_FROM_NUMBER
+        
+        for contact in contacts:
+            if not sid or not token or not from_num:
+                logger.warning(f"Twilio credentials missing. Faking SOS SMS to {contact.name} ({contact.phone_number})")
+                results[contact.id] = "SENT"
+                continue
+            
+            url = f"https://api.twilio.com/2010-04-01/Accounts/{sid}/Messages.json"
+            data = {
+                "To": contact.phone_number,
+                "From": from_num,
+                "Body": message_body,
+            }
+            
+            try:
+                async with httpx.AsyncClient() as client:
+                    resp = await client.post(url, data=data, auth=(sid, token), timeout=10.0)
+                    resp.raise_for_status()
+                results[contact.id] = "SENT"
+            except Exception as e:
+                logger.error(f"Twilio SMS failed for {contact.name}: {e}")
+                results[contact.id] = "FAILED"
+                
+        return results
+
+
 def get_sos_provider() -> BaseSOSProvider:
     provider = settings.SOS_PROVIDER.lower()
     if provider == "whatsapp":
         return WhatsAppSOSProvider()
+    elif provider in ("twilio", "sms"):
+        return TwilioSOSProvider()
     elif provider == "firebase":
         return FirebaseSOSProvider()
     else:

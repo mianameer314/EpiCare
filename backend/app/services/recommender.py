@@ -14,7 +14,8 @@ import logging
 logger = logging.getLogger(__name__)
 
 # The AI team is expected to put their KNN/RF models here
-RECOMMENDER_MODEL_DIR = Path("E:/BS_INTERN/EpiCare/training/recommender")
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
+RECOMMENDER_MODEL_DIR = PROJECT_ROOT / "training" / "recommender"
 
 
 async def get_daily_recommendations(user_id: int, db: AsyncSession) -> list[str]:

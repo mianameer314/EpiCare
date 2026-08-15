@@ -12,7 +12,8 @@ from app.models.user import User
 logger = logging.getLogger(__name__)
 
 # The AI team is expected to put their RAG / LangChain scripts in this directory
-RAG_SCRIPT_DIR = Path("E:/BS_INTERN/EpiCare/rag/scripts")
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
+RAG_SCRIPT_DIR = PROJECT_ROOT / "rag" / "scripts"
 
 
 async def process_chat_message(db: AsyncSession, user_id: int, message: str) -> str:
