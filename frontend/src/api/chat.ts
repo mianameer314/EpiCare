@@ -5,6 +5,16 @@ import { apiClient } from './client';
    Matches FastAPI endpoints in app/api/v1/chat.py
    ──────────────────────────────────────────────────── */
 
+export interface ChatSessionOut {
+  id: number;
+  user_id: number;
+  title: string;
+  message_count: number;
+  last_message: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface ChatMessageOut {
   id: number;
   session_id: number;
@@ -15,9 +25,26 @@ export interface ChatMessageOut {
 }
 
 export const chatApi = {
+  // Session Management
+  getSessions: () =>
+    apiClient.get<ChatSessionOut[]>('/chat/sessions'),
+
+  createSession: (title = 'New Clinical Discussion') =>
+    apiClient.post<ChatSessionOut>('/chat/sessions', { title }),
+
+  getSessionMessages: (sessionId: number) =>
+    apiClient.get<ChatMessageOut[]>(`/chat/sessions/${sessionId}/messages`),
+
+  deleteSession: (sessionId: number) =>
+    apiClient.delete<void>(`/chat/sessions/${sessionId}`),
+
+  // Messaging
   getHistory: (limit = 30) =>
     apiClient.get<ChatMessageOut[]>(`/chat/history?limit=${limit}`),
 
-  sendMessage: (content: string) =>
-    apiClient.post<ChatMessageOut>('/chat/message', { content }),
+  sendMessage: (content: string, sessionId?: number) =>
+    apiClient.post<ChatMessageOut>('/chat/message', {
+      content,
+      session_id: sessionId,
+    }),
 };

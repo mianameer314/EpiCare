@@ -1,4 +1,4 @@
-﻿"""
+"""
 Chat and recommendation schemas.
 """
 from pydantic import Field
@@ -22,6 +22,8 @@ class ChatSessionOut(StrictModel):
     id: int
     user_id: int
     title: str
+    message_count: int = 0
+    last_message: str | None = None
     created_at: StrictDatetime
     updated_at: StrictDatetime
 
@@ -32,6 +34,7 @@ class ChatMessageCreate(StrictModel):
     """Request body for sending a chat message."""
 
     content: str = Field(..., min_length=1, max_length=4000)
+    session_id: int | None = None
 
 
 class ChatSource(StrictModel):

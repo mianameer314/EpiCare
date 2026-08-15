@@ -1,22 +1,179 @@
 from typing import List
-from fastapi import APIRouter, Depends, Query
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, Query, HTTPException, status
+from sqlalchemy import select, func, desc
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.api.deps import CurrentUser, DbDep
 from app.models.chat import ChatMessage, ChatSession
-from app.schemas.chat import ChatMessageCreate, ChatMessageOut
+from app.schemas.chat import (
+    ChatMessageCreate,
+    ChatMessageOut,
+    ChatSessionCreate,
+    ChatSessionOut,
+)
 from app.services.chat import process_chat_message
 
 router = APIRouter(prefix="/chat")
 
+
+# ------------------------------------------------------------------
+# Chat Sessions
+# ------------------------------------------------------------------
+
+@router.get(
+    "/sessions",
+    tags=['🤖 AI Chatbot'],
+    response_model=List[ChatSessionOut],
+    summary="List Chat Sessions",
+    description="Retrieve all chat sessions for the authenticated user with message counts and previews.",
+)
+async def list_chat_sessions(
+    current_user: CurrentUser,
+    db: DbDep,
+):
+    # Fetch sessions for current user
+    result = await db.execute(
+        select(ChatSession)
+        .where(ChatSession.user_id == current_user.id)
+        .order_by(ChatSession.updated_at.desc())
+    )
+    sessions = result.scalars().all()
+
+    session_list: list[ChatSessionOut] = []
+    for s in sessions:
+        # Get count and last message
+        count_query = await db.execute(
+            select(func.count(ChatMessage.id))
+            .where(ChatMessage.session_id == s.id)
+        )
+        msg_count = count_query.scalar() or 0
+
+        last_msg_query = await db.execute(
+            select(ChatMessage.content)
+            .where(ChatMessage.session_id == s.id)
+            .order_by(ChatMessage.created_at.desc())
+            .limit(1)
+        )
+        last_msg = last_msg_query.scalar_one_or_none()
+
+        session_list.append(
+            ChatSessionOut(
+                id=s.id,
+                user_id=s.user_id,
+                title=s.title,
+                message_count=msg_count,
+                last_message=last_msg,
+                created_at=s.created_at,
+                updated_at=s.updated_at,
+            )
+        )
+
+    return session_list
+
+
+@router.post(
+    "/sessions",
+    tags=['🤖 AI Chatbot'],
+    response_model=ChatSessionOut,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create New Chat Session",
+    description="Initializes a new chat session for the user.",
+)
+async def create_chat_session(
+    payload: ChatSessionCreate,
+    current_user: CurrentUser,
+    db: DbDep,
+):
+    new_session = ChatSession(
+        user_id=current_user.id,
+        title=payload.title or "New Clinical Discussion",
+    )
+    db.add(new_session)
+    await db.commit()
+    await db.refresh(new_session)
+
+    return ChatSessionOut(
+        id=new_session.id,
+        user_id=new_session.user_id,
+        title=new_session.title,
+        message_count=0,
+        last_message=None,
+        created_at=new_session.created_at,
+        updated_at=new_session.updated_at,
+    )
+
+
+@router.get(
+    "/sessions/{session_id}/messages",
+    tags=['🤖 AI Chatbot'],
+    response_model=List[ChatMessageOut],
+    summary="Get Session Messages",
+    description="Retrieves all chat messages for a specific session.",
+)
+async def get_session_messages(
+    session_id: int,
+    current_user: CurrentUser,
+    db: DbDep,
+):
+    # Verify session ownership
+    session_res = await db.execute(
+        select(ChatSession)
+        .where(ChatSession.id == session_id, ChatSession.user_id == current_user.id)
+    )
+    session = session_res.scalar_one_or_none()
+    if not session:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Chat session not found.",
+        )
+
+    result = await db.execute(
+        select(ChatMessage)
+        .where(ChatMessage.session_id == session_id)
+        .order_by(ChatMessage.created_at.asc())
+    )
+    return result.scalars().all()
+
+
+@router.delete(
+    "/sessions/{session_id}",
+    tags=['🤖 AI Chatbot'],
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete Chat Session",
+    description="Deletes a chat session and all associated messages.",
+)
+async def delete_chat_session(
+    session_id: int,
+    current_user: CurrentUser,
+    db: DbDep,
+):
+    result = await db.execute(
+        select(ChatSession)
+        .where(ChatSession.id == session_id, ChatSession.user_id == current_user.id)
+    )
+    session = result.scalar_one_or_none()
+    if not session:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Chat session not found.",
+        )
+
+    await db.delete(session)
+    await db.commit()
+    return None
+
+
+# ------------------------------------------------------------------
+# Chat Messaging & History
+# ------------------------------------------------------------------
 
 @router.get(
     "/history",
     tags=['🤖 AI Chatbot'],
     response_model=List[ChatMessageOut],
     summary="Get Chat History",
-    description="Retrieves the authenticated user's recent chat messages and AI answers from PostgreSQL.",
+    description="Retrieves the authenticated user's recent chat messages and AI answers across all sessions.",
 )
 async def get_chat_history(
     current_user: CurrentUser,
@@ -45,19 +202,35 @@ async def send_chat_message(
     current_user: CurrentUser,
     db: DbDep,
 ):
-    # Get or create active session
-    result = await db.execute(
-        select(ChatSession)
-        .where(ChatSession.user_id == current_user.id)
-        .order_by(ChatSession.created_at.desc())
-        .limit(1)
-    )
-    chat_session = result.scalar_one_or_none()
+    chat_session = None
+
+    # 1. If session_id is explicitly passed, verify ownership and use it
+    if payload.session_id and payload.session_id > 0:
+        res = await db.execute(
+            select(ChatSession)
+            .where(ChatSession.id == payload.session_id, ChatSession.user_id == current_user.id)
+        )
+        chat_session = res.scalar_one_or_none()
+
+    # 2. If no session requested (new conversation mode) or session not found, create a BRAND NEW session!
     if not chat_session:
-        chat_session = ChatSession(user_id=current_user.id, title="Medical Inquiry")
+        first_title = payload.content[:45].strip()
+        if len(payload.content) > 45:
+            first_title += "..."
+        chat_session = ChatSession(
+            user_id=current_user.id,
+            title=first_title or "Clinical Inquiry",
+        )
         db.add(chat_session)
         await db.commit()
         await db.refresh(chat_session)
+    elif chat_session.title in ["New chat", "New Clinical Discussion", "Medical Inquiry", "Clinical Inquiry"]:
+        # Auto-update title if it was a default placeholder
+        first_title = payload.content[:45].strip()
+        if len(payload.content) > 45:
+            first_title += "..."
+        chat_session.title = first_title
+        await db.commit()
 
     # Save user message
     user_msg = ChatMessage(
@@ -67,9 +240,12 @@ async def send_chat_message(
         content=payload.content,
     )
     db.add(user_msg)
+    
+    # Touch session timestamp so it orders to the top of recent discussions
+    chat_session.updated_at = func.now()
     await db.commit()
 
-    # Generate AI response
+    # Generate AI response from Clinical Knowledge Engine
     ai_text = await process_chat_message(db, current_user.id, payload.content)
 
     ai_msg = ChatMessage(
@@ -83,3 +259,5 @@ async def send_chat_message(
     await db.refresh(ai_msg)
 
     return ai_msg
+
+
