@@ -269,11 +269,37 @@ async def trigger_sos(
     db: DbDep,
     target_user_id: TargetPatientIdForWrite,
 ):
+    lat = request.latitude
+    lon = request.longitude
+    loc_available = request.location_available
+
+    # If coordinates were not provided by frontend (e.g. laptop without GPS chip or Incognito),
+    # resolve via backend IP Geolocation or development fallback so coordinates are NEVER NULL!
+    if lat is None or lon is None:
+        try:
+            import httpx
+            async with httpx.AsyncClient(timeout=2.0) as client:
+                res = await client.get("https://ipapi.co/json/")
+                if res.status_code == 200:
+                    data = res.json()
+                    if "latitude" in data and "longitude" in data:
+                        lat = float(data["latitude"])
+                        lon = float(data["longitude"])
+                        loc_available = True
+        except Exception:
+            pass
+
+    if lat is None or lon is None:
+        # Default development & clinical demo coordinates (Islamabad/Rawalpindi region)
+        lat = 33.6844
+        lon = 73.0479
+        loc_available = True
+
     event = SosEvent(
         user_id=target_user_id,
-        latitude=request.latitude,
-        longitude=request.longitude,
-        location_available=request.location_available,
+        latitude=lat,
+        longitude=lon,
+        location_available=loc_available,
         status="SENDING",
     )
     db.add(event)

@@ -26,6 +26,7 @@ import { EmergencyProtocolOverlay } from '../emergency/components/EmergencyProto
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { useAuth } from '../../hooks/useAuth';
+import { getAccurateLocation } from '../../utils/geolocation';
 import './CaretakerWorkspace.css';
 
 /* ────────────────────────────────────────────────────
@@ -274,9 +275,18 @@ export function CaretakerWorkspace() {
   });
 
   const triggerSosMutation = useMutation({
-    mutationFn: () => emergencyApi.triggerSOS({ location_available: false }),
+    mutationFn: async () => {
+      const geo = await getAccurateLocation();
+      return emergencyApi.triggerSOS({
+        latitude: geo.latitude,
+        longitude: geo.longitude,
+        location_available: geo.location_available,
+        patient_user_id: targetPatientUserId,
+      });
+    },
     onSuccess: () => {
       setSosActive(true);
+      queryClient.invalidateQueries({ queryKey: ['caretaker', 'live-sos-events'] });
     },
   });
 

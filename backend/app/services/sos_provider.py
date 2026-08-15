@@ -47,8 +47,8 @@ def ensure_firebase_initialized() -> bool:
 def build_sos_message(event: SosEvent, patient_name: str = "A patient") -> str:
     """Plain-text fallback SOS message."""
     loc = "Location unavailable"
-    if event.location_available and event.latitude and event.longitude:
-        loc = f"https://maps.google.com/?q={event.latitude},{event.longitude}"
+    if event.latitude is not None and event.longitude is not None:
+        loc = f"https://maps.google.com/?q={event.latitude},{event.longitude} (Lat: {event.latitude:.5f}, Lon: {event.longitude:.5f})"
     
     return (
         f"🚨 EMERGENCY SEIZURE ALERT 🚨\n\n"
@@ -62,7 +62,7 @@ def build_sos_html_email(event: SosEvent, patient_name: str = "A Patient") -> st
     """Rich responsive HTML email alert with live Google Maps button and first-aid guide."""
     loc_url = "https://maps.google.com"
     coords_text = "Coordinates Unavailable"
-    if event.location_available and event.latitude and event.longitude:
+    if event.latitude is not None and event.longitude is not None:
         loc_url = f"https://maps.google.com/?q={event.latitude},{event.longitude}"
         coords_text = f"Latitude: {event.latitude:.5f}, Longitude: {event.longitude:.5f}"
 

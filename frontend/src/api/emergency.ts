@@ -35,6 +35,7 @@ export interface SosTriggerRequest {
   latitude?: number | null;
   longitude?: number | null;
   location_available?: boolean;
+  patient_user_id?: number;
 }
 
 export interface SosEventCreateResponse {

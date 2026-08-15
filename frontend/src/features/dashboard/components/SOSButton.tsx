@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Siren, Phone, X, Check, Loader2 } from 'lucide-react';
 import { emergencyApi } from '../../../api/emergency';
+import { getAccurateLocation } from '../../../utils/geolocation';
 import './SOSButton.css';
 
 /* ────────────────────────────────────────────────────
@@ -23,32 +24,13 @@ export function SOSButton() {
     setState('loading');
     setErrorMessage('');
 
-    let lat: number | null = null;
-    let lng: number | null = null;
-    let locationAvailable = false;
-
-    if (typeof window !== 'undefined' && 'geolocation' in navigator) {
-      try {
-        const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(resolve, reject, {
-            timeout: 6000,
-            enableHighAccuracy: true,
-            maximumAge: 10000,
-          });
-        });
-        lat = pos.coords.latitude;
-        lng = pos.coords.longitude;
-        locationAvailable = true;
-      } catch (e) {
-        console.warn('[SOS] Geolocation capture failed or permission denied:', e);
-      }
-    }
+    const geo = await getAccurateLocation();
 
     try {
       await emergencyApi.triggerSOS({
-        latitude: lat,
-        longitude: lng,
-        location_available: locationAvailable,
+        latitude: geo.latitude,
+        longitude: geo.longitude,
+        location_available: geo.location_available,
       });
       setState('success');
       setTimeout(() => setState('idle'), 3000);

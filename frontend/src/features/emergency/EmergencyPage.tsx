@@ -6,6 +6,7 @@ import { emergencyApi, type SosEventCreateResponse } from '../../api/emergency';
 import { EmergencyContactsManager } from './components/EmergencyContactsManager';
 import { SeizureFirstAidGuide } from './components/SeizureFirstAidGuide';
 import { EmergencyProtocolOverlay } from './components/EmergencyProtocolOverlay';
+import { getAccurateLocation } from '../../utils/geolocation';
 import './EmergencyPage.css';
 
 /* ────────────────────────────────────────────────────
@@ -31,34 +32,13 @@ export function EmergencyPage() {
 
   const sosMutation = useMutation({
     mutationFn: async () => {
-      let lat: number | null = null;
-      let lng: number | null = null;
-      let locationAvailable = false;
-
-      // Try browser geolocation
-      if (navigator.geolocation) {
-        try {
-          const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(resolve, reject, {
-              timeout: 6000,
-              enableHighAccuracy: true,
-              maximumAge: 10000,
-            });
-          });
-          lat = pos.coords.latitude;
-          lng = pos.coords.longitude;
-          locationAvailable = true;
-          setTriggerCoords({ lat, lng });
-        } catch {
-          // Geolocation timed out or denied — proceed without GPS
-          setTriggerCoords({ lat: null, lng: null });
-        }
-      }
+      const geo = await getAccurateLocation();
+      setTriggerCoords({ lat: geo.latitude, lng: geo.longitude });
 
       return emergencyApi.triggerSOS({
-        latitude: lat,
-        longitude: lng,
-        location_available: locationAvailable,
+        latitude: geo.latitude,
+        longitude: geo.longitude,
+        location_available: geo.location_available,
       });
     },
     onSuccess: (res) => {
