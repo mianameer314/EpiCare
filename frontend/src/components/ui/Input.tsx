@@ -22,9 +22,11 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
 
     return (
       <div className="input-wrapper">
-        <label htmlFor={inputId} className="input-label">
-          {label} {required && <span aria-hidden="true" className="input-required">*</span>}
-        </label>
+        {label ? (
+          <label htmlFor={inputId} className="input-label">
+            {label} {required && <span aria-hidden="true" className="input-required">*</span>}
+          </label>
+        ) : null}
         
         <div style={{ position: 'relative', width: '100%' }}>
           <input

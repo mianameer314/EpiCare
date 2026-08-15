@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -9,7 +9,6 @@ import {
   Search,
   PlusCircle,
   RefreshCw,
-  Cpu,
 } from 'lucide-react';
 import { eegApi } from '../../api/eeg';
 import { EEGUploadZone } from './components/EEGUploadZone';
