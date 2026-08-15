@@ -108,4 +108,10 @@ export const eegApi = {
     const base = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
     return `${base}/eeg/sessions/${sessionId}/spectrogram`;
   },
+
+  deleteSession: (sessionId: number) =>
+    apiClient.delete<void>(`/eeg/sessions/${sessionId}`),
+
+  getModelStatus: () =>
+    apiClient.get<{ ready: boolean; status: 'LOADED' | 'TRAINING_PENDING'; version: string; message: string }>('/eeg/model-status'),
 };

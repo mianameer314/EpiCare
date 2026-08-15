@@ -1,10 +1,17 @@
-import { useState, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { UploadCloud, FileCode2, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import {
+  UploadCloud,
+  FileCode2,
+  CheckCircle2,
+  AlertCircle,
+  Loader2,
+  FolderOpen,
+} from 'lucide-react';
 import { eegApi, type EegSession } from '../../../api/eeg';
 
 /* ────────────────────────────────────────────────────
-   EEG Upload Zone — Drag & Drop EDF/CSV Uploader
+   EEG Upload Zone — Clean Drag & Drop EDF/CSV Uploader
    ──────────────────────────────────────────────────── */
 
 interface EEGUploadZoneProps {
@@ -77,8 +84,8 @@ export function EEGUploadZone({ onUploadSuccess, patientUserId }: EEGUploadZoneP
 
     try {
       const interval = setInterval(() => {
-        setUploadProgress(prev => (prev < 90 ? prev + 15 : prev));
-      }, 200);
+        setUploadProgress((prev) => (prev < 90 ? prev + 15 : prev));
+      }, 150);
 
       const session = await eegApi.uploadEEG(
         selectedFile,
@@ -95,7 +102,7 @@ export function EEGUploadZone({ onUploadSuccess, patientUserId }: EEGUploadZoneP
         setSelectedFile(null);
         setUploadProgress(0);
         setSuccessSession(null);
-      }, 2000);
+      }, 1800);
     } catch (err: any) {
       setErrorMessage(err.message || 'Failed to upload EEG file. Please try again.');
       setIsUploading(false);
@@ -109,11 +116,11 @@ export function EEGUploadZone({ onUploadSuccess, patientUserId }: EEGUploadZoneP
   };
 
   return (
-    <div className="eeg-upload-container glass-card" style={{ padding: 'var(--space-6)' }}>
+    <div className="eeg-upload-container glass-card">
       <div className="bento-header" style={{ marginBottom: 'var(--space-4)' }}>
         <div>
-          <h3>Upload EEG Recording</h3>
-          <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)', margin: 0 }}>
+          <h3 style={{ margin: 0, fontSize: 'var(--text-lg)', fontWeight: 700 }}>Upload EEG Recording</h3>
+          <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)', margin: '4px 0 0' }}>
             Supports standard European Data Format (<code>.edf</code>) and raw voltage <code>.csv</code> files up to 200MB.
           </p>
         </div>
@@ -137,16 +144,6 @@ export function EEGUploadZone({ onUploadSuccess, patientUserId }: EEGUploadZoneP
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         onClick={() => fileInputRef.current?.click()}
-        style={{
-          border: '2px dashed var(--color-border)',
-          borderColor: isDragging ? 'var(--color-primary)' : 'var(--color-border)',
-          background: isDragging ? 'var(--color-primary-50)' : 'var(--color-surface)',
-          borderRadius: 'var(--radius-xl)',
-          padding: 'var(--space-10) var(--space-6)',
-          textAlign: 'center',
-          cursor: isUploading ? 'not-allowed' : 'pointer',
-          transition: 'all var(--transition-fast)',
-        }}
       >
         <input
           ref={fileInputRef}
@@ -157,28 +154,30 @@ export function EEGUploadZone({ onUploadSuccess, patientUserId }: EEGUploadZoneP
           disabled={isUploading}
         />
 
-        <div style={{
-          width: '64px',
-          height: '64px',
-          borderRadius: 'var(--radius-full)',
-          background: 'var(--color-secondary-50)',
-          color: 'var(--color-secondary)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          margin: '0 auto var(--space-4)',
-        }}>
+        <div className="eeg-cloud-circle">
           <UploadCloud size={32} />
         </div>
 
-        <div style={{ fontSize: 'var(--text-base)', fontWeight: 600, color: 'var(--color-text-main)', marginBottom: 'var(--space-1)' }}>
+        <div style={{ fontSize: 'var(--text-base)', fontWeight: 700, color: 'var(--color-text-main)', marginBottom: '4px' }}>
           {selectedFile ? selectedFile.name : 'Click to select or drag & drop EEG file'}
         </div>
-        <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)', margin: 0 }}>
+        <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', margin: 0 }}>
           {selectedFile
-            ? `${formatFileSize(selectedFile.size)} · Ready to upload`
-            : 'EDF / CSV format up to 200MB'}
+            ? `${formatFileSize(selectedFile.size)} · File ready for validation & upload`
+            : 'European Data Format (.edf) or Raw Multichannel Voltages (.csv)'}
         </p>
+
+        <button
+          type="button"
+          className="eeg-browse-btn"
+          onClick={(e) => {
+            e.stopPropagation();
+            fileInputRef.current?.click();
+          }}
+        >
+          <FolderOpen size={14} />
+          <span>Browse Local Files</span>
+        </button>
       </div>
 
       {/* ── Selected File & Actions ── */}
@@ -191,23 +190,48 @@ export function EEGUploadZone({ onUploadSuccess, patientUserId }: EEGUploadZoneP
             style={{
               marginTop: 'var(--space-4)',
               padding: 'var(--space-4)',
-              borderRadius: 'var(--radius-lg)',
-              background: 'var(--color-surface-hover)',
-              border: '1px solid var(--color-border-subtle)',
+              borderRadius: 'var(--radius-xl)',
+              background: '#ffffff',
+              border: '1.5px solid rgba(45, 90, 63, 0.2)',
+              boxShadow: '0 4px 14px rgba(45, 90, 63, 0.08)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
               gap: 'var(--space-4)',
+              flexWrap: 'wrap',
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', minWidth: 0 }}>
-              <FileCode2 size={24} style={{ color: 'var(--color-primary)', flexShrink: 0 }} />
+              <div
+                style={{
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: 'var(--radius-lg)',
+                  background: 'var(--color-primary-50)',
+                  color: 'var(--color-primary)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <FileCode2 size={22} />
+              </div>
               <div style={{ overflow: 'hidden' }}>
-                <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--color-text-main)', textOverflow: 'ellipsis', whiteSpace: 'nowrap', overflow: 'hidden' }}>
+                <div
+                  style={{
+                    fontSize: 'var(--text-sm)',
+                    fontWeight: 700,
+                    color: 'var(--color-text-main)',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                  }}
+                >
                   {selectedFile.name}
                 </div>
                 <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
-                  {formatFileSize(selectedFile.size)}
+                  {formatFileSize(selectedFile.size)} · Ready to Upload
                 </div>
               </div>
             </div>
@@ -232,15 +256,24 @@ export function EEGUploadZone({ onUploadSuccess, patientUserId }: EEGUploadZoneP
                   handleUpload();
                 }}
                 disabled={isUploading}
-                style={{ minWidth: '120px' }}
+                style={{
+                  minWidth: '150px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                }}
               >
                 {isUploading ? (
                   <>
                     <Loader2 size={14} className="animate-spin" />
-                    Uploading...
+                    <span>Uploading...</span>
                   </>
                 ) : (
-                  'Upload & Save'
+                  <>
+                    <UploadCloud size={14} />
+                    <span>Upload Recording</span>
+                  </>
                 )}
               </button>
             </div>
@@ -251,16 +284,31 @@ export function EEGUploadZone({ onUploadSuccess, patientUserId }: EEGUploadZoneP
       {/* ── Progress Bar ── */}
       {isUploading && (
         <div style={{ marginTop: 'var(--space-4)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', marginBottom: 'var(--space-1)' }}>
-            <span>Processing EEG upload...</span>
-            <span>{uploadProgress}%</span>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              fontSize: 'var(--text-xs)',
+              color: 'var(--color-text-muted)',
+              marginBottom: 'var(--space-1)',
+            }}
+          >
+            <span>Uploading EEG recording...</span>
+            <span style={{ fontWeight: 700 }}>{uploadProgress}%</span>
           </div>
-          <div style={{ height: '6px', background: 'var(--color-border)', borderRadius: 'var(--radius-full)', overflow: 'hidden' }}>
+          <div
+            style={{
+              height: '6px',
+              background: 'rgba(45, 90, 63, 0.1)',
+              borderRadius: 'var(--radius-full)',
+              overflow: 'hidden',
+            }}
+          >
             <motion.div
               style={{ height: '100%', background: 'var(--color-primary)' }}
               initial={{ width: '0%' }}
               animate={{ width: `${uploadProgress}%` }}
-              transition={{ duration: 0.2 }}
+              transition={{ duration: 0.15 }}
             />
           </div>
         </div>
@@ -269,22 +317,24 @@ export function EEGUploadZone({ onUploadSuccess, patientUserId }: EEGUploadZoneP
       {/* ── Success Message ── */}
       {successSession && (
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
           style={{
             marginTop: 'var(--space-4)',
-            padding: 'var(--space-3)',
-            borderRadius: 'var(--radius-md)',
+            padding: 'var(--space-3) var(--space-4)',
+            borderRadius: 'var(--radius-lg)',
             background: 'var(--color-success-bg)',
             color: 'var(--color-success)',
+            border: '1px solid rgba(22, 163, 74, 0.2)',
             fontSize: 'var(--text-sm)',
+            fontWeight: 600,
             display: 'flex',
             alignItems: 'center',
             gap: 'var(--space-2)',
           }}
         >
           <CheckCircle2 size={18} />
-          <span>Upload complete! Session #{successSession.id} created successfully.</span>
+          <span>Upload complete! Session #{successSession.id} saved and validated successfully.</span>
         </motion.div>
       )}
     </div>

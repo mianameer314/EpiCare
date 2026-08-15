@@ -18,7 +18,7 @@ import {
   Activity,
   ShieldCheck,
   ChevronDown,
-  Sparkles,
+  Bot,
   ArrowLeft,
 } from 'lucide-react';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
@@ -274,7 +274,7 @@ export function AppShell() {
                     onClick={() => safeNavigate('/chat')}
                     title="Open AI Medical Assistant"
                   >
-                    <Sparkles size={15} className="ai-sparkle-icon" />
+                    <Bot size={15} className="ai-sparkle-icon" />
                     <span className="ai-btn-text">AI Assistant</span>
                   </motion.button>
 
@@ -358,7 +358,7 @@ export function AppShell() {
                       onClick={() => safeNavigate('/chat')}
                       title="Open AI Medical Assistant"
                     >
-                      <Sparkles size={15} className="ai-sparkle-icon" />
+                      <Bot size={15} className="ai-sparkle-icon" />
                       <span className="ai-btn-text">AI Assistant</span>
                     </motion.button>
                   )}

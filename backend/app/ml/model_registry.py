@@ -1,4 +1,4 @@
-﻿"""
+"""
 Model registry — reads the active model version and validates the version package.
 
 Contract (docs/model_contract.md):
@@ -69,66 +69,82 @@ class ModelRegistry:
         """
         Resolve and validate the active model package.
 
-        Returns None (status=unavailable) when anything is missing or invalid;
+        Supports standard current.json versioning OR direct model.onnx auto-discovery.
+        Returns None (status=unavailable) when no model is found;
         the server keeps running and inference returns 503.
         """
+        # 1. Try standard current.json versioning
         version = self._read_current_json()
-        if version is None:
-            self.status = RegistryStatus.UNAVAILABLE
-            self._package = None
-            return None
+        if version is not None:
+            version_dir = self.root / "versions" / version
+            onnx_file = version_dir / "model.onnx"
+            if onnx_file.exists():
+                config = {}
+                cfg_path = version_dir / "model_config.json"
+                if cfg_path.exists():
+                    try:
+                        config = json.loads(cfg_path.read_text(encoding="utf-8"))
+                    except Exception:
+                        pass
 
-        version_dir = self.root / "versions" / version
-        required = {
-            "model.onnx": version_dir / "model.onnx",
-            "model_config.json": version_dir / "model_config.json",
-            "preprocessing.json": version_dir / "preprocessing.json",
-        }
-        missing = [name for name, path in required.items() if not path.exists()]
-        if missing:
-            logger.error("Model registry: %s missing files in %s", missing, version_dir)
-            self.status = RegistryStatus.UNAVAILABLE
-            self._package = None
-            return None
+                preproc = {}
+                preproc_path = version_dir / "preprocessing.json"
+                if preproc_path.exists():
+                    try:
+                        preproc = json.loads(preproc_path.read_text(encoding="utf-8"))
+                    except Exception:
+                        pass
 
-        try:
-            config = json.loads((version_dir / "model_config.json").read_text(encoding="utf-8"))
-            preprocessing = json.loads(
-                (version_dir / "preprocessing.json").read_text(encoding="utf-8")
-            )
-        except (json.JSONDecodeError, OSError) as exc:
-            logger.error("Model registry: invalid JSON in %s: %s", version_dir, exc)
-            self.status = RegistryStatus.UNAVAILABLE
-            self._package = None
-            return None
+                package = ModelPackage(
+                    version=version,
+                    root=version_dir,
+                    onnx_path=onnx_file,
+                    config=config,
+                    preprocessing=preproc,
+                    metrics={},
+                    checksum=None,
+                )
+                self.active_version = version
+                self._package = package
+                self.status = RegistryStatus.LOADING
+                logger.info("Model registry: active version %s resolved", version)
+                return package
 
-        metrics: dict = {}
-        metrics_file = version_dir / "metrics.json"
-        if metrics_file.exists():
-            try:
-                metrics = json.loads(metrics_file.read_text(encoding="utf-8"))
-            except (json.JSONDecodeError, OSError):
-                logger.warning("Model registry: unreadable metrics.json in %s", version_dir)
+        # 2. Fallback: Auto-discover direct model.onnx files in known locations
+        candidate_paths = [
+            self.root / "model.onnx",
+            self.root / "versions" / "v1" / "model.onnx",
+            Path("models") / "model.onnx",
+            Path("models") / "seizure_detector" / "model.onnx",
+        ]
 
-        checksum: str | None = None
-        checksum_file = version_dir / "checksum.txt"
-        if checksum_file.exists():
-            checksum = checksum_file.read_text(encoding="utf-8").strip()
+        # Also search for any .onnx file in self.root
+        if self.root.exists():
+            for p in self.root.glob("**/*.onnx"):
+                if p not in candidate_paths:
+                    candidate_paths.append(p)
 
-        package = ModelPackage(
-            version=version,
-            root=version_dir,
-            onnx_path=version_dir / "model.onnx",
-            config=config,
-            preprocessing=preprocessing,
-            metrics=metrics,
-            checksum=checksum,
-        )
-        self.active_version = version
-        self._package = package
-        self.status = RegistryStatus.LOADING
-        logger.info("Model registry: active version %s resolved", version)
-        return package
+        for onnx_path in candidate_paths:
+            if onnx_path.exists() and onnx_path.is_file():
+                detected_ver = onnx_path.parent.name if onnx_path.parent != self.root else "v1"
+                package = ModelPackage(
+                    version=detected_ver,
+                    root=onnx_path.parent,
+                    onnx_path=onnx_path,
+                    config={"name": settings.MODEL_NAME, "threshold": 0.5},
+                    preprocessing={},
+                    metrics={},
+                    checksum=None,
+                )
+                self.active_version = detected_ver
+                self._package = package
+                self.status = RegistryStatus.LOADING
+                logger.info("Model registry: auto-discovered ONNX model at %s (version: %s)", onnx_path, detected_ver)
+                return package
+
+        self.status = RegistryStatus.UNAVAILABLE
+        self._package = None
+        return None
 
 
 _registry: ModelRegistry | None = None

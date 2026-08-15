@@ -115,6 +115,30 @@ async def get_eeg_session(
     return session
 
 
+@router.delete(
+    "/sessions/{session_id}",
+    tags=['🤒 Patient - Diagnostics', '👨‍⚕️ Doctor - Diagnostics'],
+    status_code=204,
+    summary="Delete EEG session",
+    description="Delete an EEG recording session, associated predictions, and remove its stored file.",
+    responses={
+        204: {"description": "Session deleted successfully"},
+        401: {"description": "Unauthorized"},
+        404: {"description": "Not Found - Session does not exist or belongs to another user"},
+    },
+)
+async def delete_eeg_session(
+    session_id: int,
+    target_user_id: TargetPatientIdForDiagnosticUpload,
+    db: DbDep,
+):
+    """Delete a single EEG session."""
+    deleted = await session_service.delete_session(db, session_id, target_user_id)
+    if not deleted:
+        raise not_found_error("EEG session")
+    return None
+
+
 @router.post(
     "/sessions/{session_id}/analyze",
     tags=['🤒 Patient - Diagnostics', '👨\u200d⚕️ Doctor - Diagnostics'],
@@ -207,3 +231,22 @@ async def get_session_predictions(
     items = result.scalars().all()
     
     return create_paginated_response(items, total, params.skip, params.limit)
+
+
+@router.get(
+    "/model-status",
+    tags=['🤖 Machine Learning'],
+    summary="Get AI Model Status",
+    description="Check whether the active seizure classification model is loaded or awaiting weights deployment.",
+)
+async def get_eeg_model_status():
+    """Returns the current loading and deployment status of the EEG seizure ML model."""
+    from app.ml.model_loader import get_model_loader
+    loader = get_model_loader()
+    return {
+        "ready": loader.is_ready,
+        "status": "LOADED" if loader.is_ready else "TRAINING_PENDING",
+        "version": loader.version or "v1-pending",
+        "message": "AI neural model loaded and ready for inference." if loader.is_ready else "AI model weights pending deployment in models directory.",
+    }
+

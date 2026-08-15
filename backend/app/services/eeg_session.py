@@ -65,6 +65,24 @@ async def get_session(db: AsyncSession, session_id: int, user_id: int) -> EegSes
     return result.scalar_one_or_none()
 
 
+async def delete_session(db: AsyncSession, session_id: int, user_id: int) -> bool:
+    """Fetch and delete an EEG session and its stored disk file."""
+    session = await get_session(db, session_id, user_id)
+    if session is None:
+        return False
+
+    try:
+        storage = get_storage_service()
+        if storage.exists(session.stored_path):
+            storage.delete(session.stored_path)
+    except Exception as exc:
+        logger.warning("Could not delete stored file %s: %s", session.stored_path, exc)
+
+    await db.delete(session)
+    await db.commit()
+    return True
+
+
 async def list_sessions(
     db: AsyncSession,
     user_id: int,

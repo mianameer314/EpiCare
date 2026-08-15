@@ -1,4 +1,4 @@
-﻿"""
+"""
 Model loader — ONNX Runtime session with explicit thread tuning and warm-up.
 
 SessionOptions are configured explicitly (intra/inter op threads) to prevent
@@ -129,9 +129,12 @@ _loader: ModelLoader | None = None
 
 
 def get_model_loader() -> ModelLoader:
-    """Get the singleton model loader."""
+    """Get the singleton model loader with hot-reload auto detection."""
     global _loader
     if _loader is None:
         _loader = ModelLoader(get_model_registry())
+        _loader.load()
+    elif not _loader.is_ready:
+        # Dynamically auto-detect if model weights were recently placed in the directory
         _loader.load()
     return _loader
