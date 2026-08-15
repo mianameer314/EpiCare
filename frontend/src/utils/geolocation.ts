@@ -1,6 +1,6 @@
 /**
- * Bulletproof Multi-Tier Geolocation Resolver
- * Ensures reliable GPS coordinates on Mobile, Laptops, Desktops, and Incognito mode.
+ * Instant Non-Blocking Geolocation Resolver
+ * Resolves immediately with cached position or fast 300ms attempt to ensure sub-second SOS triggering.
  */
 
 export interface GeoLocationResult {
@@ -8,18 +8,17 @@ export interface GeoLocationResult {
   longitude: number | null;
   location_available: boolean;
   city?: string;
-  source?: 'browser_gps' | 'network_ip' | 'unavailable';
+  source?: 'browser_gps' | 'fallback';
 }
 
 export async function getAccurateLocation(): Promise<GeoLocationResult> {
-  // 1. Try Browser HTML5 Geolocation (Precise on mobile devices)
   if (typeof window !== 'undefined' && 'geolocation' in navigator) {
     try {
       const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
         navigator.geolocation.getCurrentPosition(resolve, reject, {
-          timeout: 2500,
-          enableHighAccuracy: false, // Standard Wi-Fi triangulation for fast laptop response
-          maximumAge: 60000,
+          timeout: 400, // Instant 400ms max wait
+          enableHighAccuracy: false,
+          maximumAge: 300000, // Use recent 5-min cached GPS fix if available for 0ms response
         });
       });
       if (pos?.coords?.latitude && pos?.coords?.longitude) {
@@ -30,34 +29,15 @@ export async function getAccurateLocation(): Promise<GeoLocationResult> {
           source: 'browser_gps',
         };
       }
-    } catch (err) {
-      console.info('[Geo] Browser GPS unavailable or timed out, trying IP fallback:', err);
+    } catch {
+      // Non-blocking fallback
     }
-  }
-
-  // 2. Fallback: Network IP Geolocation (100% reliable on Wi-Fi laptops, desktops & Incognito tabs)
-  try {
-    const res = await fetch('https://ipapi.co/json/', { signal: AbortSignal.timeout(3000) });
-    if (res.ok) {
-      const data = await res.json();
-      if (data.latitude && data.longitude) {
-        return {
-          latitude: Number(data.latitude),
-          longitude: Number(data.longitude),
-          location_available: true,
-          city: data.city,
-          source: 'network_ip',
-        };
-      }
-    }
-  } catch (ipErr) {
-    console.warn('[Geo] IP Geolocation fallback unavailable:', ipErr);
   }
 
   return {
     latitude: null,
     longitude: null,
     location_available: false,
-    source: 'unavailable',
+    source: 'fallback',
   };
 }

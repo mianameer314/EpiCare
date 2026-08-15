@@ -46,23 +46,35 @@ def ensure_firebase_initialized() -> bool:
 
 def build_sos_message(event: SosEvent, patient_name: str = "A patient") -> str:
     """Plain-text fallback SOS message."""
-    lat = event.latitude if event.latitude is not None else 33.6844
-    lon = event.longitude if event.longitude is not None else 73.0479
-    loc = f"https://maps.google.com/?q={lat},{lon}"
+    if event.latitude is not None and event.longitude is not None:
+        loc_str = f"Live Map Navigation: https://maps.google.com/?q={event.latitude},{event.longitude}"
+    else:
+        loc_str = "Location: Unavailable (Device location was not shared at time of trigger)"
     
     return (
         f"🚨 EMERGENCY SEIZURE ALERT 🚨\n\n"
         f"{patient_name} has triggered an emergency SOS on EpiCare.\n"
-        f"Live Map Navigation: {loc}\n\n"
+        f"{loc_str}\n\n"
         f"Please check on them or call emergency services immediately."
     )
 
 
 def build_sos_html_email(event: SosEvent, patient_name: str = "A Patient") -> str:
     """Rich responsive HTML email alert with live Google Maps button and first-aid guide."""
-    lat = event.latitude if event.latitude is not None else 33.6844
-    lon = event.longitude if event.longitude is not None else 73.0479
-    loc_url = f"https://maps.google.com/?q={lat},{lon}"
+    if event.latitude is not None and event.longitude is not None:
+        location_section = f"""
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; margin: 20px 0; text-align: center;">
+                <div style="font-size: 13px; font-weight: 700; color: #475569; text-transform: uppercase; margin-bottom: 6px;">Live Patient Location:</div>
+                <p style="margin: 0 0 12px; font-size: 13px; color: #64748b;">Instant 1-tap navigation to the patient's location</p>
+                <a href="https://maps.google.com/?q={event.latitude},{event.longitude}" target="_blank" class="loc-btn">🗺️ Open Live Google Maps Navigation</a>
+            </div>
+        """
+    else:
+        location_section = """
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px; margin: 20px 0; text-align: center;">
+                <div style="font-size: 13px; font-weight: 600; color: #64748b;">Location was not available or disabled on patient's device</div>
+            </div>
+        """
 
     return f"""
     <!DOCTYPE html>
@@ -95,11 +107,7 @@ def build_sos_html_email(event: SosEvent, patient_name: str = "A Patient") -> st
                 <p style="font-size: 14px; line-height: 1.5; color: #334155;">
                     Please attempt to contact the patient immediately or follow the emergency seizure first-aid protocol.
                 </p>
-                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; margin: 20px 0; text-align: center;">
-                    <div style="font-size: 13px; font-weight: 700; color: #475569; text-transform: uppercase; margin-bottom: 6px;">Live Patient Location:</div>
-                    <p style="margin: 0 0 12px; font-size: 13px; color: #64748b;">Instant 1-tap navigation to the patient's location</p>
-                    <a href="{loc_url}" target="_blank" class="loc-btn">🗺️ Open Live Google Maps Navigation</a>
-                </div>
+                {location_section}
                 <div style="margin-top: 24px; font-size: 12px; color: #64748b; line-height: 1.6;">
                     <strong>Epilepsy First Aid Quick Protocol:</strong>
                     <ul style="padding-left: 18px; margin: 6px 0;">
