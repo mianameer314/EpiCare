@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import {
@@ -14,17 +14,133 @@ import {
   ChevronRight,
   ShieldCheck,
   Lock,
+  MapPin,
+  ExternalLink,
 } from 'lucide-react';
 import { connectionsApi, type ConnectedPatient } from '../../api/connections';
 import { dashboardApi } from '../../api/dashboard';
 import { seizuresApi, type ManualSeizureLogCreate } from '../../api/seizures';
 import { lifestyleApi, type SleepLogCreate } from '../../api/lifestyle';
-import { emergencyApi } from '../../api/emergency';
+import { emergencyApi, type SosEvent } from '../../api/emergency';
 import { EmergencyProtocolOverlay } from '../emergency/components/EmergencyProtocolOverlay';
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { useAuth } from '../../hooks/useAuth';
 import './CaretakerWorkspace.css';
+
+/* ────────────────────────────────────────────────────
+   Emergency Tone Synthesizer & Browser Autoplay Unlock
+   ──────────────────────────────────────────────────── */
+let sharedAudioCtx: AudioContext | null = null;
+
+function getAudioContext(): AudioContext | null {
+  try {
+    if (!sharedAudioCtx && typeof window !== 'undefined') {
+      const AudioCtxClass = window.AudioContext || (window as any).webkitAudioContext;
+      if (AudioCtxClass) {
+        sharedAudioCtx = new AudioCtxClass();
+      }
+    }
+    if (sharedAudioCtx && sharedAudioCtx.state === 'suspended') {
+      sharedAudioCtx.resume().catch(() => {});
+    }
+    return sharedAudioCtx;
+  } catch {
+    return null;
+  }
+}
+
+if (typeof window !== 'undefined') {
+  const unlockAudio = () => {
+    const ctx = getAudioContext();
+    if (ctx && ctx.state === 'suspended') {
+      ctx.resume().catch(() => {});
+    }
+  };
+  window.addEventListener('click', unlockAudio, { once: true });
+  window.addEventListener('keydown', unlockAudio, { once: true });
+  window.addEventListener('touchstart', unlockAudio, { once: true });
+}
+
+function playEmergencyBeep() {
+  try {
+    const audioCtx = getAudioContext();
+    if (!audioCtx) return;
+
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume().catch(() => {});
+    }
+
+    const now = audioCtx.currentTime;
+    const playTone = (freq: number, offset: number, dur: number) => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(freq, now + offset);
+      gain.gain.setValueAtTime(0.35, now + offset);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + offset + dur);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(now + offset);
+      osc.stop(now + offset + dur);
+    };
+
+    // Urgent high-attention medical siren pattern
+    playTone(950, 0.0, 0.25);
+    playTone(1300, 0.3, 0.35);
+    playTone(950, 0.7, 0.25);
+    playTone(1300, 1.0, 0.45);
+  } catch (e) {
+    console.warn('Audio alert fallback:', e);
+  }
+}
+
+let emergencyAlarmInterval: any = null;
+
+function startEmergencyAlarmLoop() {
+  if (emergencyAlarmInterval) return;
+  playEmergencyBeep();
+  emergencyAlarmInterval = setInterval(() => {
+    playEmergencyBeep();
+  }, 1800);
+}
+
+function stopEmergencyAlarmLoop() {
+  if (emergencyAlarmInterval) {
+    clearInterval(emergencyAlarmInterval);
+    emergencyAlarmInterval = null;
+  }
+  if (sharedAudioCtx) {
+    try {
+      sharedAudioCtx.close().catch(() => {});
+    } catch {}
+    sharedAudioCtx = null;
+  }
+}
+
+// Persistent tracking of acknowledged SOS events
+const dismissedSet = new Set<number>();
+try {
+  if (typeof window !== 'undefined') {
+    const cached = sessionStorage.getItem('epicare_dismissed_sos');
+    if (cached) {
+      JSON.parse(cached).forEach((id: number) => dismissedSet.add(id));
+    }
+  }
+} catch {}
+
+function isSosDismissed(id: number): boolean {
+  return dismissedSet.has(id);
+}
+
+function markSosDismissed(id: number) {
+  dismissedSet.add(id);
+  try {
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('epicare_dismissed_sos', JSON.stringify(Array.from(dismissedSet)));
+    }
+  } catch {}
+}
 
 /* ────────────────────────────────────────────────────
    Caretaker Clinical Console — Proxy Logging & Assistance
@@ -38,6 +154,24 @@ export function CaretakerWorkspace() {
   const [logSleepModalOpen, setLogSleepModalOpen] = useState(false);
   const [sosActive, setSosActive] = useState(false);
   const [actionSuccess, setActionSuccess] = useState('');
+  const [, setDismissTick] = useState(0);
+  const [activeEmergencyAlert, setActiveEmergencyAlert] = useState<SosEvent | null>(null);
+
+  const handleAcknowledgeAlert = () => {
+    if (activeEmergencyAlert) {
+      markSosDismissed(activeEmergencyAlert.id);
+      setActiveEmergencyAlert(null);
+    }
+    setDismissTick(t => t + 1);
+    stopEmergencyAlarmLoop();
+  };
+
+  // Clean up alarm if component unmounts
+  useEffect(() => {
+    return () => {
+      stopEmergencyAlarmLoop();
+    };
+  }, []);
 
   // Seizure form state
   const [seizureForm, setSeizureForm] = useState<ManualSeizureLogCreate>({
@@ -68,6 +202,35 @@ export function CaretakerWorkspace() {
 
   const activePatient = patients.find((p: ConnectedPatient) => p.patient?.id === selectedPatientId) || patients[0];
   const targetPatientUserId = activePatient?.patient?.id;
+
+  // Real-time polling for active SOS emergency triggers (every 3s)
+  const { data: recentSosData } = useQuery({
+    queryKey: ['caretaker', 'live-sos-events', targetPatientUserId],
+    queryFn: () => emergencyApi.getSOSEvents({ limit: 1, patient_user_id: targetPatientUserId }),
+    enabled: !!targetPatientUserId,
+    refetchInterval: 3000,
+  });
+
+  useEffect(() => {
+    if (recentSosData?.items?.length) {
+      const latest = recentSosData.items[0];
+      const triggeredTime = new Date(latest.triggered_at).getTime();
+      const now = Date.now();
+      // If triggered within the last 15 minutes and not dismissed
+      if (now - triggeredTime < 15 * 60 * 1000 && !isSosDismissed(latest.id)) {
+        if (!activeEmergencyAlert || activeEmergencyAlert.id !== latest.id) {
+          setActiveEmergencyAlert(latest);
+          startEmergencyAlarmLoop();
+        }
+      } else if (activeEmergencyAlert) {
+        setActiveEmergencyAlert(null);
+        stopEmergencyAlarmLoop();
+      }
+    } else if (activeEmergencyAlert) {
+      setActiveEmergencyAlert(null);
+      stopEmergencyAlarmLoop();
+    }
+  }, [recentSosData, activeEmergencyAlert]);
 
   const { data: patientStats, isLoading: statsLoading } = useQuery({
     queryKey: ['caretaker', 'patient-stats', targetPatientUserId],
@@ -147,6 +310,59 @@ export function CaretakerWorkspace() {
           </div>
         </div>
       </div>
+
+      {/* ── Real-Time Live Emergency SOS Banner ── */}
+      {activeEmergencyAlert && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.98 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="live-sos-banner"
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+            <div style={{
+              width: '40px',
+              height: '40px',
+              borderRadius: '50%',
+              background: '#dc2626',
+              color: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+              <Siren size={22} className="animate-bounce" />
+            </div>
+            <div>
+              <div style={{ fontWeight: 800, color: '#991b1b', fontSize: 'var(--text-base)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                🚨 ACTIVE SEIZURE EMERGENCY: {activePatient?.patient?.full_name || 'Patient'}
+              </div>
+              <div style={{ fontSize: 'var(--text-xs)', color: '#b91c1c' }}>
+                Triggered at {new Date(activeEmergencyAlert.triggered_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })} · Live GPS Location Available
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+            {activeEmergencyAlert.latitude && activeEmergencyAlert.longitude && (
+              <a
+                href={`https://maps.google.com/?q=${activeEmergencyAlert.latitude},${activeEmergencyAlert.longitude}`}
+                target="_blank"
+                rel="noreferrer"
+                className="btn btn-sm"
+                style={{ background: '#dc2626', color: '#ffffff', border: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}
+              >
+                <MapPin size={14} /> View Map
+              </a>
+            )}
+            <button
+              className="btn btn-sm btn-outline"
+              onClick={handleAcknowledgeAlert}
+              style={{ borderColor: '#ef4444', color: '#991b1b' }}
+            >
+              Acknowledge
+            </button>
+          </div>
+        </motion.div>
+      )}
 
       {actionSuccess && (
         <motion.div
@@ -525,6 +741,95 @@ export function CaretakerWorkspace() {
                 </button>
               </div>
             </form>
+          </motion.div>
+        </div>
+      )}
+
+      {/* ── High-Priority Real-Time Emergency SOS Modal ── */}
+      {activeEmergencyAlert && (
+        <div className="emergency-alert-overlay" onClick={() => {}}>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            className="emergency-alert-card"
+          >
+            <div className="emergency-alert-header">
+              <h2>
+                <Siren size={28} className="animate-bounce" />
+                <span style={{ color: '#ffffff', letterSpacing: '0.8px' }}>CRITICAL SEIZURE ALERT</span>
+              </h2>
+              <p style={{ margin: '8px 0 0', color: '#ffffff', fontWeight: 600, fontSize: 'var(--text-base)', opacity: 1, textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}>
+                {activePatient?.patient?.full_name || 'Designated Patient'} triggered an Emergency SOS!
+              </p>
+            </div>
+
+            <div className="emergency-alert-body">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 'var(--space-3)', background: '#f8fafc', borderRadius: 'var(--radius-md)', marginBottom: 'var(--space-4)' }}>
+                <div>
+                  <span style={{ fontSize: 'var(--text-xs)', color: '#64748b' }}>Patient Account:</span>
+                  <div style={{ fontWeight: 700, fontSize: 'var(--text-sm)', color: '#0f172a' }}>{activePatient?.patient?.full_name}</div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <span style={{ fontSize: 'var(--text-xs)', color: '#64748b' }}>Time of Trigger:</span>
+                  <div style={{ fontWeight: 700, fontSize: 'var(--text-sm)', color: '#dc2626' }}>
+                    {new Date(activeEmergencyAlert.triggered_at).toLocaleTimeString()}
+                  </div>
+                </div>
+              </div>
+
+              {activeEmergencyAlert.latitude && activeEmergencyAlert.longitude ? (
+                <div className="emergency-location-box">
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                      <MapPin size={20} color="#dc2626" />
+                      <div style={{ textAlign: 'left' }}>
+                        <div style={{ fontWeight: 700, fontSize: 'var(--text-sm)', color: '#991b1b' }}>Live GPS Coordinates</div>
+                        <div style={{ fontSize: 'var(--text-xs)', color: '#7f1d1d' }}>
+                          Lat: {activeEmergencyAlert.latitude.toFixed(5)}, Lon: {activeEmergencyAlert.longitude.toFixed(5)}
+                        </div>
+                      </div>
+                    </div>
+                    <a
+                      href={`https://maps.google.com/?q=${activeEmergencyAlert.latitude},${activeEmergencyAlert.longitude}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="btn btn-sm"
+                      style={{ background: '#dc2626', color: '#ffffff', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '6px' }}
+                    >
+                      <span>Open Live Map</span>
+                      <ExternalLink size={14} />
+                    </a>
+                  </div>
+                </div>
+              ) : (
+                <div className="emergency-location-box" style={{ textAlign: 'center', color: '#64748b', fontSize: 'var(--text-xs)' }}>
+                  Location was disabled or unavailable at time of trigger.
+                </div>
+              )}
+
+              <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 'var(--radius-md)', padding: 'var(--space-4)', margin: 'var(--space-4) 0' }}>
+                <div style={{ fontWeight: 700, fontSize: 'var(--text-xs)', color: '#166534', marginBottom: 'var(--space-2)' }}>
+                  🛡️ EPILEPSY FIRST-AID PROTOCOL:
+                </div>
+                <ul style={{ margin: 0, paddingLeft: '20px', fontSize: 'var(--text-xs)', color: '#15803d', lineHeight: '1.6' }}>
+                  <li>Ease the patient gently onto their side (recovery position) to keep airway clear.</li>
+                  <li>Clear all sharp, hard, or dangerous objects away from them.</li>
+                  <li>Do NOT restrain movement and do NOT place anything in their mouth.</li>
+                  <li>If seizure lasts longer than 5 minutes, immediately call local emergency services.</li>
+                </ul>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-3)', marginTop: 'var(--space-4)' }}>
+                <button
+                  type="button"
+                  className="btn-emergency-ack"
+                  onClick={handleAcknowledgeAlert}
+                >
+                  <CheckCircle2 size={18} />
+                  <span>I Acknowledge & Am Responding to this Seizure</span>
+                </button>
+              </div>
+            </div>
           </motion.div>
         </div>
       )}

@@ -46,3 +46,110 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ── Live Emergency SOS Alert Overlay ── */
+.emergency-alert-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+}
+
+.emergency-alert-card {
+  width: 100%;
+  max-width: 580px;
+  background: #ffffff;
+  border-radius: var(--radius-2xl);
+  border: 3px solid #dc2626;
+  box-shadow: 0 0 50px rgba(220, 38, 38, 0.5);
+  overflow: hidden;
+  animation: alertPulse 1.5s infinite alternate ease-in-out;
+}
+
+@keyframes alertPulse {
+  0% {
+    box-shadow: 0 0 25px rgba(220, 38, 38, 0.35);
+  }
+  100% {
+    box-shadow: 0 0 65px rgba(220, 38, 38, 0.7);
+  }
+}
+
+.emergency-alert-header {
+  background: linear-gradient(135deg, #dc2626, #991b1b);
+  color: #ffffff;
+  padding: var(--space-6);
+  text-align: center;
+}
+
+.emergency-alert-header h2 {
+  font-size: var(--text-xl);
+  font-weight: var(--font-weight-extrabold);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  letter-spacing: 0.5px;
+}
+
+.emergency-alert-body {
+  padding: var(--space-6);
+  color: #1e293b;
+}
+
+.emergency-location-box {
+  background: #fef2f2;
+  border: 1.5px solid #fecaca;
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  margin: var(--space-4) 0;
+}
+
+.live-sos-banner {
+  background: linear-gradient(135deg, rgba(220, 38, 38, 0.15), rgba(185, 28, 28, 0.25));
+  border: 1.5px solid #ef4444;
+  border-radius: var(--radius-xl);
+  padding: var(--space-4) var(--space-6);
+  margin-bottom: var(--space-6);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  animation: alertPulse 1.5s infinite alternate ease-in-out;
+}
+
+.btn-emergency-ack {
+  background: #0f172a !important;
+  color: #ffffff !important;
+  width: 100%;
+  padding: 16px 24px;
+  font-weight: 700;
+  font-size: var(--text-sm);
+  border-radius: var(--radius-lg);
+  border: 1px solid #334155;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.25);
+}
+
+.btn-emergency-ack:hover {
+  background: #1e293b !important;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.4);
+  border-color: #475569;
+}
+
+.btn-emergency-ack:active {
+  transform: translateY(0);
+}

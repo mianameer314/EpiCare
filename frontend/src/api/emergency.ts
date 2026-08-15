@@ -84,11 +84,12 @@ export const emergencyApi = {
   triggerSOS: (data?: SosTriggerRequest) =>
     apiClient.post<SosEventCreateResponse>('/emergency/sos/trigger', data || { location_available: false }),
 
-  getSOSEvents: (params?: { skip?: number; limit?: number; status?: string }) => {
+  getSOSEvents: (params?: { skip?: number; limit?: number; status?: string; patient_user_id?: number }) => {
     const searchParams = new URLSearchParams();
     if (params?.skip !== undefined) searchParams.set('skip', String(params.skip));
     if (params?.limit !== undefined) searchParams.set('limit', String(params.limit));
     if (params?.status) searchParams.set('status', params.status);
+    if (params?.patient_user_id) searchParams.set('patient_user_id', String(params.patient_user_id));
 
     const qs = searchParams.toString();
     return apiClient.get<PaginatedSosEvents>(`/emergency/sos${qs ? `?${qs}` : ''}`);

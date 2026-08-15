@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useEffect, useMemo, useState } from 'react';
 import { apiClient } from '../api/client';
 import type { User } from '../types/auth';
+import { requestPushNotificationPermission } from '../services/firebase';
 
 /* ────────────────────────────────────────────────────
    Auth Context — token lifecycle, user state, RBAC & persistence
@@ -57,6 +58,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const user = await apiClient.get<User>('/auth/me');
       localStorage.setItem(USER_KEY, JSON.stringify(user));
       setState({ user, isAuthenticated: true, isLoading: false });
+      requestPushNotificationPermission().catch(() => {});
     } catch {
       // If token expired and refresh failed, clear local session
       const currentToken = localStorage.getItem(TOKEN_KEY);
@@ -81,6 +83,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const user = await apiClient.get<User>('/auth/me');
     localStorage.setItem(USER_KEY, JSON.stringify(user));
     setState({ user, isAuthenticated: true, isLoading: false });
+    requestPushNotificationPermission().catch(() => {});
   }, []);
 
   /* ── Logout ── */

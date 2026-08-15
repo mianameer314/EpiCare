@@ -58,7 +58,8 @@ export function AppShell() {
   const dropdownRef = useRef<HTMLDivElement | null>(null);
 
   // Only Patients have multi-tab navigation modules; Admins, Doctors, Caretakers get dedicated full-width consoles
-  const hasSidebar = user?.role === 'PATIENT';
+  const userRole = user?.role?.toUpperCase();
+  const hasSidebar = userRole === 'PATIENT';
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -81,7 +82,7 @@ export function AppShell() {
   };
 
   const getRoleLabel = () => {
-    switch (user?.role) {
+    switch (userRole) {
       case 'DOCTOR':
         return 'Physician Specialist';
       case 'CARETAKER':
@@ -97,11 +98,11 @@ export function AppShell() {
   const getPageTitle = () => {
     switch (location.pathname) {
       case '/dashboard':
-        return user?.role === 'ADMIN'
+        return userRole === 'ADMIN'
           ? 'Platform Administration'
-          : user?.role === 'DOCTOR'
+          : userRole === 'DOCTOR'
           ? 'Neurology Clinical Console'
-          : user?.role === 'CARETAKER'
+          : userRole === 'CARETAKER'
           ? 'Caregiver Care Console'
           : 'Overview Dashboard';
       case '/eeg':

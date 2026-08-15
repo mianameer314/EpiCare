@@ -77,8 +77,15 @@ class Settings(BaseSettings):
     # ==========================================================
     SOS_PROVIDER: str = ""  # 'email', 'firebase', 'whatsapp', or 'twilio'
     
-    # Firebase
+    # Firebase Cloud Messaging & Web Push
     FIREBASE_CREDENTIALS_PATH: str = ""
+    FIREBASE_PROJECT_ID: str = "epicare-2fc46"
+    FIREBASE_WEB_API_KEY: str = ""
+    FIREBASE_WEB_AUTH_DOMAIN: str = ""
+    FIREBASE_STORAGE_BUCKET: str = ""
+    FIREBASE_MESSAGING_SENDER_ID: str = ""
+    FIREBASE_WEB_APP_ID: str = ""
+    FIREBASE_WEB_VAPID_KEY: str = ""
     
     # WhatsApp (Meta Cloud API)
     WHATSAPP_TOKEN: str = ""

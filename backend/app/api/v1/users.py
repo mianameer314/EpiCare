@@ -1,6 +1,7 @@
 """
 User routes — profile management for different user roles (async).
 """
+from pydantic import BaseModel
 from fastapi import APIRouter, HTTPException, status
 
 from app.api.deps import CurrentUser, DbDep
@@ -214,3 +215,20 @@ async def delete_my_caretaker_profile(current_user: CurrentUser, db: DbDep):
             detail="Caretaker profile not found",
         )
     return None
+
+
+class FcmTokenUpdate(BaseModel):
+    fcm_token: str
+
+
+@router.put(
+    "/me/fcm-token",
+    tags=["👤 Users - Core Authentication & Profile"],
+    summary="Register FCM Device Token",
+    description="Registers or updates the user's Firebase Cloud Messaging device token for push alerts.",
+)
+async def update_fcm_token(body: FcmTokenUpdate, current_user: CurrentUser, db: DbDep):
+    """Save or update the user's device FCM push token."""
+    current_user.fcm_token = body.fcm_token
+    await db.commit()
+    return {"message": "FCM device token registered successfully"}

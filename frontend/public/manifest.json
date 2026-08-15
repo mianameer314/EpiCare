@@ -1,0 +1,18 @@
+{
+  "name": "EpiCare AI — Neurology & Seizure Safety",
+  "short_name": "EpiCare",
+  "description": "AI-Powered Epilepsy Care, Real-Time Seizure Monitoring, and Caregiver Safety Hub",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0d1b13",
+  "theme_color": "#1b4332",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "192x192 512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

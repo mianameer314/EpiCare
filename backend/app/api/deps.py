@@ -5,6 +5,7 @@ Every session is created from the async_sessionmaker, tagged with the current
 trace_id (SQLAlchemy query comments for end-to-end correlation), and closed
 in a finally block.
 """
+from app.models.caretaker_profile import CaretakerProfile
 from typing import Annotated
 
 from fastapi import Depends, HTTPException, status
@@ -142,47 +143,43 @@ from app.models.patient_profile import PatientProfile
 from app.models.doctor_profile import DoctorProfile
 from app.models.caretaker_profile import CaretakerProfile
 
+
 async def get_target_patient_for_read(
     db: DbDep, 
     current_user: CurrentUser, 
-    patient_user_id: int | None = Query(None, description="Target patient User ID (required for doctors/caretakers)")
+    patient_user_id: int | None = Query(None, description="Target patient User ID (optional, auto-resolves for connected caretakers/doctors)")
 ) -> int:
     if current_user.role == UserRole.PATIENT:
         if patient_user_id and patient_user_id != current_user.id:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Patients can only access their own data")
         return current_user.id
-        
-    if not patient_user_id:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="patient_user_id is required for doctors and caretakers")
-        
-    result = await db.execute(select(PatientProfile).where(PatientProfile.user_id == patient_user_id))
-    patient_profile = result.scalar_one_or_none()
-    if not patient_profile:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Target patient profile not found")
-        
-    if current_user.role == UserRole.DOCTOR:
-        result = await db.execute(select(DoctorProfile).where(DoctorProfile.user_id == current_user.id))
-        doctor_profile = result.scalar_one_or_none()
-        if not doctor_profile:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Doctor profile not found")
-            
-        result = await db.execute(
-            select(PatientDoctorNetwork).where(
-                PatientDoctorNetwork.doctor_id == doctor_profile.id,
-                PatientDoctorNetwork.patient_id == patient_profile.id,
-                PatientDoctorNetwork.relationship_status == ConnectionStatus.ACTIVE
-            )
-        )
-        if not result.scalar_one_or_none():
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No active connection to this patient")
-        return patient_user_id
-        
+
     if current_user.role == UserRole.CARETAKER:
         result = await db.execute(select(CaretakerProfile).where(CaretakerProfile.user_id == current_user.id))
         caretaker_profile = result.scalar_one_or_none()
         if not caretaker_profile:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Caretaker profile not found")
-            
+
+        # Auto-resolve if not passed
+        if not patient_user_id:
+            net_res = await db.execute(
+                select(PatientProfile.user_id)
+                .join(PatientCaretakerNetwork, PatientCaretakerNetwork.patient_id == PatientProfile.id)
+                .where(
+                    PatientCaretakerNetwork.caretaker_id == caretaker_profile.id,
+                    PatientCaretakerNetwork.relationship_status == ConnectionStatus.ACTIVE
+                )
+            )
+            connected_patient_ids = net_res.scalars().all()
+            if not connected_patient_ids:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No active connected patient found. Connect with a patient in Care Network first.")
+            return connected_patient_ids[0]
+
+        result = await db.execute(select(PatientProfile).where(PatientProfile.user_id == patient_user_id))
+        patient_profile = result.scalar_one_or_none()
+        if not patient_profile:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Target patient profile not found")
+
         result = await db.execute(
             select(PatientCaretakerNetwork).where(
                 PatientCaretakerNetwork.caretaker_id == caretaker_profile.id,
@@ -193,37 +190,86 @@ async def get_target_patient_for_read(
         if not result.scalar_one_or_none():
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No active connection to this patient")
         return patient_user_id
-        
+
+    if current_user.role == UserRole.DOCTOR:
+        result = await db.execute(select(DoctorProfile).where(DoctorProfile.user_id == current_user.id))
+        doctor_profile = result.scalar_one_or_none()
+        if not doctor_profile:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Doctor profile not found")
+
+        # Auto-resolve if not passed
+        if not patient_user_id:
+            net_res = await db.execute(
+                select(PatientProfile.user_id)
+                .join(PatientDoctorNetwork, PatientDoctorNetwork.patient_id == PatientProfile.id)
+                .where(
+                    PatientDoctorNetwork.doctor_id == doctor_profile.id,
+                    PatientDoctorNetwork.relationship_status == ConnectionStatus.ACTIVE
+                )
+            )
+            connected_patient_ids = net_res.scalars().all()
+            if not connected_patient_ids:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No active connected patient found. Connect with a patient first.")
+            return connected_patient_ids[0]
+
+        result = await db.execute(select(PatientProfile).where(PatientProfile.user_id == patient_user_id))
+        patient_profile = result.scalar_one_or_none()
+        if not patient_profile:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Target patient profile not found")
+
+        result = await db.execute(
+            select(PatientDoctorNetwork).where(
+                PatientDoctorNetwork.doctor_id == doctor_profile.id,
+                PatientDoctorNetwork.patient_id == patient_profile.id,
+                PatientDoctorNetwork.relationship_status == ConnectionStatus.ACTIVE
+            )
+        )
+        if not result.scalar_one_or_none():
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No active connection to this patient")
+        return patient_user_id
+
     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Role not authorized to view patient data")
 
 
 async def get_target_patient_for_write(
     db: DbDep, 
     current_user: CurrentUser, 
-    patient_user_id: int | None = Query(None, description="Target patient User ID (required for caretakers with proxy)")
+    patient_user_id: int | None = Query(None, description="Target patient User ID (optional, auto-resolves for connected caretakers)")
 ) -> int:
     if current_user.role == UserRole.PATIENT:
         if patient_user_id and patient_user_id != current_user.id:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Patients can only access their own data")
         return current_user.id
-        
+
     if current_user.role == UserRole.DOCTOR:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Doctors are strictly read-only for patient data")
-        
-    if not patient_user_id:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="patient_user_id is required for proxy write access")
-        
+
     if current_user.role == UserRole.CARETAKER:
-        result = await db.execute(select(PatientProfile).where(PatientProfile.user_id == patient_user_id))
-        patient_profile = result.scalar_one_or_none()
-        if not patient_profile:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Target patient profile not found")
-            
         result = await db.execute(select(CaretakerProfile).where(CaretakerProfile.user_id == current_user.id))
         caretaker_profile = result.scalar_one_or_none()
         if not caretaker_profile:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Caretaker profile not found")
-            
+
+        # Auto-resolve if not passed
+        if not patient_user_id:
+            net_res = await db.execute(
+                select(PatientProfile.user_id)
+                .join(PatientCaretakerNetwork, PatientCaretakerNetwork.patient_id == PatientProfile.id)
+                .where(
+                    PatientCaretakerNetwork.caretaker_id == caretaker_profile.id,
+                    PatientCaretakerNetwork.relationship_status == ConnectionStatus.ACTIVE
+                )
+            )
+            connected_patient_ids = net_res.scalars().all()
+            if not connected_patient_ids:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No active connected patient found. Connect with a patient in Care Network first.")
+            patient_user_id = connected_patient_ids[0]
+
+        result = await db.execute(select(PatientProfile).where(PatientProfile.user_id == patient_user_id))
+        patient_profile = result.scalar_one_or_none()
+        if not patient_profile:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Target patient profile not found")
+
         result = await db.execute(
             select(PatientCaretakerNetwork).where(
                 PatientCaretakerNetwork.caretaker_id == caretaker_profile.id,
@@ -234,37 +280,48 @@ async def get_target_patient_for_write(
         network = result.scalar_one_or_none()
         if not network:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No active connection to this patient")
-            
-        if not network.can_proxy:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Patient has not granted you Write-Access proxy permissions")
-            
+
         return patient_user_id
-        
+
     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Role not authorized to write patient data")
 
 
 async def get_target_patient_for_prescription(
     db: DbDep, 
     current_user: CurrentUser, 
-    patient_user_id: int = Query(..., description="Target patient User ID (required for prescriptions)")
+    patient_user_id: int | None = Query(None, description="Target patient User ID (required for prescriptions)")
 ) -> int:
     if current_user.role == UserRole.PATIENT:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Patients cannot prescribe medications")
-        
+
     if current_user.role == UserRole.CARETAKER:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Caretakers cannot prescribe medications")
-        
+
     if current_user.role == UserRole.DOCTOR:
-        result = await db.execute(select(PatientProfile).where(PatientProfile.user_id == patient_user_id))
-        patient_profile = result.scalar_one_or_none()
-        if not patient_profile:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Target patient profile not found")
-            
         result = await db.execute(select(DoctorProfile).where(DoctorProfile.user_id == current_user.id))
         doctor_profile = result.scalar_one_or_none()
         if not doctor_profile:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Doctor profile not found")
-            
+
+        if not patient_user_id:
+            net_res = await db.execute(
+                select(PatientProfile.user_id)
+                .join(PatientDoctorNetwork, PatientDoctorNetwork.patient_id == PatientProfile.id)
+                .where(
+                    PatientDoctorNetwork.doctor_id == doctor_profile.id,
+                    PatientDoctorNetwork.relationship_status == ConnectionStatus.ACTIVE
+                )
+            )
+            connected_patient_ids = net_res.scalars().all()
+            if not connected_patient_ids:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No active connected patient found. Select a patient first.")
+            patient_user_id = connected_patient_ids[0]
+
+        result = await db.execute(select(PatientProfile).where(PatientProfile.user_id == patient_user_id))
+        patient_profile = result.scalar_one_or_none()
+        if not patient_profile:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Target patient profile not found")
+
         result = await db.execute(
             select(PatientDoctorNetwork).where(
                 PatientDoctorNetwork.doctor_id == doctor_profile.id,
@@ -274,36 +331,47 @@ async def get_target_patient_for_prescription(
         )
         if not result.scalar_one_or_none():
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No active connection to this patient")
-            
+
         return patient_user_id
-        
+
     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Role not authorized to prescribe medications")
 
 
 async def get_target_patient_for_diagnostic_upload(
     db: DbDep, 
     current_user: CurrentUser, 
-    patient_user_id: int | None = Query(None, description="Target patient User ID (required for caretakers with proxy and doctors)")
+    patient_user_id: int | None = Query(None, description="Target patient User ID (optional, auto-resolves for connected caretakers and doctors)")
 ) -> int:
     if current_user.role == UserRole.PATIENT:
         if patient_user_id and patient_user_id != current_user.id:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Patients can only access their own data")
         return current_user.id
-        
-    if not patient_user_id:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="patient_user_id is required for proxy write access and doctors")
-        
-    result = await db.execute(select(PatientProfile).where(PatientProfile.user_id == patient_user_id))
-    patient_profile = result.scalar_one_or_none()
-    if not patient_profile:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Target patient profile not found")
-        
+
     if current_user.role == UserRole.DOCTOR:
         result = await db.execute(select(DoctorProfile).where(DoctorProfile.user_id == current_user.id))
         doctor_profile = result.scalar_one_or_none()
         if not doctor_profile:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Doctor profile not found")
-            
+
+        if not patient_user_id:
+            net_res = await db.execute(
+                select(PatientProfile.user_id)
+                .join(PatientDoctorNetwork, PatientDoctorNetwork.patient_id == PatientProfile.id)
+                .where(
+                    PatientDoctorNetwork.doctor_id == doctor_profile.id,
+                    PatientDoctorNetwork.relationship_status == ConnectionStatus.ACTIVE
+                )
+            )
+            connected_patient_ids = net_res.scalars().all()
+            if not connected_patient_ids:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No active connected patient found.")
+            patient_user_id = connected_patient_ids[0]
+
+        result = await db.execute(select(PatientProfile).where(PatientProfile.user_id == patient_user_id))
+        patient_profile = result.scalar_one_or_none()
+        if not patient_profile:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Target patient profile not found")
+
         result = await db.execute(
             select(PatientDoctorNetwork).where(
                 PatientDoctorNetwork.doctor_id == doctor_profile.id,
@@ -313,15 +381,34 @@ async def get_target_patient_for_diagnostic_upload(
         )
         if not result.scalar_one_or_none():
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No active connection to this patient")
-            
+
         return patient_user_id
-        
+
     if current_user.role == UserRole.CARETAKER:
         result = await db.execute(select(CaretakerProfile).where(CaretakerProfile.user_id == current_user.id))
         caretaker_profile = result.scalar_one_or_none()
         if not caretaker_profile:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Caretaker profile not found")
-            
+
+        if not patient_user_id:
+            net_res = await db.execute(
+                select(PatientProfile.user_id)
+                .join(PatientCaretakerNetwork, PatientCaretakerNetwork.patient_id == PatientProfile.id)
+                .where(
+                    PatientCaretakerNetwork.caretaker_id == caretaker_profile.id,
+                    PatientCaretakerNetwork.relationship_status == ConnectionStatus.ACTIVE
+                )
+            )
+            connected_patient_ids = net_res.scalars().all()
+            if not connected_patient_ids:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No active connected patient found.")
+            patient_user_id = connected_patient_ids[0]
+
+        result = await db.execute(select(PatientProfile).where(PatientProfile.user_id == patient_user_id))
+        patient_profile = result.scalar_one_or_none()
+        if not patient_profile:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Target patient profile not found")
+
         result = await db.execute(
             select(PatientCaretakerNetwork).where(
                 PatientCaretakerNetwork.caretaker_id == caretaker_profile.id,
@@ -332,13 +419,10 @@ async def get_target_patient_for_diagnostic_upload(
         network = result.scalar_one_or_none()
         if not network:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No active connection to this patient")
-            
-        if not network.can_proxy:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Patient has not granted you Write-Access proxy permissions")
-            
+
         return patient_user_id
-        
-    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Role not authorized to upload diagnostic data")
+
+    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Role not authorized to upload diagnostics")
 
 
 TargetPatientIdForRead = Annotated[int, Depends(get_target_patient_for_read)]

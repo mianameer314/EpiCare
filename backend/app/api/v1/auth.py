@@ -285,3 +285,23 @@ async def change_password(data: ChangePasswordRequest, current_user: CurrentUser
         db, current_user, data.current_password, data.new_password
     )
     return None
+
+
+from app.core.config import settings
+
+@router.get(
+    "/firebase-config",
+    summary="Get Firebase Web Client Config",
+    description="Returns public Firebase configuration for client push notifications (PWA and Web).",
+)
+async def get_firebase_web_config():
+    """Returns the non-sensitive public Firebase Web configuration."""
+    return {
+        "apiKey": settings.FIREBASE_WEB_API_KEY,
+        "authDomain": settings.FIREBASE_WEB_AUTH_DOMAIN or (f"{settings.FIREBASE_PROJECT_ID}.firebaseapp.com" if settings.FIREBASE_PROJECT_ID else ""),
+        "projectId": settings.FIREBASE_PROJECT_ID or "epicare-2fc46",
+        "storageBucket": settings.FIREBASE_STORAGE_BUCKET or (f"{settings.FIREBASE_PROJECT_ID}.appspot.com" if settings.FIREBASE_PROJECT_ID else ""),
+        "messagingSenderId": settings.FIREBASE_MESSAGING_SENDER_ID,
+        "appId": settings.FIREBASE_WEB_APP_ID,
+        "vapidKey": settings.FIREBASE_WEB_VAPID_KEY,
+    }

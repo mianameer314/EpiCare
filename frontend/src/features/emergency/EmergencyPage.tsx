@@ -39,7 +39,11 @@ export function EmergencyPage() {
       if (navigator.geolocation) {
         try {
           const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 4000 });
+            navigator.geolocation.getCurrentPosition(resolve, reject, {
+              timeout: 6000,
+              enableHighAccuracy: true,
+              maximumAge: 10000,
+            });
           });
           lat = pos.coords.latitude;
           lng = pos.coords.longitude;
