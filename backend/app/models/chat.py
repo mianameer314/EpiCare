@@ -1,10 +1,10 @@
-﻿"""
+"""
 Chat models — RAG chatbot sessions and messages.
 """
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, func
+from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, func, Index
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -17,6 +17,9 @@ if TYPE_CHECKING:
 
 class ChatSession(TimestampMixin, Base):
     __tablename__ = "chat_sessions"
+    __table_args__ = (
+        Index("ix_chat_sessions_user_updated", "user_id", "updated_at"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     user_id: Mapped[int] = mapped_column(
@@ -32,6 +35,10 @@ class ChatSession(TimestampMixin, Base):
 
 class ChatMessage(Base):
     __tablename__ = "chat_messages"
+    __table_args__ = (
+        Index("ix_chat_messages_session_created", "session_id", "created_at"),
+        Index("ix_chat_messages_user_created", "user_id", "created_at"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     session_id: Mapped[int] = mapped_column(
@@ -48,3 +55,4 @@ class ChatMessage(Base):
     )
 
     session: Mapped["ChatSession"] = relationship(back_populates="messages")
+

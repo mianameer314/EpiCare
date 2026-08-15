@@ -26,50 +26,58 @@ router = APIRouter(prefix="/chat")
     tags=['🤖 AI Chatbot'],
     response_model=List[ChatSessionOut],
     summary="List Chat Sessions",
-    description="Retrieve all chat sessions for the authenticated user with message counts and previews.",
+    description="Retrieve all chat sessions for the authenticated user with message counts and previews in a single high-speed indexed query.",
 )
 async def list_chat_sessions(
     current_user: CurrentUser,
     db: DbDep,
 ):
-    # Fetch sessions for current user
-    result = await db.execute(
-        select(ChatSession)
+    # High-performance single-query execution with correlated subqueries
+    count_sub = (
+        select(func.count(ChatMessage.id))
+        .where(ChatMessage.session_id == ChatSession.id)
+        .correlate(ChatSession)
+        .scalar_subquery()
+    )
+
+    last_msg_sub = (
+        select(ChatMessage.content)
+        .where(ChatMessage.session_id == ChatSession.id)
+        .order_by(ChatMessage.created_at.desc())
+        .limit(1)
+        .correlate(ChatSession)
+        .scalar_subquery()
+    )
+
+    stmt = (
+        select(
+            ChatSession.id,
+            ChatSession.user_id,
+            ChatSession.title,
+            ChatSession.created_at,
+            ChatSession.updated_at,
+            count_sub.label("message_count"),
+            last_msg_sub.label("last_message"),
+        )
         .where(ChatSession.user_id == current_user.id)
         .order_by(ChatSession.updated_at.desc())
     )
-    sessions = result.scalars().all()
 
-    session_list: list[ChatSessionOut] = []
-    for s in sessions:
-        # Get count and last message
-        count_query = await db.execute(
-            select(func.count(ChatMessage.id))
-            .where(ChatMessage.session_id == s.id)
+    result = await db.execute(stmt)
+    rows = result.all()
+
+    return [
+        ChatSessionOut(
+            id=row.id,
+            user_id=row.user_id,
+            title=row.title,
+            message_count=row.message_count or 0,
+            last_message=row.last_message,
+            created_at=row.created_at,
+            updated_at=row.updated_at,
         )
-        msg_count = count_query.scalar() or 0
-
-        last_msg_query = await db.execute(
-            select(ChatMessage.content)
-            .where(ChatMessage.session_id == s.id)
-            .order_by(ChatMessage.created_at.desc())
-            .limit(1)
-        )
-        last_msg = last_msg_query.scalar_one_or_none()
-
-        session_list.append(
-            ChatSessionOut(
-                id=s.id,
-                user_id=s.user_id,
-                title=s.title,
-                message_count=msg_count,
-                last_message=last_msg,
-                created_at=s.created_at,
-                updated_at=s.updated_at,
-            )
-        )
-
-    return session_list
+        for row in rows
+    ]
 
 
 @router.post(
