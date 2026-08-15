@@ -371,8 +371,8 @@
   padding: var(--space-4);
   border-radius: var(--radius-2xl);
   background: rgba(255, 255, 255, 0.96);
-  backdrop-filter: blur(32px) saturate(200%);
-  -webkit-backdrop-filter: blur(32px) saturate(200%);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(45, 90, 63, 0.16);
   box-shadow: 0 20px 48px -4px rgba(15, 43, 25, 0.16), 0 0 0 1px rgba(255, 255, 255, 0.9) inset;
   z-index: 9999 !important;

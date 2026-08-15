@@ -64,11 +64,10 @@ export function Select({ id, label, value, options, onChange }: SelectProps) {
         {isOpen && (
           <motion.div 
             className="custom-select-dropdown"
-            initial={{ opacity: 0, y: -10, scaleY: 0.9 }}
-            animate={{ opacity: 1, y: 0, scaleY: 1 }}
-            exit={{ opacity: 0, y: -10, scaleY: 0.9 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
-            style={{ originY: 0 }}
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.12, ease: [0.16, 1, 0.3, 1] }}
           >
             {options.map((option) => (
               <div

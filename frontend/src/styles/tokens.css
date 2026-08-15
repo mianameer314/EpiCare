@@ -136,9 +136,9 @@
   --glass-bg-elevated: rgba(255, 255, 255, 0.85);
   --glass-border: rgba(255, 255, 255, 0.6);
   --glass-border-subtle: rgba(255, 255, 255, 0.3);
-  --glass-blur: 16px;
-  --glass-blur-heavy: 24px;
-  --glass-blur-light: 8px;
+  --glass-blur: 12px;
+  --glass-blur-heavy: 16px;
+  --glass-blur-light: 6px;
 
   /* Shadows — Multi-layer depth system */
   --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
@@ -162,24 +162,24 @@
   --bento-columns: 4;
   --bento-min-height: 180px;
 
-  /* ── Motion & Transitions ── */
+  /* ── Motion & Transitions (Snappy & Hardware Accelerated) ── */
   --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-spring-bounce: cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  --ease-out: cubic-bezier(0.33, 1, 0.68, 1);
-  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
 
-  /* Duration tokens */
-  --duration-instant: 100ms;
-  --duration-fast: 150ms;
-  --duration-normal: 300ms;
-  --duration-slow: 500ms;
-  --duration-slower: 700ms;
+  /* Duration tokens — Tuned for instant responsiveness */
+  --duration-instant: 60ms;
+  --duration-fast: 120ms;
+  --duration-normal: 160ms;
+  --duration-slow: 240ms;
+  --duration-slower: 350ms;
 
   /* Composed transitions */
   --transition-fast: var(--duration-fast) var(--ease-spring);
   --transition-normal: var(--duration-normal) var(--ease-spring);
   --transition-slow: var(--duration-slow) var(--ease-spring);
-  --transition-spring: var(--duration-slow) var(--ease-spring-bounce);
+  --transition-spring: var(--duration-normal) var(--ease-spring);
 
   /* Hover lift */
   --hover-lift: translateY(-4px);
