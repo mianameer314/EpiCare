@@ -106,77 +106,78 @@ export function EEGPage() {
         </div>
       </div>
 
-      {/* ── AI Model Status & Auto-Pick Banner ── */}
-      <div
-        className="eeg-model-status-card glass-panel"
-        style={{
-          marginBottom: 'var(--space-6)',
-          padding: 'var(--space-4) var(--space-5)',
-          borderRadius: 'var(--radius-xl)',
-          border: modelStatus?.ready
-            ? '1.5px solid rgba(22, 163, 74, 0.25)'
-            : '1.5px solid rgba(45, 90, 63, 0.2)',
-          background: modelStatus?.ready
-            ? 'rgba(22, 163, 74, 0.04)'
-            : 'linear-gradient(135deg, rgba(45, 90, 63, 0.04) 0%, rgba(255, 255, 255, 0.95) 100%)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: 'var(--space-3)',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
-          <div
+      {/* ── AI Model Training Notice (Automatically removed once model weights are deployed) ── */}
+      <AnimatePresence>
+        {!modelStatus?.ready && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+            transition={{ duration: 0.25 }}
+            className="eeg-model-status-card glass-panel"
             style={{
-              width: '38px',
-              height: '38px',
-              borderRadius: 'var(--radius-lg)',
-              background: modelStatus?.ready ? 'var(--color-success-bg)' : 'var(--color-primary-50)',
-              color: modelStatus?.ready ? 'var(--color-success)' : 'var(--color-primary)',
+              marginBottom: 'var(--space-6)',
+              padding: 'var(--space-4) var(--space-5)',
+              borderRadius: 'var(--radius-xl)',
+              border: '1.5px solid rgba(45, 90, 63, 0.2)',
+              background: 'linear-gradient(135deg, rgba(45, 90, 63, 0.04) 0%, rgba(255, 255, 255, 0.95) 100%)',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: 'var(--space-3)',
+              overflow: 'hidden',
             }}
           >
-            {modelStatus?.ready ? <Cpu size={20} /> : <BrainCircuit size={20} />}
-          </div>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: 'var(--text-sm)', fontWeight: 700, color: 'var(--color-text-main)' }}>
-                {modelStatus?.ready
-                  ? `AI Neural Seizure Model Active (${modelStatus.version})`
-                  : 'AI Diagnostic Engine · Model Training in Progress'}
-              </span>
-              <span
-                className="glass-badge"
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+              <div
                 style={{
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  color: modelStatus?.ready ? 'var(--color-success)' : 'var(--color-primary)',
-                  background: modelStatus?.ready ? 'var(--color-success-bg)' : 'var(--color-primary-50)',
+                  width: '38px',
+                  height: '38px',
+                  borderRadius: 'var(--radius-lg)',
+                  background: 'var(--color-primary-50)',
+                  color: 'var(--color-primary)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
                 }}
               >
-                {modelStatus?.ready ? '● Online & Ready' : '⏳ Auto-Detecting Weights (.onnx / .pt)'}
-              </span>
+                <BrainCircuit size={20} />
+              </div>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: 'var(--text-sm)', fontWeight: 700, color: 'var(--color-text-main)' }}>
+                    AI Diagnostic Engine · Model Training in Progress
+                  </span>
+                  <span
+                    className="glass-badge"
+                    style={{
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      color: 'var(--color-primary)',
+                      background: 'var(--color-primary-50)',
+                    }}
+                  >
+                    ⏳ Auto-Detecting Weights (.onnx / .pt)
+                  </span>
+                </div>
+                <p
+                  style={{
+                    margin: '2px 0 0',
+                    fontSize: 'var(--text-xs)',
+                    color: 'var(--color-text-muted)',
+                    maxWidth: '740px',
+                    lineHeight: 1.5,
+                  }}
+                >
+                  Raw EEG files are validated, preprocessed, and safely stored in the clinical repository. When trained model weights (.onnx / .pt) are placed in the models directory, the system will automatically pick them up.
+                </p>
+              </div>
             </div>
-            <p
-              style={{
-                margin: '2px 0 0',
-                fontSize: 'var(--text-xs)',
-                color: 'var(--color-text-muted)',
-                maxWidth: '740px',
-                lineHeight: 1.5,
-              }}
-            >
-              {modelStatus?.ready
-                ? 'Dual-domain CNN-Transformer neural network is loaded. Automated sliding-window seizure inference and report generation are active.'
-                : 'Raw EEG files are validated, preprocessed, and safely stored in the clinical repository. When trained model weights (.onnx / .pt) are placed in the models directory, the system will automatically pick them up.'}
-            </p>
-          </div>
-        </div>
-      </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── Upload View ── */}
       {activeTab === 'upload' && (
