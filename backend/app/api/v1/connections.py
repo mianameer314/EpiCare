@@ -34,6 +34,11 @@ class DoctorSearchResponse(BaseModel):
     hospital_affiliation: str | None
 
 
+class DoctorFilterOptionsResponse(BaseModel):
+    specialties: List[str]
+    locations: List[str]
+
+
 class ConnectionRequest(BaseModel):
     doctor_id: int
 
@@ -77,6 +82,8 @@ async def search_doctors(
     name: str | None = None,
     specialty: str | None = None,
     hospital: str | None = None,
+    city: str | None = None,
+    country: str | None = None,
 ):
     """Search for verified doctors with optional filters."""
     query = (
@@ -87,13 +94,17 @@ async def search_doctors(
     )
     
     if pmdc_number:
-        query = query.where(DoctorProfile.pmdc_number == pmdc_number)
+        query = query.where(DoctorProfile.pmdc_number.ilike(f"%{pmdc_number}%"))
     if name:
         query = query.where(User.full_name.ilike(f"%{name}%"))
-    if specialty:
-        query = query.where(DoctorProfile.specialty.ilike(f"%{specialty}%"))
+    if specialty and specialty.strip().lower() not in ("all", "all specialties"):
+        query = query.where(DoctorProfile.specialty.ilike(f"%{specialty.strip()}%"))
     if hospital:
-        query = query.where(DoctorProfile.hospital_affiliation.ilike(f"%{hospital}%"))
+        query = query.where(DoctorProfile.hospital_affiliation.ilike(f"%{hospital.strip()}%"))
+    if city and city.strip().lower() not in ("all", "all cities"):
+        query = query.where(DoctorProfile.hospital_affiliation.ilike(f"%{city.strip()}%"))
+    if country and country.strip().lower() not in ("all", "all countries"):
+        query = query.where(DoctorProfile.hospital_affiliation.ilike(f"%{country.strip()}%"))
         
     if params.sort_by and hasattr(DoctorProfile, params.sort_by):
         column = getattr(DoctorProfile, params.sort_by)
@@ -121,6 +132,45 @@ async def search_doctors(
         for doc in doctors
     ]
     return create_paginated_response(items, total, params.skip, params.limit)
+
+
+@router.get(
+    "/doctors/filter-options",
+    tags=["🤒 Patient - Care Network"],
+    response_model=DoctorFilterOptionsResponse,
+    summary="Get dynamic filter options for verified doctors",
+    description="Returns distinct specialties and locations extracted dynamically from verified doctors in the database.",
+)
+async def get_doctor_filter_options(
+    db: DbDep,
+    current_user: User = Depends(RoleChecker([UserRole.PATIENT])),
+):
+    """Dynamically aggregate available specialties and locations from registered verified doctors."""
+    query = (
+        select(DoctorProfile.specialty, DoctorProfile.hospital_affiliation)
+        .where(DoctorProfile.is_pmdc_verified == True)
+    )
+    result = await db.execute(query)
+    rows = result.all()
+
+    specialties = set()
+    locations = set()
+
+    for spec, hosp in rows:
+        if spec and spec.strip():
+            specialties.add(spec.strip())
+        if hosp and hosp.strip():
+            locations.add(hosp.strip())
+            # Also extract city/country tokens if comma-separated
+            for part in hosp.split(","):
+                part_clean = part.strip()
+                if len(part_clean) > 2:
+                    locations.add(part_clean)
+
+    return DoctorFilterOptionsResponse(
+        specialties=sorted(list(specialties)),
+        locations=sorted(list(locations)),
+    )
 
 
 @router.post(

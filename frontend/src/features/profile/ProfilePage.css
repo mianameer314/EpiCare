@@ -10,7 +10,7 @@
 }
 
 .profile-header {
-  margin-bottom: var(--space-8);
+  margin-bottom: var(--space-6);
 }
 
 .profile-header h1 {
@@ -25,6 +25,202 @@
   margin: 0;
 }
 
+/* ── Dynamic Profile Completion Hero Banner ── */
+.profile-completion-card {
+  padding: var(--space-5) var(--space-6);
+  border-radius: var(--radius-2xl);
+  margin-bottom: var(--space-6);
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(45, 90, 63, 0.18);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.94) 0%, rgba(246, 252, 248, 0.88) 100%);
+  box-shadow: 0 12px 32px -8px rgba(15, 43, 25, 0.07);
+}
+
+.profile-completion-card.complete {
+  border-color: rgba(22, 101, 52, 0.35);
+  background: linear-gradient(135deg, rgba(240, 253, 244, 0.96) 0%, rgba(255, 255, 255, 0.9) 100%);
+}
+
+.completion-top-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-5);
+  margin-bottom: var(--space-4);
+}
+
+.completion-percentage-circle {
+  width: 58px;
+  height: 58px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--color-primary);
+  background: linear-gradient(135deg, #e8f5ec, #c6e7d0);
+  border: 2px solid rgba(45, 90, 63, 0.25);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.18);
+}
+
+.completion-percentage-circle.complete {
+  background: linear-gradient(135deg, #dcfce7, #86efac);
+  color: #15803d;
+  box-shadow: 0 4px 16px rgba(22, 101, 52, 0.25);
+}
+
+.completion-percentage-circle.low {
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  color: #b45309;
+  border-color: rgba(217, 119, 6, 0.25);
+}
+
+.completion-info {
+  flex: 1;
+}
+
+.completion-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: 4px;
+}
+
+.completion-title-row h3 {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-main);
+}
+
+.completion-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: var(--font-weight-semibold);
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+
+.completion-status-pill.complete {
+  background: #dcfce7;
+  color: #15803d;
+  border-color: #86efac;
+}
+
+.completion-subtitle {
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+/* Missing Fields Checklist */
+.missing-fields-container {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.missing-fields-lead {
+  font-size: 11px;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.missing-fields-pills {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.missing-field-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: var(--font-weight-medium);
+  background: #fff;
+  border: 1px solid rgba(45, 90, 63, 0.2);
+  color: var(--color-primary-dark);
+  cursor: pointer;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.missing-field-btn:hover {
+  background: var(--color-primary-50);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(16, 185, 129, 0.15);
+}
+
+/* Progress bar track */
+.completion-progress-track {
+  width: 100%;
+  height: 6px;
+  border-radius: var(--radius-full);
+  background: rgba(45, 90, 63, 0.08);
+  overflow: hidden;
+  margin-top: var(--space-2);
+}
+
+.completion-progress-bar {
+  height: 100%;
+  border-radius: var(--radius-full);
+  transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ── Interactive Trigger Picker Tags ── */
+.trigger-picker-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: var(--space-2);
+}
+
+.trigger-pill-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: var(--radius-full);
+  font-size: 11.5px;
+  font-weight: var(--font-weight-medium);
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(45, 90, 63, 0.15);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.trigger-pill-toggle:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.trigger-pill-toggle.selected {
+  background: linear-gradient(135deg, #15803d, #166534);
+  border-color: transparent;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(22, 101, 52, 0.2);
+}
+
 .profile-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -34,5 +230,16 @@
 @media (max-width: 900px) {
   .profile-grid {
     grid-template-columns: 1fr;
+  }
+  .completion-top-row {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  .completion-title-row {
+    justify-content: center;
+  }
+  .missing-fields-container {
+    justify-content: center;
   }
 }

@@ -22,6 +22,7 @@ import {
   ArrowLeft,
 } from 'lucide-react';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
+import { useUnsavedChangesContext } from '../../providers/UnsavedChangesProvider';
 import './AppShell.css';
 
 /* ────────────────────────────────────────────────────
@@ -50,6 +51,7 @@ export function AppShell() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const { safeNavigate, isDirty, confirmNavigation } = useUnsavedChangesContext();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
@@ -132,6 +134,13 @@ export function AppShell() {
         !hasSidebar ? 'no-sidebar' : sidebarCollapsed ? 'sidebar-collapsed' : ''
       }`}
     >
+      {/* ── Ambient Living Lighting & Depth Mesh ── */}
+      <div className="ambient-living-backdrop" aria-hidden="true">
+        <div className="ambient-aurora-glow glow-emerald" />
+        <div className="ambient-aurora-glow glow-azure" />
+        <div className="ambient-aurora-glow glow-sand" />
+      </div>
+
       {/* ── Desktop Sidebar (Patients Only) ── */}
       {hasSidebar && (
         <aside className="app-sidebar glass-sidebar" aria-label="Main navigation">
@@ -176,6 +185,12 @@ export function AppShell() {
                 <NavLink
                   key={item.to}
                   to={item.to}
+                  onClick={(e) => {
+                    if (isDirty && location.pathname !== item.to) {
+                      e.preventDefault();
+                      safeNavigate(item.to);
+                    }
+                  }}
                   className={`sidebar-link ${isActive ? 'active' : ''}`}
                   title={sidebarCollapsed ? item.label : undefined}
                 >
@@ -207,7 +222,7 @@ export function AppShell() {
             {!hasSidebar && (
               <div
                 className="topbar-brand"
-                onClick={() => navigate('/dashboard')}
+                onClick={() => safeNavigate('/dashboard')}
                 title="EpiCare Platform"
               >
                 <div className="logo-icon-aura topbar-logo-aura">
@@ -235,7 +250,7 @@ export function AppShell() {
               <div className="topbar-context-badge">
                 <button
                   className="topbar-back-pill"
-                  onClick={() => navigate('/dashboard')}
+                  onClick={() => safeNavigate('/dashboard')}
                   title="Return to Main Workspace"
                 >
                   <ArrowLeft size={14} />
@@ -250,7 +265,10 @@ export function AppShell() {
           <div className="topbar-right">
             {/* Live Epilepsy Safety Pulse Widget */}
             <div className="topbar-safety-pill" title="Live System Health & AI Telemetry">
-              <div className="safety-pulse-dot" />
+              <div className="safety-pulse-dot-wrap">
+                <span className="safety-pulse-ring" />
+                <div className="safety-pulse-dot" />
+              </div>
               <span className="safety-pill-text">
                 {user?.role === 'PATIENT'
                   ? 'Safety: Active · AI Monitor Online'
@@ -260,13 +278,16 @@ export function AppShell() {
                   ? 'Caregiver Relay: Active'
                   : 'System Status: All Systems Operational'}
               </span>
+              <svg className="live-telemetry-wave" viewBox="0 0 36 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M0 6H8L11 1L15 11L18 4L21 8L24 6H36" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
             </div>
 
             {/* AI Assistant / Return to Dashboard Quick Launcher */}
             {location.pathname === '/chat' ? (
               <button
                 className="topbar-ai-btn active-back"
-                onClick={() => navigate('/dashboard')}
+                onClick={() => safeNavigate('/dashboard')}
                 title="Return to Main Dashboard"
               >
                 <LayoutDashboard size={14} />
@@ -275,7 +296,7 @@ export function AppShell() {
             ) : (
               <button
                 className="topbar-ai-btn"
-                onClick={() => navigate('/chat')}
+                onClick={() => safeNavigate('/chat')}
                 title="Open AI Medical Assistant"
               >
                 <Sparkles size={15} className="ai-sparkle-icon" />
@@ -287,7 +308,7 @@ export function AppShell() {
             {(user?.role === 'PATIENT' || user?.role === 'CARETAKER') && (
               <button
                 className="topbar-sos-btn"
-                onClick={() => navigate('/emergency')}
+                onClick={() => safeNavigate('/emergency')}
                 title="Immediate Emergency Protocol"
               >
                 <Siren size={16} className="sos-icon-pulse" />
@@ -351,7 +372,7 @@ export function AppShell() {
                             className="dropdown-item-btn"
                             onClick={() => {
                               setUserDropdownOpen(false);
-                              navigate('/dashboard');
+                              safeNavigate('/dashboard');
                             }}
                           >
                             <LayoutDashboard size={16} />
@@ -363,7 +384,7 @@ export function AppShell() {
                           className="dropdown-item-btn"
                           onClick={() => {
                             setUserDropdownOpen(false);
-                            navigate('/profile');
+                            safeNavigate('/profile');
                           }}
                         >
                           <UserIcon size={16} />
@@ -376,7 +397,7 @@ export function AppShell() {
                           className="dropdown-item-btn logout-item-btn"
                           onClick={() => {
                             setUserDropdownOpen(false);
-                            setLogoutDialogOpen(true);
+                            confirmNavigation(() => setLogoutDialogOpen(true));
                           }}
                         >
                           <LogOut size={16} />
@@ -418,7 +439,13 @@ export function AppShell() {
                     className={({ isActive }) =>
                       `mobile-link ${isActive ? 'active' : ''}`
                     }
-                    onClick={() => setMobileMenuOpen(false)}
+                    onClick={(e) => {
+                      setMobileMenuOpen(false);
+                      if (isDirty && location.pathname !== item.to) {
+                        e.preventDefault();
+                        safeNavigate(item.to);
+                      }
+                    }}
                   >
                     <span className="mobile-link-icon">{item.icon}</span>
                     <span>{item.label}</span>
@@ -429,7 +456,7 @@ export function AppShell() {
                   className="mobile-link logout-action"
                   onClick={() => {
                     setMobileMenuOpen(false);
-                    setLogoutDialogOpen(true);
+                    confirmNavigation(() => setLogoutDialogOpen(true));
                   }}
                 >
                   <span className="mobile-link-icon"><LogOut size={20} /></span>

@@ -56,16 +56,31 @@ export interface PaginatedList<T> {
 }
 
 export const connectionsApi = {
-  // ── Patient Endpoints ──
-  searchDoctors: async (params?: { name?: string; specialty?: string; pmdc?: string }) => {
+  searchDoctors: async (params?: {
+    name?: string;
+    specialty?: string;
+    pmdc?: string;
+    city?: string;
+    country?: string;
+    hospital?: string;
+    skip?: number;
+    limit?: number;
+  }) => {
     const sp = new URLSearchParams();
     if (params?.name) sp.set('name', params.name);
     if (params?.specialty) sp.set('specialty', params.specialty);
     if (params?.pmdc) sp.set('pmdc_number', params.pmdc);
+    if (params?.city) sp.set('city', params.city);
+    if (params?.country) sp.set('country', params.country);
+    if (params?.hospital) sp.set('hospital', params.hospital);
+    if (params?.skip !== undefined) sp.set('skip', String(params.skip));
+    if (params?.limit !== undefined) sp.set('limit', String(params.limit));
     const qs = sp.toString();
-    const res = await apiClient.get<PaginatedList<DoctorSearchItem>>(`/connections/doctors/search${qs ? `?${qs}` : ''}`);
-    return res?.items || (Array.isArray(res) ? res : []);
+    return apiClient.get<PaginatedList<DoctorSearchItem>>(`/connections/doctors/search${qs ? `?${qs}` : ''}`);
   },
+
+  getDoctorFilterOptions: () =>
+    apiClient.get<{ specialties: string[]; locations: string[] }>('/connections/doctors/filter-options'),
 
   requestDoctorConnection: (doctorId: number) =>
     apiClient.post('/connections/doctors/request', { doctor_id: doctorId }),

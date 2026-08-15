@@ -15,6 +15,7 @@ import { ChatPage } from './features/chat/ChatPage';
 import { ProfilePage } from './features/profile/ProfilePage';
 import { AdminDashboard } from './features/admin/AdminDashboard';
 import { ErrorBoundary } from './components/errors/ErrorBoundary';
+import { UnsavedChangesProvider } from './providers/UnsavedChangesProvider';
 import { useAuth } from './hooks/useAuth';
 
 /* ────────────────────────────────────────────────────
@@ -39,7 +40,8 @@ function App() {
   return (
     <ErrorBoundary>
       <BrowserRouter>
-        <Routes>
+        <UnsavedChangesProvider>
+          <Routes>
           {/* ── Public Routes ── */}
           <Route path="/" element={<LandingPage />} />
           <Route path="/auth" element={<AuthPage />} />
@@ -133,6 +135,7 @@ function App() {
           {/* ── Catch-all ── */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        </UnsavedChangesProvider>
       </BrowserRouter>
     </ErrorBoundary>
   );
