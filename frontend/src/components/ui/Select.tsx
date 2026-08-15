@@ -39,8 +39,8 @@ export function Select({ id, label, value, options, onChange }: SelectProps) {
   };
 
   return (
-    <div className="custom-select-wrapper" ref={selectRef}>
-      <label htmlFor={id} className="input-label">{label}</label>
+    <div className={`custom-select-wrapper ${isOpen ? 'active-dropdown' : ''}`} ref={selectRef}>
+      {label ? <label htmlFor={id} className="input-label">{label}</label> : null}
       
       <div 
         className={`custom-select-trigger ${isOpen ? 'open' : ''}`}

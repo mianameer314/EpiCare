@@ -26,6 +26,9 @@ export const authApi = {
   getMe: () => 
     apiClient.get<User>('/auth/me'),
 
+  updateProfile: (data: { full_name?: string; phone_number?: string }) =>
+    apiClient.patch<User>('/auth/me', data),
+
   forgotPassword: (data: { email: string }) =>
     apiClient.post<{ message: string }>('/auth/forgot-password', data),
 
