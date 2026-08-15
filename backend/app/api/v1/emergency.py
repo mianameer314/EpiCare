@@ -4,8 +4,12 @@ from sqlalchemy import select
 from typing import List
 
 from app.api.deps import DbDep, TargetPatientIdForRead, TargetPatientIdForWrite
-from app.models.enums import UserRole
+from app.db.session import SessionLocal
+from app.models.enums import UserRole, ConnectionStatus
 from app.models.user import User
+from app.models.patient_profile import PatientProfile
+from app.models.caretaker_profile import CaretakerProfile
+from app.models.networks import PatientCaretakerNetwork
 from app.models.emergency import EmergencyContact, SosEvent, SosDelivery
 from app.schemas.emergency import (
     EmergencyContactCreate,
@@ -135,40 +139,69 @@ async def delete_emergency_contact(
     return None
 
 
-async def process_sos_in_background(db: AsyncSession, event_id: int, user_id: int):
-    """Background task to dispatch SOS via the configured provider."""
-    # Fetch the event
-    result = await db.execute(select(SosEvent).where(SosEvent.id == event_id))
-    event = result.scalar_one_or_none()
-    if not event:
-        return
+async def process_sos_in_background(event_id: int, user_id: int):
+    """Background task to dispatch SOS via all configured channels to contacts and Care Network."""
+    async with SessionLocal() as db:
+        # 1. Fetch the event
+        result = await db.execute(select(SosEvent).where(SosEvent.id == event_id))
+        event = result.scalar_one_or_none()
+        if not event:
+            return
 
-    # Fetch contacts
-    contacts_result = await db.execute(
-        select(EmergencyContact).where(EmergencyContact.user_id == user_id)
-    )
-    contacts = contacts_result.scalars().all()
-    if not contacts:
-        event.status = "FAILED"
-        await db.commit()
-        return
+        # 2. Fetch patient user & name
+        patient_user = await db.get(User, user_id)
+        patient_name = patient_user.full_name if patient_user else "Patient"
 
-    # Send SOS
-    provider = get_sos_provider()
-    delivery_results = await provider.send_sos(contacts, event)
-
-    # Log deliveries
-    for contact in contacts:
-        status_str = delivery_results.get(contact.id, "FAILED")
-        delivery = SosDelivery(
-            sos_event_id=event.id,
-            contact_id=contact.id,
-            delivery_status=status_str,
+        # 3. Fetch registered Emergency Contacts
+        contacts_result = await db.execute(
+            select(EmergencyContact).where(EmergencyContact.user_id == user_id)
         )
-        db.add(delivery)
+        contacts = list(contacts_result.scalars().all())
 
-    event.status = "COMPLETED"
-    await db.commit()
+        # 4. Fetch active connected Caretakers from Care Network
+        caretakers = []
+        patient_prof_res = await db.execute(
+            select(PatientProfile).where(PatientProfile.user_id == user_id)
+        )
+        patient_prof = patient_prof_res.scalar_one_or_none()
+
+        if patient_prof:
+            ct_query = await db.execute(
+                select(User)
+                .join(CaretakerProfile, CaretakerProfile.user_id == User.id)
+                .join(PatientCaretakerNetwork, PatientCaretakerNetwork.caretaker_id == CaretakerProfile.id)
+                .where(
+                    PatientCaretakerNetwork.patient_id == patient_prof.id,
+                    PatientCaretakerNetwork.relationship_status == ConnectionStatus.ACTIVE
+                )
+            )
+            caretakers = list(ct_query.scalars().all())
+
+        # 5. Dispatch alerts via SOS Provider
+        provider = get_sos_provider()
+        if hasattr(provider, "send_sos_extended"):
+            delivery_results = await provider.send_sos_extended(
+                contacts=contacts,
+                caretakers=caretakers,
+                event=event,
+                patient_name=patient_name
+            )
+        else:
+            contact_res = await provider.send_sos(contacts, event)
+            delivery_results = {f"contact_{cid}": status for cid, status in contact_res.items()}
+
+        # 6. Log deliveries for contacts
+        for contact in contacts:
+            status_str = delivery_results.get(f"contact_{contact.id}", "SENT")
+            delivery = SosDelivery(
+                sos_event_id=event.id,
+                contact_id=contact.id,
+                delivery_status=status_str,
+            )
+            db.add(delivery)
+
+        event.status = "COMPLETED"
+        await db.commit()
 
 
 from datetime import date, datetime, time
@@ -225,8 +258,8 @@ async def get_sos_events(
     description=(
         "Triggers an immediate Emergency SOS alert. This logs the event along with "
         "the patient's current GPS coordinates (if available) and instantly dispatches "
-        "asynchronous background tasks to notify all registered emergency contacts via "
-        "the configured provider (e.g., WhatsApp, Email)."
+        "asynchronous background tasks to notify all registered emergency contacts and "
+        "connected Care Network caregivers via email, SMS, WhatsApp, and Firebase."
     ),
     response_description="An object acknowledging the trigger with the SOS event ID."
 )
@@ -247,8 +280,8 @@ async def trigger_sos(
     await db.commit()
     await db.refresh(event)
 
-    # Dispatch to background
-    background_tasks.add_task(process_sos_in_background, db, event.id, target_user_id)
+    # Dispatch to background with independent session
+    background_tasks.add_task(process_sos_in_background, event.id, target_user_id)
 
     return SosEventCreateResponse(
         event_id=event.id,
