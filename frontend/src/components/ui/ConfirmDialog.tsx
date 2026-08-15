@@ -46,8 +46,12 @@ export function ConfirmDialog({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div
+        <motion.div
           className="glass-backdrop confirm-dialog-overlay"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.1 }}
           onClick={() => !isLoading && onClose()}
           role="dialog"
           aria-modal="true"
@@ -56,10 +60,10 @@ export function ConfirmDialog({
           <motion.div
             className="glass-modal confirm-dialog-box"
             onClick={(e) => e.stopPropagation()}
-            initial={{ scale: 0.94, opacity: 0, y: 10 }}
+            initial={{ scale: 0.96, opacity: 0, y: 6 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
-            exit={{ scale: 0.94, opacity: 0, y: 10 }}
-            transition={{ type: 'spring', stiffness: 380, damping: 28 }}
+            exit={{ scale: 0.96, opacity: 0, y: 6 }}
+            transition={{ duration: 0.12, ease: [0.16, 1, 0.3, 1] }}
           >
             {/* Header / Icon */}
             <div className="confirm-dialog-header">
@@ -116,7 +120,7 @@ export function ConfirmDialog({
               </button>
             </div>
           </motion.div>
-        </div>
+        </motion.div>
       )}
     </AnimatePresence>
   );

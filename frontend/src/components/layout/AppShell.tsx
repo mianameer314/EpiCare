@@ -134,13 +134,6 @@ export function AppShell() {
         !hasSidebar ? 'no-sidebar' : sidebarCollapsed ? 'sidebar-collapsed' : ''
       }`}
     >
-      {/* ── Ambient Living Lighting & Depth Mesh ── */}
-      <div className="ambient-living-backdrop" aria-hidden="true">
-        <div className="ambient-aurora-glow glow-emerald" />
-        <div className="ambient-aurora-glow glow-azure" />
-        <div className="ambient-aurora-glow glow-sand" />
-      </div>
-
       {/* ── Desktop Sidebar (Patients Only) ── */}
       {hasSidebar && (
         <aside className="app-sidebar glass-sidebar" aria-label="Main navigation">
@@ -467,24 +460,21 @@ export function AppShell() {
           )}
         </AnimatePresence>
 
-        {/* ── Main Workspace Content with Smooth Fluid Page Transitions ── */}
+        {/* ── Main Workspace Content with Instant Smooth Page Transitions ── */}
         <main className="app-main">
           <div className="app-content-container">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={location.pathname}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                transition={{
-                  duration: 0.24,
-                  ease: [0.16, 1, 0.3, 1],
-                }}
-                className="page-transition-wrap"
-              >
-                <Outlet />
-              </motion.div>
-            </AnimatePresence>
+            <motion.div
+              key={location.pathname}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{
+                duration: 0.12,
+                ease: [0.16, 1, 0.3, 1],
+              }}
+              className="page-transition-wrap"
+            >
+              <Outlet />
+            </motion.div>
           </div>
         </main>
       </div>

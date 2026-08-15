@@ -259,65 +259,7 @@
   }
 }
 
-/* ── Ambient Living Lighting Mesh Background ── */
-.ambient-living-backdrop {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-  overflow: hidden;
-  opacity: 0.85;
-}
 
-.ambient-aurora-glow {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(100px);
-  will-change: transform, opacity;
-  opacity: 0.45;
-  animation: float-aurora 22s infinite alternate ease-in-out;
-}
-
-.glow-emerald {
-  width: 650px;
-  height: 650px;
-  background: radial-gradient(circle, rgba(16, 185, 129, 0.45) 0%, rgba(5, 150, 105, 0.08) 55%, transparent 75%);
-  top: -120px;
-  right: -50px;
-  animation-duration: 18s;
-}
-
-.glow-azure {
-  width: 700px;
-  height: 700px;
-  background: radial-gradient(circle, rgba(14, 165, 233, 0.38) 0%, rgba(2, 132, 199, 0.08) 55%, transparent 75%);
-  bottom: 5%;
-  left: -100px;
-  animation-duration: 24s;
-  animation-delay: -4s;
-}
-
-.glow-sand {
-  width: 550px;
-  height: 550px;
-  background: radial-gradient(circle, rgba(245, 158, 11, 0.28) 0%, rgba(217, 119, 6, 0.06) 55%, transparent 75%);
-  top: 35%;
-  right: 10%;
-  animation-duration: 28s;
-  animation-delay: -8s;
-}
-
-@keyframes float-aurora {
-  0% {
-    transform: translate(0, 0) scale(1);
-  }
-  50% {
-    transform: translate(40px, -30px) scale(1.08);
-  }
-  100% {
-    transform: translate(-30px, 40px) scale(0.96);
-  }
-}
 
 /* ── Top Bar AI Assistant Button — Frosted Acrylic 3D Capsule ── */
 .topbar-ai-btn {
