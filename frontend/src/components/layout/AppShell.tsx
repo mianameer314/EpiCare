@@ -238,76 +238,146 @@ export function AppShell() {
               </button>
             )}
 
-            {/* Contextual Workspace Badge & Back Navigation (Sub-pages only) */}
-            {location.pathname !== '/dashboard' && (
-              <div className="topbar-context-badge">
-                <button
-                  className="topbar-back-pill"
-                  onClick={() => safeNavigate('/dashboard')}
-                  title="Return to Main Workspace"
-                >
-                  <ArrowLeft size={14} />
-                  <span>Dashboard</span>
-                </button>
-                <span className="topbar-page-label">{getPageTitle()}</span>
-              </div>
-            )}
-          </div>
+              {/* On Dashboard: Action Cluster (Safety Monitor + AI Assistant + SOS) is docked at the start of the Topbar */}
+              {location.pathname === '/dashboard' ? (
+                <div className="topbar-actions-cluster">
+                  {/* Live Epilepsy Safety Pulse Widget */}
+                  <motion.div
+                    layoutId="topbarSafetyPill"
+                    transition={{ type: 'spring', stiffness: 360, damping: 32 }}
+                    className="topbar-safety-pill"
+                    title="Live System Health & AI Telemetry"
+                  >
+                    <div className="safety-pulse-dot-wrap">
+                      <span className="safety-pulse-ring" />
+                      <div className="safety-pulse-dot" />
+                    </div>
+                    <span className="safety-pill-text">
+                      {user?.role === 'PATIENT'
+                        ? 'Safety: Active · AI Monitor Online'
+                        : user?.role === 'DOCTOR'
+                        ? 'Clinical Sync: Active'
+                        : user?.role === 'CARETAKER'
+                        ? 'Caregiver Relay: Active'
+                        : 'System Status: All Systems Operational'}
+                    </span>
+                    <svg className="live-telemetry-wave" viewBox="0 0 36 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M0 6H8L11 1L15 11L18 4L21 8L24 6H36" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </motion.div>
 
-          {/* Top Bar Right Items: Safety Status, SOS Button, User Profile */}
-          <div className="topbar-right">
-            {/* Live Epilepsy Safety Pulse Widget */}
-            <div className="topbar-safety-pill" title="Live System Health & AI Telemetry">
-              <div className="safety-pulse-dot-wrap">
-                <span className="safety-pulse-ring" />
-                <div className="safety-pulse-dot" />
-              </div>
-              <span className="safety-pill-text">
-                {user?.role === 'PATIENT'
-                  ? 'Safety: Active · AI Monitor Online'
-                  : user?.role === 'DOCTOR'
-                  ? 'Clinical Sync: Active'
-                  : user?.role === 'CARETAKER'
-                  ? 'Caregiver Relay: Active'
-                  : 'System Status: All Systems Operational'}
-              </span>
-              <svg className="live-telemetry-wave" viewBox="0 0 36 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M0 6H8L11 1L15 11L18 4L21 8L24 6H36" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
+                  {/* AI Assistant Button */}
+                  <motion.button
+                    layoutId="topbarAiBtn"
+                    transition={{ type: 'spring', stiffness: 360, damping: 32 }}
+                    className="topbar-ai-btn"
+                    onClick={() => safeNavigate('/chat')}
+                    title="Open AI Medical Assistant"
+                  >
+                    <Sparkles size={15} className="ai-sparkle-icon" />
+                    <span className="ai-btn-text">AI Assistant</span>
+                  </motion.button>
+
+                  {/* Quick Emergency SOS Button (Patients & Caretakers) */}
+                  {(user?.role === 'PATIENT' || user?.role === 'CARETAKER') && (
+                    <motion.button
+                      layoutId="topbarSosBtn"
+                      transition={{ type: 'spring', stiffness: 360, damping: 32 }}
+                      className="topbar-sos-btn"
+                      onClick={() => safeNavigate('/emergency')}
+                      title="Immediate Emergency Protocol"
+                    >
+                      <Siren size={16} className="sos-icon-pulse" />
+                      <span className="sos-btn-text">Emergency SOS</span>
+                    </motion.button>
+                  )}
+                </div>
+              ) : (
+                /* Contextual Workspace Badge & Back Navigation (Sub-pages only) */
+                <div className="topbar-context-badge">
+                  <button
+                    className="topbar-back-pill"
+                    onClick={() => safeNavigate('/dashboard')}
+                    title="Return to Main Workspace"
+                  >
+                    <ArrowLeft size={14} />
+                    <span>Dashboard</span>
+                  </button>
+                  <span className="topbar-page-label">{getPageTitle()}</span>
+                </div>
+              )}
             </div>
 
-            {/* AI Assistant / Return to Dashboard Quick Launcher */}
-            {location.pathname === '/chat' ? (
-              <button
-                className="topbar-ai-btn active-back"
-                onClick={() => safeNavigate('/dashboard')}
-                title="Return to Main Dashboard"
-              >
-                <LayoutDashboard size={14} />
-                <span className="ai-btn-text">Exit to Dashboard</span>
-              </button>
-            ) : (
-              <button
-                className="topbar-ai-btn"
-                onClick={() => safeNavigate('/chat')}
-                title="Open AI Medical Assistant"
-              >
-                <Sparkles size={15} className="ai-sparkle-icon" />
-                <span className="ai-btn-text">AI Assistant</span>
-              </button>
-            )}
+            {/* Top Bar Right Items: Safety Status, SOS Button, User Profile */}
+            <div className="topbar-right">
+              {/* On sub-pages: Action Cluster smoothly glides horizontally to the right */}
+              {location.pathname !== '/dashboard' && (
+                <div className="topbar-actions-cluster">
+                  {/* Live Epilepsy Safety Pulse Widget */}
+                  <motion.div
+                    layoutId="topbarSafetyPill"
+                    transition={{ type: 'spring', stiffness: 360, damping: 32 }}
+                    className="topbar-safety-pill"
+                    title="Live System Health & AI Telemetry"
+                  >
+                    <div className="safety-pulse-dot-wrap">
+                      <span className="safety-pulse-ring" />
+                      <div className="safety-pulse-dot" />
+                    </div>
+                    <span className="safety-pill-text">
+                      {user?.role === 'PATIENT'
+                        ? 'Safety: Active · AI Monitor Online'
+                        : user?.role === 'DOCTOR'
+                        ? 'Clinical Sync: Active'
+                        : user?.role === 'CARETAKER'
+                        ? 'Caregiver Relay: Active'
+                        : 'System Status: All Systems Operational'}
+                    </span>
+                    <svg className="live-telemetry-wave" viewBox="0 0 36 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M0 6H8L11 1L15 11L18 4L21 8L24 6H36" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </motion.div>
 
-            {/* Quick Emergency SOS Button (Patients & Caretakers) */}
-            {(user?.role === 'PATIENT' || user?.role === 'CARETAKER') && (
-              <button
-                className="topbar-sos-btn"
-                onClick={() => safeNavigate('/emergency')}
-                title="Immediate Emergency Protocol"
-              >
-                <Siren size={16} className="sos-icon-pulse" />
-                <span className="sos-btn-text">Emergency SOS</span>
-              </button>
-            )}
+                  {/* AI Assistant Button */}
+                  {location.pathname === '/chat' ? (
+                    <motion.button
+                      layoutId="topbarAiBtn"
+                      transition={{ type: 'spring', stiffness: 360, damping: 32 }}
+                      className="topbar-ai-btn active-back"
+                      onClick={() => safeNavigate('/dashboard')}
+                      title="Return to Main Dashboard"
+                    >
+                      <LayoutDashboard size={14} />
+                      <span className="ai-btn-text">Exit to Dashboard</span>
+                    </motion.button>
+                  ) : (
+                    <motion.button
+                      layoutId="topbarAiBtn"
+                      transition={{ type: 'spring', stiffness: 360, damping: 32 }}
+                      className="topbar-ai-btn"
+                      onClick={() => safeNavigate('/chat')}
+                      title="Open AI Medical Assistant"
+                    >
+                      <Sparkles size={15} className="ai-sparkle-icon" />
+                      <span className="ai-btn-text">AI Assistant</span>
+                    </motion.button>
+                  )}
+
+                  {/* Quick Emergency SOS Button (Patients & Caretakers) */}
+                  {(user?.role === 'PATIENT' || user?.role === 'CARETAKER') && (
+                    <motion.button
+                      layoutId="topbarSosBtn"
+                      transition={{ type: 'spring', stiffness: 360, damping: 32 }}
+                      className="topbar-sos-btn"
+                      onClick={() => safeNavigate('/emergency')}
+                      title="Immediate Emergency Protocol"
+                    >
+                      <Siren size={16} className="sos-icon-pulse" />
+                      <span className="sos-btn-text">Emergency SOS</span>
+                    </motion.button>
+                  )}
+                </div>
+              )}
 
             {/* User Profile Pill & Dropdown */}
             {user && (

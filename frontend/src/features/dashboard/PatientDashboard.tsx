@@ -59,26 +59,41 @@ export function PatientDashboard() {
     },
   });
 
-  const firstName = user?.full_name?.split(' ')[0] || 'there';
+  const getTimeGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good Morning';
+    if (hour < 17) return 'Good Afternoon';
+    return 'Good Evening';
+  };
+
+  const greeting = getTimeGreeting();
+  const firstName = user?.full_name?.split(' ')[0] || '';
+  const displayName = user?.full_name?.toUpperCase() || firstName.toUpperCase() || 'PATIENT';
 
   return (
     <div className="dashboard-page">
       {/* ── Header ── */}
       <motion.div
         className="dashboard-header"
-        initial={{ opacity: 0, y: -10 }}
+        initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+        transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
       >
         <div className="dashboard-greeting">
+          <div className="dashboard-pre-title">
+            <span className="live-status-dot" />
+            <span>CLINICAL NEUROLOGY TELEMETRY · PATIENT CONSOLE</span>
+          </div>
           <h1>
-            Welcome back, <span className="text-gradient">{firstName}</span>
+            {greeting}, <span className="hero-patient-name">{displayName}</span>
           </h1>
-          <p>Here's your personal health overview and monitoring status.</p>
+          <p className="dashboard-hero-sub">
+            Your real-time neural bio-signals, automated seizure risk matrix, and clinical protocols are synchronized.
+          </p>
         </div>
         <div className="dashboard-date glass-badge">
-          <Activity size={14} />
-          <span>{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</span>
+          <Activity size={14} className="date-icon-pulse" />
+          <span>{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}</span>
         </div>
       </motion.div>
 

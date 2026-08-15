@@ -8,6 +8,7 @@
   max-width: var(--content-max-width);
   margin: 0 auto;
   width: 100%;
+  padding-bottom: var(--space-10);
 }
 
 /* ── Header ── */
@@ -15,20 +16,61 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: var(--space-8);
+  margin-bottom: var(--space-6);
   gap: var(--space-4);
 }
 
-.dashboard-greeting h1 {
-  font-size: var(--text-3xl);
-  font-weight: var(--font-weight-bold);
+.dashboard-pre-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-primary);
+  background: var(--color-primary-50);
+  border: 1px solid rgba(45, 90, 63, 0.18);
+  padding: 3px 11px;
+  border-radius: var(--radius-full);
   margin-bottom: var(--space-2);
-  letter-spacing: var(--tracking-tight);
+  box-shadow: 0 1px 3px rgba(45, 90, 63, 0.05);
 }
 
-.dashboard-greeting p {
-  font-size: var(--text-base);
+.live-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-success);
+  box-shadow: 0 0 8px var(--color-success);
+  animation: pulse-live 2s infinite ease-in-out;
+}
+
+@keyframes pulse-live {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.35); opacity: 0.7; }
+}
+
+.dashboard-greeting h1 {
+  font-size: clamp(1.8rem, 1.4rem + 1.2vw, 2.4rem);
+  font-weight: var(--font-weight-bold);
+  margin-bottom: 6px;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+  color: var(--color-text-main);
+}
+
+.hero-patient-name {
+  background: linear-gradient(135deg, #1b4332 0%, #2d6a4f 45%, #0284c7 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.dashboard-hero-sub {
+  font-size: var(--text-sm);
   color: var(--color-text-muted);
+  max-width: 680px;
+  line-height: 1.5;
   margin: 0;
 }
 
@@ -38,7 +80,18 @@
   gap: var(--space-2);
   white-space: nowrap;
   flex-shrink: 0;
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(45, 90, 63, 0.18);
+  padding: 6px 14px;
+  border-radius: var(--radius-full);
+  font-weight: 500;
+  font-size: var(--text-xs);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+}
+
+.date-icon-pulse {
+  color: var(--color-primary);
 }
 
 /* ── Grid Overrides ── */

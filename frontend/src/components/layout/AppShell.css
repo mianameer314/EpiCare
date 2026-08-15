@@ -74,6 +74,12 @@
   gap: var(--space-3);
 }
 
+.topbar-actions-cluster {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
 /* ── Topbar Brand (Inside 3D Pipe Capsule) ── */
 .topbar-brand {
   display: flex;
