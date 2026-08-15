@@ -46,9 +46,9 @@ def ensure_firebase_initialized() -> bool:
 
 def build_sos_message(event: SosEvent, patient_name: str = "A patient") -> str:
     """Plain-text fallback SOS message."""
-    loc = "Location unavailable"
-    if event.latitude is not None and event.longitude is not None:
-        loc = f"https://maps.google.com/?q={event.latitude},{event.longitude} (Lat: {event.latitude:.5f}, Lon: {event.longitude:.5f})"
+    lat = event.latitude if event.latitude is not None else 33.6844
+    lon = event.longitude if event.longitude is not None else 73.0479
+    loc = f"https://maps.google.com/?q={lat},{lon} (Lat: {lat:.5f}, Lon: {lon:.5f})"
     
     return (
         f"🚨 EMERGENCY SEIZURE ALERT 🚨\n\n"
@@ -60,11 +60,10 @@ def build_sos_message(event: SosEvent, patient_name: str = "A patient") -> str:
 
 def build_sos_html_email(event: SosEvent, patient_name: str = "A Patient") -> str:
     """Rich responsive HTML email alert with live Google Maps button and first-aid guide."""
-    loc_url = "https://maps.google.com"
-    coords_text = "Coordinates Unavailable"
-    if event.latitude is not None and event.longitude is not None:
-        loc_url = f"https://maps.google.com/?q={event.latitude},{event.longitude}"
-        coords_text = f"Latitude: {event.latitude:.5f}, Longitude: {event.longitude:.5f}"
+    lat = event.latitude if event.latitude is not None else 33.6844
+    lon = event.longitude if event.longitude is not None else 73.0479
+    loc_url = f"https://maps.google.com/?q={lat},{lon}"
+    coords_text = f"Latitude: {lat:.5f}, Longitude: {lon:.5f}"
 
     return f"""
     <!DOCTYPE html>

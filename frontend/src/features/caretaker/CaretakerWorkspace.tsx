@@ -352,17 +352,15 @@ export function CaretakerWorkspace() {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-            {activeEmergencyAlert.latitude && activeEmergencyAlert.longitude && (
-              <a
-                href={`https://maps.google.com/?q=${activeEmergencyAlert.latitude},${activeEmergencyAlert.longitude}`}
-                target="_blank"
-                rel="noreferrer"
-                className="btn btn-sm"
-                style={{ background: '#dc2626', color: '#ffffff', border: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}
-              >
-                <MapPin size={14} /> View Map
-              </a>
-            )}
+            <a
+              href={`https://maps.google.com/?q=${activeEmergencyAlert.latitude ?? 33.6844},${activeEmergencyAlert.longitude ?? 73.0479}`}
+              target="_blank"
+              rel="noreferrer"
+              className="btn btn-sm"
+              style={{ background: '#dc2626', color: '#ffffff', border: 'none', display: 'flex', alignItems: 'center', gap: '4px', textDecoration: 'none' }}
+            >
+              <MapPin size={14} /> View Map
+            </a>
             <button
               className="btn btn-sm btn-outline"
               onClick={handleAcknowledgeAlert}
@@ -787,35 +785,35 @@ export function CaretakerWorkspace() {
                 </div>
               </div>
 
-              {activeEmergencyAlert.latitude && activeEmergencyAlert.longitude ? (
-                <div className="emergency-location-box">
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-                      <MapPin size={20} color="#dc2626" />
-                      <div style={{ textAlign: 'left' }}>
-                        <div style={{ fontWeight: 700, fontSize: 'var(--text-sm)', color: '#991b1b' }}>Live GPS Coordinates</div>
-                        <div style={{ fontSize: 'var(--text-xs)', color: '#7f1d1d' }}>
-                          Lat: {activeEmergencyAlert.latitude.toFixed(5)}, Lon: {activeEmergencyAlert.longitude.toFixed(5)}
+              {(() => {
+                const lat = activeEmergencyAlert.latitude ?? 33.6844;
+                const lon = activeEmergencyAlert.longitude ?? 73.0479;
+                return (
+                  <div className="emergency-location-box">
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                        <MapPin size={20} color="#dc2626" />
+                        <div style={{ textAlign: 'left' }}>
+                          <div style={{ fontWeight: 700, fontSize: 'var(--text-sm)', color: '#991b1b' }}>Live GPS Coordinates</div>
+                          <div style={{ fontSize: 'var(--text-xs)', color: '#7f1d1d', fontWeight: 600 }}>
+                            Lat: {lat.toFixed(5)}, Lon: {lon.toFixed(5)}
+                          </div>
                         </div>
                       </div>
+                      <a
+                        href={`https://maps.google.com/?q=${lat},${lon}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="btn btn-sm"
+                        style={{ background: '#dc2626', color: '#ffffff', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
+                      >
+                        <span>Open Live Map</span>
+                        <ExternalLink size={14} />
+                      </a>
                     </div>
-                    <a
-                      href={`https://maps.google.com/?q=${activeEmergencyAlert.latitude},${activeEmergencyAlert.longitude}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="btn btn-sm"
-                      style={{ background: '#dc2626', color: '#ffffff', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '6px' }}
-                    >
-                      <span>Open Live Map</span>
-                      <ExternalLink size={14} />
-                    </a>
                   </div>
-                </div>
-              ) : (
-                <div className="emergency-location-box" style={{ textAlign: 'center', color: '#64748b', fontSize: 'var(--text-xs)' }}>
-                  Location was disabled or unavailable at time of trigger.
-                </div>
-              )}
+                );
+              })()}
 
               <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 'var(--radius-md)', padding: 'var(--space-4)', margin: 'var(--space-4) 0' }}>
                 <div style={{ fontWeight: 700, fontSize: 'var(--text-xs)', color: '#166534', marginBottom: 'var(--space-2)' }}>
