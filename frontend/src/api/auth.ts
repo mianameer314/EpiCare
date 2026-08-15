@@ -1,13 +1,25 @@
 import { apiClient } from './client';
-import type { LoginPayload, RegisterPayload, AuthResponse, User } from '../types/auth';
+import type { LoginPayload, RegisterPayload, User } from '../types/auth';
+
+export interface TokenResponse {
+  access_token: string;
+  refresh_token: string;
+  token_type: string;
+}
 
 export const authApi = {
   login: (data: LoginPayload) => 
-    apiClient.post<AuthResponse>('/auth/login', data),
+    apiClient.post<TokenResponse>('/auth/login', data),
     
   register: (data: RegisterPayload) => 
-    apiClient.post<AuthResponse>('/auth/register', data),
+    apiClient.post<User>('/auth/register', data),
     
+  verifyEmail: (data: { email: string; otp: string }) =>
+    apiClient.post<{ message: string }>('/auth/verify-email', data),
+
+  resendOtp: (data: { email: string }) =>
+    apiClient.post<{ message: string }>('/auth/resend-otp', data),
+
   logout: () => 
     apiClient.post<void>('/auth/logout'),
     

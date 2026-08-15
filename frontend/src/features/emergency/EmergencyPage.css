@@ -1,0 +1,142 @@
+/*
+  EpiCare — Emergency Command Page Styles
+  =======================================
+*/
+
+.emergency-page {
+  max-width: var(--content-max-width);
+  margin: 0 auto;
+  width: 100%;
+}
+
+.emergency-header {
+  margin-bottom: var(--space-8);
+}
+
+.emergency-header h1 {
+  font-size: var(--text-3xl);
+  font-weight: var(--font-weight-bold);
+  margin: 0 0 var(--space-1);
+}
+
+.emergency-header p {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+/* ── SOS Trigger Card ── */
+.sos-trigger-card {
+  padding: var(--space-8);
+  border: 2px solid rgba(207, 34, 46, 0.25);
+  background: linear-gradient(135deg, rgba(207, 34, 46, 0.04) 0%, rgba(255, 255, 255, 0.9) 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.sos-hero-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-6);
+  flex-wrap: wrap;
+}
+
+.sos-text-block {
+  flex: 1;
+  min-width: 280px;
+}
+
+.sos-title {
+  font-size: var(--text-2xl);
+  font-weight: var(--font-weight-bold);
+  margin: var(--space-3) 0 var(--space-2);
+  color: var(--color-text-main);
+}
+
+.sos-desc {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+  max-width: 540px;
+  margin: 0;
+}
+
+.sos-button-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sos-big-btn {
+  width: 180px;
+  height: 180px;
+  border-radius: var(--radius-full);
+  background: linear-gradient(135deg, #e63946 0%, #d62828 100%);
+  color: #ffffff;
+  border: 6px solid rgba(230, 57, 70, 0.25);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  font-family: var(--font-family-display);
+  font-size: var(--text-base);
+  font-weight: 900;
+  letter-spacing: var(--tracking-wider);
+  cursor: pointer;
+  box-shadow: 0 12px 36px rgba(230, 57, 70, 0.35);
+  transition: all var(--transition-spring);
+  animation: sos-glow-pulse 2s infinite ease-in-out;
+}
+
+@keyframes sos-glow-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(230, 57, 70, 0.4); }
+  70% { box-shadow: 0 0 0 20px rgba(230, 57, 70, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(230, 57, 70, 0); }
+}
+
+.sos-big-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 16px 48px rgba(230, 57, 70, 0.5);
+}
+
+.sos-big-btn:active {
+  transform: scale(0.96);
+}
+
+.sos-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: var(--space-6);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border-subtle);
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+/* ── 2-Col Grid ── */
+.emergency-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-6);
+}
+
+@media (max-width: 1024px) {
+  .emergency-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .sos-hero-content {
+    flex-direction: column;
+    text-align: center;
+  }
+  .sos-big-btn {
+    width: 140px;
+    height: 140px;
+    font-size: var(--text-sm);
+  }
+}

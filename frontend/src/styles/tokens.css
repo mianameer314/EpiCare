@@ -1,90 +1,220 @@
 /* 
   EpiCare Global Design Tokens 
   ============================
-  Defines the core variables for the visual system based on AGENTS.md invariants:
-  - Earthy greens, warm beige, soft sand, medical blues, white.
-  - Premium glass surfaces, backdrop blurs, soft gradients.
-  - Accessible typography and spacing.
+  EpiCare signature visual system:
+  - Earthy greens, warm beige, soft sand, medical blues, clean surfaces.
+  - Spatial UI & Glassmorphism with layered depth.
+  - Bento & Modular Grids.
+  - Kinetic Typography support.
+  - AAA medical accessibility contrast.
+  - Spring-based premium motion curves.
 */
 
 :root {
   /* Brand Colors - Earthy & Medical */
-  --color-primary: #2d5a3f; /* Deep Earthy Green */
-  --color-primary-light: #447a59; 
+  --color-primary: #2d5a3f;
+  --color-primary-light: #447a59;
   --color-primary-dark: #1e402c;
-  
-  --color-secondary: #0077b6; /* Medical Blue */
+  --color-primary-50: #e8f5ec;
+  --color-primary-100: #c6e7d0;
+  --color-primary-200: #9dd5af;
+  --color-primary-900: #0f2b19;
+
+  --color-secondary: #0077b6;
   --color-secondary-light: #0096c7;
   --color-secondary-dark: #03045e;
+  --color-secondary-50: #e0f4ff;
 
-  /* Neutrals */
-  --color-background: #f7f5f0; /* Warm Beige / Soft Sand */
-  --color-surface: #ffffff; /* Clean White for cards */
-  --color-surface-hover: #f0eee9;
-  
+  /* Accent — for interactive highlights */
+  --color-accent: #00b4d8;
+  --color-accent-glow: rgba(0, 180, 216, 0.25);
+
+  /* Neutrals — Warm Beige & Soft Sand System */
+  --color-background: #f7f5f0;
+  --color-background-secondary: #efece5;
+  --color-surface: #ffffff;
+  --color-surface-hover: #f5f3ee;
+  --color-surface-active: #ece9e2;
+  --color-surface-elevated: #ffffff;
+  --color-border: rgba(30, 64, 44, 0.1);
+  --color-border-subtle: rgba(30, 64, 44, 0.05);
+
   --color-text-main: #1a1e1b;
+  --color-text-secondary: #3d4a41;
   --color-text-muted: #5e6b63;
+  --color-text-placeholder: #8a9590;
   --color-text-inverse: #ffffff;
+  --color-text-on-primary: #ffffff;
 
-  /* Status Colors */
-  --color-success: #2b9348;
-  --color-error: #d90429;
-  --color-warning: #e9c46a;
-  --color-info: #48cae4;
+  /* Status Colors — AAA contrast tuned */
+  --color-success: #1a7f37;
+  --color-success-bg: rgba(26, 127, 55, 0.08);
+  --color-success-glow: rgba(26, 127, 55, 0.2);
 
-  /* Typography */
+  --color-error: #c4232a;
+  --color-error-bg: rgba(196, 35, 42, 0.08);
+  --color-error-glow: rgba(196, 35, 42, 0.2);
+
+  --color-warning: #9a6700;
+  --color-warning-bg: rgba(154, 103, 0, 0.08);
+  --color-warning-glow: rgba(154, 103, 0, 0.2);
+
+  --color-info: #0969da;
+  --color-info-bg: rgba(9, 105, 218, 0.08);
+  --color-info-glow: rgba(9, 105, 218, 0.2);
+
+  /* Risk Level Colors (EEG / Seizure Risk) */
+  --color-risk-low: #1a7f37;
+  --color-risk-low-glow: rgba(26, 127, 55, 0.3);
+  --color-risk-medium: #bf8700;
+  --color-risk-medium-glow: rgba(191, 135, 0, 0.3);
+  --color-risk-high: #cf222e;
+  --color-risk-high-glow: rgba(207, 34, 46, 0.4);
+
+  /* ── Typography ── */
   --font-family-base: 'Inter', system-ui, -apple-system, sans-serif;
   --font-family-display: 'Outfit', 'Inter', system-ui, sans-serif;
-  
-  /* Scale */
-  --text-xs: 0.75rem;
-  --text-sm: 0.875rem;
-  --text-base: 1rem;
-  --text-lg: 1.125rem;
-  --text-xl: 1.25rem;
-  --text-2xl: 1.5rem;
-  --text-3xl: 1.875rem;
-  --text-4xl: 2.25rem;
+  --font-family-mono: 'JetBrains Mono', 'Fira Code', monospace;
 
-  /* Spacing */
+  /* Type Scale (fluid) */
+  --text-xs: clamp(0.69rem, 0.66rem + 0.18vw, 0.75rem);
+  --text-sm: clamp(0.8rem, 0.77rem + 0.18vw, 0.875rem);
+  --text-base: clamp(0.94rem, 0.9rem + 0.18vw, 1rem);
+  --text-lg: clamp(1.06rem, 1rem + 0.27vw, 1.125rem);
+  --text-xl: clamp(1.13rem, 1.06rem + 0.36vw, 1.25rem);
+  --text-2xl: clamp(1.31rem, 1.19rem + 0.54vw, 1.5rem);
+  --text-3xl: clamp(1.56rem, 1.38rem + 0.89vw, 1.875rem);
+  --text-4xl: clamp(1.88rem, 1.6rem + 1.34vw, 2.25rem);
+  --text-5xl: clamp(2.25rem, 1.88rem + 1.88vw, 3rem);
+  --text-6xl: clamp(2.81rem, 2.25rem + 2.81vw, 3.75rem);
+
+  /* Font Weight Tokens (for kinetic typography) */
+  --font-weight-thin: 200;
+  --font-weight-light: 300;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
+  --font-weight-black: 900;
+
+  /* Letter Spacing */
+  --tracking-tight: -0.025em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.025em;
+  --tracking-wider: 0.05em;
+  --tracking-widest: 0.1em;
+
+  /* ── Spacing ── */
+  --space-0: 0;
   --space-1: 0.25rem;
   --space-2: 0.5rem;
   --space-3: 0.75rem;
   --space-4: 1rem;
+  --space-5: 1.25rem;
   --space-6: 1.5rem;
   --space-8: 2rem;
+  --space-10: 2.5rem;
   --space-12: 3rem;
   --space-16: 4rem;
+  --space-20: 5rem;
   --space-24: 6rem;
+  --space-32: 8rem;
 
-  /* Border Radius */
+  /* ── Border Radius ── */
+  --radius-xs: 2px;
   --radius-sm: 4px;
   --radius-md: 8px;
-  --radius-lg: 16px;
-  --radius-xl: 24px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 24px;
   --radius-full: 9999px;
 
-  /* Glassmorphism & Depth */
-  --glass-bg: rgba(255, 255, 255, 0.7);
-  --glass-border: rgba(255, 255, 255, 0.5);
-  --glass-blur: 12px;
-  
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  --shadow-glass: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+  /* ── Glassmorphism & Spatial Depth ── */
+  --glass-bg: rgba(255, 255, 255, 0.72);
+  --glass-bg-subtle: rgba(255, 255, 255, 0.5);
+  --glass-bg-elevated: rgba(255, 255, 255, 0.85);
+  --glass-border: rgba(255, 255, 255, 0.6);
+  --glass-border-subtle: rgba(255, 255, 255, 0.3);
+  --glass-blur: 16px;
+  --glass-blur-heavy: 24px;
+  --glass-blur-light: 8px;
 
-  /* Motion & Transitions */
-  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-normal: 300ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-spring: 500ms cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  /* Shadows — Multi-layer depth system */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+
+  /* Spatial floating depth shadows */
+  --shadow-float-8: 0 4px 8px rgba(0, 0, 0, 0.04), 0 8px 16px rgba(0, 0, 0, 0.06);
+  --shadow-float-16: 0 6px 12px rgba(0, 0, 0, 0.04), 0 16px 32px rgba(0, 0, 0, 0.06);
+  --shadow-float-32: 0 8px 16px rgba(0, 0, 0, 0.04), 0 16px 32px rgba(0, 0, 0, 0.06), 0 32px 64px rgba(0, 0, 0, 0.08);
+
+  /* Glass-specific shadow */
+  --shadow-glass: 0 8px 32px rgba(31, 38, 135, 0.06);
+  --shadow-glass-elevated: 0 12px 48px rgba(31, 38, 135, 0.08);
+
+  /* ── Bento Grid Tokens ── */
+  --bento-gap: 20px;
+  --bento-radius: var(--radius-xl);
+  --bento-columns: 4;
+  --bento-min-height: 180px;
+
+  /* ── Motion & Transitions ── */
+  --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring-bounce: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  --ease-out: cubic-bezier(0.33, 1, 0.68, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+
+  /* Duration tokens */
+  --duration-instant: 100ms;
+  --duration-fast: 150ms;
+  --duration-normal: 300ms;
+  --duration-slow: 500ms;
+  --duration-slower: 700ms;
+
+  /* Composed transitions */
+  --transition-fast: var(--duration-fast) var(--ease-spring);
+  --transition-normal: var(--duration-normal) var(--ease-spring);
+  --transition-slow: var(--duration-slow) var(--ease-spring);
+  --transition-spring: var(--duration-slow) var(--ease-spring-bounce);
+
+  /* Hover lift */
+  --hover-lift: translateY(-4px);
+  --hover-lift-shadow: var(--shadow-float-32);
+
+  /* ── Z-Index Scale ── */
+  --z-base: 0;
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-overlay: 300;
+  --z-modal: 400;
+  --z-toast: 500;
+  --z-emergency: 900;
+
+  /* ── Layout ── */
+  --content-max-width: 1280px;
+  --sidebar-width: 260px;
+  --sidebar-collapsed-width: 72px;
+  --nav-height: 64px;
 }
 
-/* Reduced Motion Override */
+/* ========================================
+   REDUCED MOTION
+   ======================================== */
 @media (prefers-reduced-motion: reduce) {
   :root {
+    --duration-instant: 0ms;
+    --duration-fast: 0ms;
+    --duration-normal: 0ms;
+    --duration-slow: 0ms;
+    --duration-slower: 0ms;
     --transition-fast: 0ms;
     --transition-normal: 0ms;
+    --transition-slow: 0ms;
     --transition-spring: 0ms;
+    --hover-lift: none;
   }
 }

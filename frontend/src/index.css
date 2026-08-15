@@ -1,11 +1,19 @@
-@import './styles/tokens.css';
-
 /* 
-  EpiCare Base Styles 
-  ===================
-  Semantic HTML, accessibility normalization, and global utility classes.
+  EpiCare — Global Styles Entry Point
+  ====================================
+  Imports design system modules and sets up base styles.
+  Google Fonts loaded via index.html for optimal performance.
 */
 
+/* Design System Modules */
+@import './styles/tokens.css';
+@import './styles/glass.css';
+@import './styles/bento.css';
+@import './styles/animations.css';
+
+/* 
+  Base Reset & Normalization 
+*/
 *, *::before, *::after {
   box-sizing: border-box;
 }
@@ -14,9 +22,12 @@ html {
   font-family: var(--font-family-base);
   color: var(--color-text-main);
   background-color: var(--color-background);
-  line-height: 1.5;
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  scroll-behavior: smooth;
+  transition: background-color var(--duration-normal) var(--ease-out),
+              color var(--duration-normal) var(--ease-out);
 }
 
 body {
@@ -33,25 +44,44 @@ body {
   flex: 1;
 }
 
-/* Accessibility: Focus visible outline */
+/* 
+  Accessibility: Focus Visible 
+*/
 :focus-visible {
   outline: 2px solid var(--color-secondary);
   outline-offset: 2px;
+  border-radius: var(--radius-sm);
 }
 
-/* Typography elements */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* 
+  Typography 
+*/
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-family-display);
   margin-top: 0;
   margin-bottom: var(--space-4);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   color: var(--color-text-main);
+  letter-spacing: var(--tracking-tight);
+  line-height: 1.2;
 }
+
+h1 { font-size: var(--text-4xl); font-weight: var(--font-weight-bold); }
+h2 { font-size: var(--text-3xl); }
+h3 { font-size: var(--text-2xl); }
+h4 { font-size: var(--text-xl); }
+h5 { font-size: var(--text-lg); }
+h6 { font-size: var(--text-base); }
 
 p {
   margin-top: 0;
   margin-bottom: var(--space-4);
   color: var(--color-text-muted);
+  line-height: 1.7;
 }
 
 a {
@@ -60,29 +90,55 @@ a {
   transition: color var(--transition-fast);
 }
 
-a:hover, a:focus-visible {
+a:hover,
+a:focus-visible {
   color: var(--color-secondary-dark);
 }
 
-/* Global Utilities */
-.glass-panel {
-  background: var(--glass-bg);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-glass);
+strong { font-weight: var(--font-weight-semibold); }
+
+small { font-size: var(--text-sm); }
+
+code {
+  font-family: var(--font-family-mono);
+  font-size: 0.9em;
+  background: var(--color-background-secondary);
+  padding: 0.15em 0.4em;
+  border-radius: var(--radius-sm);
 }
 
-.blur-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(247, 245, 240, 0.4);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  z-index: 50;
+/* 
+  Selection 
+*/
+::selection {
+  background: var(--color-primary);
+  color: var(--color-text-on-primary);
 }
 
+/* 
+  Scrollbar (dark/light aware) 
+*/
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-text-placeholder);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
+}
+
+/* 
+  Utility Classes 
+*/
 .visually-hidden {
   position: absolute;
   width: 1px;
@@ -93,4 +149,37 @@ a:hover, a:focus-visible {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border-width: 0;
+}
+
+.blur-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: var(--z-overlay);
+}
+
+/* Container */
+.container {
+  width: 100%;
+  max-width: var(--content-max-width);
+  margin: 0 auto;
+  padding: 0 var(--space-6);
+}
+
+@media (max-width: 640px) {
+  .container {
+    padding: 0 var(--space-4);
+  }
+}
+
+/* Smooth theme transition */
+html, body,
+.glass-panel, .glass-elevated, .glass-card, .glass-subtle,
+.glass-nav, .glass-sidebar, .glass-modal {
+  transition: background-color var(--duration-normal) var(--ease-out),
+              color var(--duration-normal) var(--ease-out),
+              border-color var(--duration-normal) var(--ease-out),
+              box-shadow var(--duration-normal) var(--ease-out);
 }

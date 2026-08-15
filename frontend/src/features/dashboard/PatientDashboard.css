@@ -1,0 +1,80 @@
+/*
+  EpiCare — Patient Dashboard Styles
+  ====================================
+  Bento grid layout + dashboard-specific styling
+*/
+
+.dashboard-page {
+  max-width: var(--content-max-width);
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* ── Header ── */
+.dashboard-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: var(--space-8);
+  gap: var(--space-4);
+}
+
+.dashboard-greeting h1 {
+  font-size: var(--text-3xl);
+  font-weight: var(--font-weight-bold);
+  margin-bottom: var(--space-2);
+  letter-spacing: var(--tracking-tight);
+}
+
+.dashboard-greeting p {
+  font-size: var(--text-base);
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.dashboard-date {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  white-space: nowrap;
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+}
+
+/* ── Grid Overrides ── */
+.dashboard-grid {
+  --bento-columns: 4;
+}
+
+/* ── SOS Module — always prominent ── */
+.sos-module {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+  min-height: 180px;
+}
+
+/* ── Responsive ── */
+@media (max-width: 1024px) {
+  .dashboard-grid {
+    --bento-columns: 2;
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-header {
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  .dashboard-greeting h1 {
+    font-size: var(--text-2xl);
+  }
+}
+
+@media (max-width: 640px) {
+  .dashboard-grid {
+    --bento-columns: 1;
+  }
+}

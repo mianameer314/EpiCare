@@ -1,25 +1,49 @@
-from fastapi import APIRouter, Depends
-from sqlalchemy.ext.asyncio import AsyncSession
+from typing import List
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import CurrentUser, DbDep
+from app.models.chat import ChatMessage, ChatSession
 from app.schemas.chat import ChatMessageCreate, ChatMessageOut
-from app.models.chat import ChatSession, ChatMessage
 from app.services.chat import process_chat_message
 
 router = APIRouter(prefix="/chat")
+
+
+@router.get(
+    "/history",
+    tags=['🤖 AI Chatbot'],
+    response_model=List[ChatMessageOut],
+    summary="Get Chat History",
+    description="Retrieves the authenticated user's recent chat messages and AI answers from PostgreSQL.",
+)
+async def get_chat_history(
+    current_user: CurrentUser,
+    db: DbDep,
+    limit: int = Query(30, ge=1, le=100),
+):
+    result = await db.execute(
+        select(ChatMessage)
+        .where(ChatMessage.user_id == current_user.id)
+        .order_by(ChatMessage.created_at.asc())
+        .limit(limit)
+    )
+    messages = result.scalars().all()
+    return messages
+
 
 @router.post(
     "/message",
     tags=['🤖 AI Chatbot'],
     response_model=ChatMessageOut,
     summary="Send a message to the RAG Chatbot",
-    description="Send a message and get an AI response. If the RAG model is not trained yet, returns a graceful fallback message."
+    description="Send a message and get an AI response. Saves both user query and clinical AI answer in database.",
 )
 async def send_chat_message(
     payload: ChatMessageCreate,
     current_user: CurrentUser,
-    db: DbDep
+    db: DbDep,
 ):
     # Get or create active session
     result = await db.execute(
@@ -34,29 +58,28 @@ async def send_chat_message(
         db.add(chat_session)
         await db.commit()
         await db.refresh(chat_session)
-        
+
     # Save user message
     user_msg = ChatMessage(
         session_id=chat_session.id,
         user_id=current_user.id,
         role="user",
-        content=payload.content
+        content=payload.content,
     )
     db.add(user_msg)
     await db.commit()
-    
-    # Generate AI response gracefully
+
+    # Generate AI response
     ai_text = await process_chat_message(db, current_user.id, payload.content)
-    
+
     ai_msg = ChatMessage(
         session_id=chat_session.id,
         user_id=current_user.id,
         role="assistant",
-        content=ai_text
+        content=ai_text,
     )
     db.add(ai_msg)
     await db.commit()
     await db.refresh(ai_msg)
-    
-    # We return the AI message as the response
+
     return ai_msg

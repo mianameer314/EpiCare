@@ -1,0 +1,96 @@
+import { apiClient } from './client';
+
+/* ────────────────────────────────────────────────────
+   Emergency API Module — Contacts, SOS Trigger & Event Logs
+   Matches FastAPI endpoints in app/api/v1/emergency.py
+   ──────────────────────────────────────────────────── */
+
+export interface EmergencyContact {
+  id: number;
+  user_id: number;
+  name: string;
+  relationship: string;
+  phone_number: string;
+  is_primary: boolean;
+  verified: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EmergencyContactCreate {
+  name: string;
+  relationship: string;
+  phone_number: string;
+  is_primary?: boolean;
+}
+
+export interface EmergencyContactUpdate {
+  name?: string;
+  relationship?: string;
+  phone_number?: string;
+  is_primary?: boolean;
+}
+
+export interface SosTriggerRequest {
+  latitude?: number | null;
+  longitude?: number | null;
+  location_available?: boolean;
+}
+
+export interface SosEventCreateResponse {
+  event_id: number;
+  status: string;
+  message: string;
+}
+
+export interface SosDelivery {
+  contact_name: string;
+  phone_number: string;
+  delivery_status: string;
+  error_message: string | null;
+}
+
+export interface SosEvent {
+  id: number;
+  user_id: number;
+  triggered_at: string;
+  latitude: number | null;
+  longitude: number | null;
+  location_available: boolean;
+  status: string;
+  deliveries: SosDelivery[];
+}
+
+export interface PaginatedSosEvents {
+  items: SosEvent[];
+  total: number;
+  skip: number;
+  limit: number;
+}
+
+export const emergencyApi = {
+  getContacts: () =>
+    apiClient.get<EmergencyContact[]>('/emergency/contacts'),
+
+  createContact: (data: EmergencyContactCreate) =>
+    apiClient.post<EmergencyContact>('/emergency/contacts', data),
+
+  updateContact: (id: number, data: EmergencyContactUpdate) =>
+    apiClient.put<EmergencyContact>(`/emergency/contacts/${id}`, data),
+
+  deleteContact: (id: number) =>
+    apiClient.delete<void>(`/emergency/contacts/${id}`),
+
+  triggerSOS: (data?: SosTriggerRequest) =>
+    apiClient.post<SosEventCreateResponse>('/emergency/sos/trigger', data || { location_available: false }),
+
+  getSOSEvents: (params?: { skip?: number; limit?: number; status?: string }) => {
+    const searchParams = new URLSearchParams();
+    if (params?.skip !== undefined) searchParams.set('skip', String(params.skip));
+    if (params?.limit !== undefined) searchParams.set('limit', String(params.limit));
+    if (params?.status) searchParams.set('status', params.status);
+
+    const qs = searchParams.toString();
+    return apiClient.get<PaginatedSosEvents>(`/emergency/sos${qs ? `?${qs}` : ''}`);
+  },
+};

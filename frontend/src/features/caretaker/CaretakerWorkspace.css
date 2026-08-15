@@ -1,0 +1,48 @@
+/*
+  EpiCare — Caretaker Workspace Styles
+  ====================================
+*/
+
+.caretaker-workspace {
+  max-width: var(--content-max-width);
+  margin: 0 auto;
+  width: 100%;
+}
+
+.caretaker-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-8);
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+
+.caretaker-header h1 {
+  font-size: var(--text-3xl);
+  font-weight: var(--font-weight-bold);
+  margin: 0 0 var(--space-1);
+}
+
+.caretaker-header p {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.caretaker-grid {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: var(--space-6);
+  align-items: flex-start;
+}
+
+@media (max-width: 900px) {
+  .caretaker-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .caretaker-grid {
+    grid-template-columns: 1fr;
+  }
+}

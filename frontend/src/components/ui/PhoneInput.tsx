@@ -1,4 +1,4 @@
-import React, { useId } from 'react';
+import { useId } from 'react';
 import PhoneInputLib from 'react-phone-number-input';
 import 'react-phone-number-input/style.css';
 import './PhoneInput.css'; // Custom overrides to match our design system

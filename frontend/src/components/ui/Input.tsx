@@ -1,6 +1,6 @@
 import React, { useId, useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
-import { cn } from './Button';
+import { cn } from '../../lib/utils';
 import './Input.css';
 
 export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {

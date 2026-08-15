@@ -4,6 +4,7 @@ import { Input } from '../../../components/ui/Input';
 import { authApi } from '../../../api/auth';
 import type { LoginPayload } from '../../../types/auth';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../../hooks/useAuth';
 
 type FormState = LoginPayload & {
   otp: string;
@@ -13,6 +14,7 @@ type FormState = LoginPayload & {
 
 export function LoginForm() {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [globalError, setGlobalError] = useState('');
   const [globalSuccess, setGlobalSuccess] = useState('');
@@ -62,9 +64,8 @@ export function LoginForm() {
 
     setIsLoading(true);
     try {
-      const response = await authApi.login({ email: formData.email, password: formData.password });
-      localStorage.setItem('access_token', response.access_token);
-      navigate('/');
+      await login(formData.email, formData.password);
+      navigate('/dashboard');
     } catch (err: any) {
       setGlobalError(err.message || 'Failed to sign in. Please try again.');
     } finally {
@@ -120,7 +121,7 @@ export function LoginForm() {
           setOtpSuccess(false);
           setOtpArray(Array(6).fill(''));
         }, 800);
-      } catch (err: any) {
+      } catch {
         setOtpError(true);
         setGlobalError('Invalid OTP. Please try again.');
         setTimeout(() => {
@@ -278,7 +279,9 @@ export function LoginForm() {
           {otpArray.map((digit, index) => (
             <input
               key={index}
-              ref={(el) => (otpInputRefs.current[index] = el)}
+              ref={(el) => {
+                otpInputRefs.current[index] = el;
+              }}
               type="text"
               maxLength={1}
               value={digit}

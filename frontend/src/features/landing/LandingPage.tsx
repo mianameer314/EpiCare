@@ -1,12 +1,11 @@
-import React from 'react';
-import { motion } from 'framer-motion';
+import { motion, type Variants } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Button } from '../../components/ui/Button';
 import { Shield, HeartPulse, BrainCircuit, ChevronRight } from 'lucide-react';
 import './LandingPage.css';
 
 // Animation variants for scroll reveals
-const fadeInUp = {
+const fadeInUp: Variants = {
   hidden: { opacity: 0, y: 30 },
   visible: { 
     opacity: 1, 
@@ -15,7 +14,7 @@ const fadeInUp = {
   }
 };
 
-const staggerContainer = {
+const staggerContainer: Variants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
@@ -73,15 +72,55 @@ export function LandingPage() {
           </motion.div>
         </div>
         
-        {/* Placeholder for Medical Hero Image/3D Object */}
+        {/* Clinical Telemetry Preview Card */}
         <div className="hero-visual">
-          <div className="media-placeholder" aria-label="Illustration of a doctor and patient interacting warmly">
-            <p className="placeholder-text">
-              [PLACEHOLDER: hero_medical.jpg]<br/>
-              Source: High-quality photo of doctor & patient.<br/>
-              Folder: <code>public/images/</code>
-            </p>
-          </div>
+          <motion.div 
+            className="hero-telemetry-card glass-panel"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.7, delay: 0.2 }}
+          >
+            <div className="telemetry-header">
+              <div className="telemetry-badge">
+                <span className="pulse-dot" />
+                <span>Live Neuro-Monitoring</span>
+              </div>
+              <span className="telemetry-status">Optimal Stability</span>
+            </div>
+
+            {/* EEG Waveform Simulation */}
+            <div className="telemetry-wave-box">
+              <svg viewBox="0 0 400 80" className="telemetry-wave-svg" aria-label="EEG brainwave monitoring signal">
+                <path
+                  d="M 0 40 Q 20 20 40 40 T 80 40 T 120 15 T 140 65 T 160 30 T 180 45 T 220 40 T 260 25 T 280 55 T 300 40 T 340 40 T 380 35 L 400 40"
+                  fill="none"
+                  stroke="var(--color-primary)"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </div>
+
+            {/* Clinical Telemetry Grid */}
+            <div className="telemetry-stats-grid">
+              <div className="telemetry-stat">
+                <div className="stat-label">AED Adherence</div>
+                <div className="stat-val text-gradient">100% Streak</div>
+              </div>
+              <div className="telemetry-stat">
+                <div className="stat-label">AI Seizure Risk</div>
+                <div className="stat-val" style={{ color: 'var(--color-success)' }}>Minimal (0.02)</div>
+              </div>
+              <div className="telemetry-stat">
+                <div className="stat-label">Doctor Network</div>
+                <div className="stat-val">Verified PMDC</div>
+              </div>
+              <div className="telemetry-stat">
+                <div className="stat-label">Emergency SOS</div>
+                <div className="stat-val" style={{ color: 'var(--color-primary)' }}>GPS Armed</div>
+              </div>
+            </div>
+          </motion.div>
         </div>
       </section>
 
@@ -123,16 +162,25 @@ export function LandingPage() {
             <p>Your medical data is encrypted and securely shared only with authorized caretakers.</p>
           </motion.div>
 
-          {/* Card 3 - Image Card */}
-          <motion.div className="bento-card bento-card-image glass-panel" variants={fadeInUp}>
-            <div className="media-placeholder" aria-label="Dashboard preview showing EEG graphs">
-              <p className="placeholder-text">
-                [PLACEHOLDER: dashboard_preview.png]<br/>
-                Folder: <code>public/images/</code>
-              </p>
+          {/* Card 3 - Interactive Telemetry Card */}
+          <motion.div className="bento-card bento-card-telemetry glass-panel" variants={fadeInUp}>
+            <div className="mini-chart-container">
+              <div className="mini-chart-bars">
+                <div className="mini-bar" style={{ height: '30%' }} />
+                <div className="mini-bar" style={{ height: '20%' }} />
+                <div className="mini-bar" style={{ height: '40%' }} />
+                <div className="mini-bar active" style={{ height: '15%' }} />
+                <div className="mini-bar" style={{ height: '25%' }} />
+                <div className="mini-bar" style={{ height: '10%' }} />
+                <div className="mini-bar" style={{ height: '5%' }} />
+              </div>
+              <div className="mini-chart-label">7-Day Real-Time Trend</div>
             </div>
             <div className="card-content-overlay">
               <h3>Real-time Tracking</h3>
+              <p style={{ fontSize: 'var(--text-xs)', opacity: 0.9, margin: '4px 0 0' }}>
+                Instant notifications, emergency dispatch, and daily dosing logs.
+              </p>
             </div>
           </motion.div>
         </motion.div>

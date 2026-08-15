@@ -1,0 +1,174 @@
+/*
+  EpiCare — Bento Grid System
+  ============================
+  Responsive asymmetrical grid for organizing medical data into
+  clean, modular blocks. 4-col desktop → 2-col tablet → 1-col mobile.
+*/
+
+/* ── Base Bento Grid ── */
+.bento-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--bento-columns, 4), 1fr);
+  gap: var(--bento-gap);
+  width: 100%;
+}
+
+/* ── Bento Card (base) ── */
+.bento-item {
+  min-height: var(--bento-min-height);
+  border-radius: var(--bento-radius);
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+/* ── Span Utilities ── */
+/* Width spans */
+.bento-col-1 { grid-column: span 1; }
+.bento-col-2 { grid-column: span 2; }
+.bento-col-3 { grid-column: span 3; }
+.bento-col-4 { grid-column: span 4; }
+
+/* Height spans */
+.bento-row-1 { grid-row: span 1; }
+.bento-row-2 { grid-row: span 2; }
+.bento-row-3 { grid-row: span 3; }
+
+/* ── Common Bento Patterns ── */
+/* Hero module: 2 columns × 2 rows */
+.bento-hero {
+  grid-column: span 2;
+  grid-row: span 2;
+}
+
+/* Wide banner: full width × 1 row */
+.bento-banner {
+  grid-column: span 4;
+  grid-row: span 1;
+}
+
+/* Feature card: 2 columns × 1 row */
+.bento-feature {
+  grid-column: span 2;
+  grid-row: span 1;
+}
+
+/* Standard card: 1 column × 1 row */
+.bento-standard {
+  grid-column: span 1;
+  grid-row: span 1;
+}
+
+/* ── Tablet: 2 columns ── */
+@media (max-width: 1024px) {
+  .bento-grid {
+    --bento-columns: 2;
+  }
+
+  .bento-hero {
+    grid-column: span 2;
+    grid-row: span 2;
+  }
+
+  .bento-banner {
+    grid-column: span 2;
+  }
+
+  .bento-col-3,
+  .bento-col-4 {
+    grid-column: span 2;
+  }
+}
+
+/* ── Mobile: 1 column ── */
+@media (max-width: 640px) {
+  .bento-grid {
+    --bento-columns: 1;
+    --bento-gap: 16px;
+  }
+
+  .bento-hero,
+  .bento-banner,
+  .bento-feature,
+  .bento-col-2,
+  .bento-col-3,
+  .bento-col-4 {
+    grid-column: span 1;
+  }
+
+  .bento-hero {
+    grid-row: span 1;
+    min-height: 240px;
+  }
+
+  .bento-row-2,
+  .bento-row-3 {
+    grid-row: span 1;
+  }
+}
+
+/* ── Bento Card Hover Animation ── */
+.bento-item.interactive {
+  position: relative;
+  cursor: pointer;
+  transition: transform var(--transition-normal), box-shadow var(--transition-normal);
+}
+
+.bento-item.interactive:hover {
+  transform: var(--hover-lift);
+  box-shadow: var(--hover-lift-shadow);
+  z-index: 5;
+}
+
+.bento-item.interactive:active {
+  transform: translateY(-1px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bento-item.interactive:hover {
+    transform: none;
+  }
+}
+
+/* ── Bento Card Internal Layout Helpers ── */
+.bento-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-4);
+}
+
+.bento-header h3 {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-main);
+}
+
+.bento-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.bento-footer {
+  margin-top: auto;
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+/* ── Bento Icon Wrapper ── */
+.bento-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-primary-50);
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
