@@ -794,9 +794,9 @@ export function CaretakerWorkspace() {
                       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
                         <MapPin size={20} color="#dc2626" />
                         <div style={{ textAlign: 'left' }}>
-                          <div style={{ fontWeight: 700, fontSize: 'var(--text-sm)', color: '#991b1b' }}>Live GPS Coordinates</div>
-                          <div style={{ fontSize: 'var(--text-xs)', color: '#7f1d1d', fontWeight: 600 }}>
-                            Lat: {lat.toFixed(5)}, Lon: {lon.toFixed(5)}
+                          <div style={{ fontWeight: 700, fontSize: 'var(--text-sm)', color: '#991b1b' }}>Patient Live Location Tagged</div>
+                          <div style={{ fontSize: 'var(--text-xs)', color: '#7f1d1d' }}>
+                            Instant 1-tap turn-by-turn navigation
                           </div>
                         </div>
                       </div>
@@ -805,7 +805,7 @@ export function CaretakerWorkspace() {
                         target="_blank"
                         rel="noreferrer"
                         className="btn btn-sm"
-                        style={{ background: '#dc2626', color: '#ffffff', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
+                        style={{ background: '#dc2626', color: '#ffffff', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontWeight: 600 }}
                       >
                         <span>Open Live Map</span>
                         <ExternalLink size={14} />
