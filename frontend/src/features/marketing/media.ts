@@ -1,11 +1,8 @@
 /**
  * EpiCare Marketing — Centralized Remote Media Configuration
  * ===========================================================
- * All remote image/video URLs are managed here.
+ * All remote and local images are managed here.
  * Earthy, serene, natural-light medical wellness imagery.
- * Never scatter remote URLs across JSX files.
- *
- * // Replace with approved licensed media before production
  */
 
 export type MediaCredit = {
@@ -26,22 +23,16 @@ export type RemoteMediaItem = {
 };
 
 /**
- * Centralized media registry with high-res, verified, stable Unsplash imagery.
+ * Centralized media registry with verified, high-res local and remote imagery.
  */
 export const media = {
-  // Hero section — Cinematic Neurology & Care visual with video + neural poster
+  // Hero section — Looping cinematic video
   heroMedia: {
     src: '/first.mp4',
-    poster: 'https://images.unsplash.com/photo-1559757175-5700dde675bc?w=1400&h=1600&fit=crop&q=85',
     alt: 'EpiCare Neurology AI brainwave telemetry and personalized healthcare',
     width: 1400,
     height: 1600,
     type: 'video' as const,
-    credit: {
-      photographer: 'EpiCare Neural Telemetry',
-      sourceName: 'EpiCare Clinical Platform',
-      sourceUrl: '#',
-    },
   },
 
   // Lifestyle story section — peaceful morning wellness routine in warm sunlight
@@ -58,72 +49,91 @@ export const media = {
     },
   },
 
-  // Feature bento — journaling daily triggers & lifestyle context
-  lifestyleBento: {
-    src: 'https://images.unsplash.com/photo-1544027993-37dbfe43562a?w=800&h=600&fit=crop&q=85',
-    alt: 'Writing in a wellness journal with warm morning light',
-    width: 800,
-    height: 600,
-    type: 'image' as const,
-    credit: {
-      photographer: 'Cathryn Lavery',
-      sourceName: 'Unsplash',
-      sourceUrl: 'https://unsplash.com',
-    },
-  },
-
-  // Feature bento — peaceful sleep & restorative rest
-  sleepBento: {
-    src: 'https://images.unsplash.com/photo-1511295742362-92c96b124e52?w=800&h=600&fit=crop&q=85',
-    alt: 'Peaceful bedroom with soft morning light promoting restorative sleep',
-    width: 800,
-    height: 600,
-    type: 'image' as const,
-    credit: {
-      photographer: 'Lauren Mancke',
-      sourceName: 'Unsplash',
-      sourceUrl: 'https://unsplash.com',
-    },
-  },
-
-  // Feature bento — mindful wellness walking in nature
-  natureWalk: {
-    src: 'https://images.unsplash.com/photo-1448375240586-882707db888b?w=800&h=600&fit=crop&q=85',
-    alt: 'Sunlight filtering through trees on a peaceful morning walk',
-    width: 800,
-    height: 600,
-    type: 'image' as const,
-    credit: {
-      photographer: 'Sebastian Unrau',
-      sourceName: 'Unsplash',
-      sourceUrl: 'https://unsplash.com',
-    },
-  },
-
-  // EEG Analysis Preview — clean tablet review
-  eegReview: {
-    src: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=1200&h=800&fit=crop&q=85',
-    alt: 'Modern clinical telemetry review on a digital surface',
+  // Module 01 — EEG Analysis & Clinical Review
+  eegBento: {
+    src: '/eeg-analysis.jpg',
+    alt: 'Neurologist analyzing EEG brainwave telemetry waveforms on a digital tablet',
     width: 1200,
     height: 800,
     type: 'image' as const,
     credit: {
-      photographer: 'National Cancer Institute',
-      sourceName: 'Unsplash',
-      sourceUrl: 'https://unsplash.com',
+      photographer: 'EpiCare Clinical',
+      sourceName: 'EpiCare Platform',
+      sourceUrl: '#',
+    },
+  },
+
+  // Module 02 — Structured Clinical Reports
+  reportsBento: {
+    src: '/clinical-reports.jpg',
+    alt: 'Clean clinical EEG assessment report with graphs on a modern doctor desk',
+    width: 1200,
+    height: 800,
+    type: 'image' as const,
+    credit: {
+      photographer: 'EpiCare Clinical',
+      sourceName: 'EpiCare Platform',
+      sourceUrl: '#',
+    },
+  },
+
+  // Module 03 — AED Medication Safety & Routine
+  medsBento: {
+    src: '/aed-medication.jpg',
+    alt: 'Aesthetic morning medication organizer with prescription bottle in soft sunlight',
+    width: 1200,
+    height: 800,
+    type: 'image' as const,
+    credit: {
+      photographer: 'EpiCare Clinical',
+      sourceName: 'EpiCare Platform',
+      sourceUrl: '#',
+    },
+  },
+
+  // Module 04 — Lifestyle & Trigger Journaling
+  lifestyleBento: {
+    src: '/lifestyle-journaling.jpg',
+    alt: 'Writing in a wellness journal with warm morning light and herbal tea',
+    width: 1200,
+    height: 900,
+    type: 'image' as const,
+    credit: {
+      photographer: 'EpiCare Wellness',
+      sourceName: 'EpiCare Platform',
+      sourceUrl: '#',
+    },
+  },
+
+  // Module 05 — Sleep Quality & Rest Patterns
+  sleepBento: {
+    src: '/sleep-quality.jpg',
+    alt: 'Peaceful bedroom with soft morning light promoting restorative sleep',
+    width: 1200,
+    height: 900,
+    type: 'image' as const,
+    credit: {
+      photographer: 'EpiCare Rest',
+      sourceName: 'EpiCare Platform',
+      sourceUrl: '#',
+    },
+  },
+
+  // Module 06 — Mindful Wellness & Calm Movement
+  natureWalk: {
+    src: '/nature-walk.jpg',
+    alt: 'Sunlight filtering through trees on a peaceful morning wellness walk',
+    width: 1200,
+    height: 900,
+    type: 'image' as const,
+    credit: {
+      photographer: 'EpiCare Wellness',
+      sourceName: 'EpiCare Platform',
+      sourceUrl: '#',
     },
   },
 } as const;
 
-/** CSS gradient fallback when remote images fail */
+/** CSS gradient fallback */
 export const FALLBACK_GRADIENT =
   'linear-gradient(135deg, #e8f5ec 0%, #efece5 50%, #f7f5f0 100%)';
-
-/** Abstract waveform SVG for visual fallback */
-export const FALLBACK_WAVE_SVG = `
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 200" fill="none">
-  <path d="M0 100 Q150 30 300 100 T600 100 T900 100 T1200 100"
-        stroke="rgba(45,90,63,0.15)" stroke-width="2" fill="none"/>
-  <path d="M0 120 Q150 60 300 120 T600 120 T900 120 T1200 120"
-        stroke="rgba(15,159,152,0.1)" stroke-width="1.5" fill="none"/>
-</svg>`;

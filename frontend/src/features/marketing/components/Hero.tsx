@@ -1,12 +1,11 @@
 /**
  * Hero — Two-column editorial hero section with skeuomorphic depth,
- * authentic remote imagery, and tactile floating telemetry cards.
+ * looping cinematic medical video, and tactile floating telemetry cards.
  */
 import { Link } from 'react-router-dom';
 import { ArrowRight, ChevronRight, CheckCircle2, Moon, Pill, Shield, Activity } from 'lucide-react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { SignalCanvas } from './SignalCanvas';
-import { RemoteImage, ImageCredit } from './RemoteMedia';
 import { media } from '../media';
 
 export function Hero() {
@@ -67,7 +66,7 @@ export function Hero() {
           </motion.div>
         </div>
 
-        {/* Right: Skeuomorphic visual composition with real editorial imagery */}
+        {/* Right: Skeuomorphic visual composition with cinematic looping video */}
         <div className="mk-hero-visual">
           <motion.div
             className="mk-hero-frame mk-skeuo-card"
@@ -79,7 +78,7 @@ export function Hero() {
                   transition: { duration: 0.7, delay: 0.2, ease: [0.16, 1, 0.3, 1] as const },
                 })}
           >
-            {/* Cinematic Neural Video / Editorial Visual */}
+            {/* Looping Cinematic Neural Video */}
             <div className="mk-hero-image-wrap">
               <video
                 className="mk-hero-video"
@@ -87,8 +86,7 @@ export function Hero() {
                 loop
                 muted
                 playsInline
-                poster={media.heroMedia.poster}
-                aria-label={media.heroMedia.alt}
+                aria-label="EpiCare clinical neural telemetry visual"
               >
                 <source src={media.heroMedia.src} type="video/mp4" />
               </video>
@@ -157,11 +155,6 @@ export function Hero() {
                 <span className="mk-card-sub">7h 42m avg · Stabilized</span>
               </div>
             </motion.div>
-
-            {/* Photo credit */}
-            <div className="mk-hero-photo-credit">
-              <ImageCredit credit={media.heroMedia.credit} />
-            </div>
           </motion.div>
         </div>
       </div>
