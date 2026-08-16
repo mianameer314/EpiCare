@@ -2,7 +2,7 @@
  * MarketingFooter — Product links, safety, copyright
  */
 import { Link } from 'react-router-dom';
-import { Activity } from 'lucide-react';
+import { BrandLogo } from '../../../components/shared/BrandLogo';
 
 const PRODUCT_LINKS = [
   { label: 'EEG Analysis', href: '/eeg' },
@@ -27,12 +27,7 @@ export function MarketingFooter() {
         <div className="mk-footer-grid">
           {/* Brand column */}
           <div className="mk-footer-brand">
-            <Link to="/" className="mk-logo mk-logo--footer" aria-label="EpiCare Home">
-              <div className="mk-logo-icon" aria-hidden="true">
-                <Activity size={18} strokeWidth={2.5} />
-              </div>
-              <span className="mk-logo-text">EpiCare</span>
-            </Link>
+            <BrandLogo size="sm" to="/" subtitle="Neurology AI" />
             <p className="mk-footer-desc">
               AI-assisted epilepsy management. Designed to support your understanding
               of health information—not to replace professional medical care.

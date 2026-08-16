@@ -7,6 +7,7 @@ import { isValidPhoneNumber } from 'react-phone-number-input';
 import { authApi } from '../../../api/auth';
 import type { RegisterPayload } from '../../../types/auth';
 import { motion } from 'framer-motion';
+import { BrandLogo } from '../../../components/shared/BrandLogo';
 
 export function SignupForm() {
   const [isLoading, setIsLoading] = useState(false);
@@ -208,11 +209,7 @@ export function SignupForm() {
       <div className="auth-form" style={{ textAlign: 'center' }}>
         <div className="auth-form-header">
           <div className="auth-brand">
-            <img src="/logo.png" alt="EpiCare" className="auth-brand-logo" />
-            <span className="auth-brand-name">
-              <span className="brand-epi">Epi</span>
-              <span className="brand-care">Care</span>
-            </span>
+            <BrandLogo size="lg" to="/" subtitle="Email Verification" />
           </div>
           <h2>Verify Your Email</h2>
           <p style={{ fontSize: '0.9rem', color: 'var(--color-text-muted)', marginTop: '8px' }}>
@@ -312,11 +309,7 @@ export function SignupForm() {
     <form onSubmit={handleSubmit} className="auth-form" noValidate>
       <div className="auth-form-header">
         <div className="auth-brand">
-          <img src="/logo.png" alt="EpiCare" className="auth-brand-logo" />
-          <span className="auth-brand-name">
-            <span className="brand-epi">Epi</span>
-            <span className="brand-care">Care</span>
-          </span>
+          <BrandLogo size="lg" to="/" subtitle="Create Your Health Account" />
         </div>
         <h2>Create an account</h2>
       </div>

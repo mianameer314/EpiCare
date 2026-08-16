@@ -4,7 +4,8 @@
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Menu, X, ArrowRight, Activity } from 'lucide-react';
+import { Menu, X, ArrowRight } from 'lucide-react';
+import { BrandLogo } from '../../../components/shared/BrandLogo';
 
 const NAV_LINKS = [
   { label: 'How it works', href: '#how-it-works' },
@@ -53,7 +54,6 @@ export function MarketingNavbar() {
 
     document.addEventListener('keydown', onKey);
     document.body.style.overflow = 'hidden';
-    // Focus first link after open
     requestAnimationFrame(() => {
       const firstLink = drawerRef.current?.querySelector<HTMLElement>('a[href]');
       firstLink?.focus();
@@ -86,12 +86,7 @@ export function MarketingNavbar() {
       >
         <div className="mk-container mk-navbar-inner">
           {/* Logo */}
-          <Link to="/" className="mk-logo" aria-label="EpiCare Home">
-            <div className="mk-logo-icon" aria-hidden="true">
-              <Activity size={20} strokeWidth={2.5} />
-            </div>
-            <span className="mk-logo-text">EpiCare</span>
-          </Link>
+          <BrandLogo size="md" to="/" subtitle="Neurology AI" />
 
           {/* Desktop Nav */}
           <nav className="mk-nav-desktop" aria-label="Main">
@@ -112,8 +107,8 @@ export function MarketingNavbar() {
             <Link to="/auth" className="mk-nav-link mk-nav-signin">
               Sign in
             </Link>
-            <Link to="/auth" className="mk-btn mk-btn-primary mk-btn-sm">
-              Get started
+            <Link to="/auth" className="mk-btn mk-btn-primary mk-btn-sm mk-btn-skeuo">
+              <span>Get started</span>
               <ArrowRight size={14} aria-hidden="true" />
             </Link>
           </div>
@@ -151,12 +146,7 @@ export function MarketingNavbar() {
         aria-label="Mobile navigation"
       >
         <div className="mk-mobile-drawer-header">
-          <Link to="/" className="mk-logo" aria-label="EpiCare Home" onClick={() => setMobileOpen(false)}>
-            <div className="mk-logo-icon" aria-hidden="true">
-              <Activity size={20} strokeWidth={2.5} />
-            </div>
-            <span className="mk-logo-text">EpiCare</span>
-          </Link>
+          <BrandLogo size="sm" to="/" subtitle="Neurology AI" onClick={() => setMobileOpen(false)} />
           <button
             className="mk-mobile-close"
             onClick={() => {
@@ -192,10 +182,10 @@ export function MarketingNavbar() {
           </Link>
           <Link
             to="/auth"
-            className="mk-btn mk-btn-primary mk-btn-full"
+            className="mk-btn mk-btn-primary mk-btn-full mk-btn-skeuo"
             onClick={() => setMobileOpen(false)}
           >
-            Get started
+            <span>Get started</span>
             <ArrowRight size={14} aria-hidden="true" />
           </Link>
         </div>

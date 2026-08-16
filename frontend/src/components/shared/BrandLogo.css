@@ -1,0 +1,129 @@
+/*
+  EpiCare — Unified Brand Logo Styles
+  ====================================
+  Emerald gradient aura, tactile bevel, and crisp typography.
+*/
+
+.brand-logo-root {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: var(--color-text-main, #1a1e1b);
+  user-select: none;
+  transition: opacity 160ms ease, transform 160ms ease;
+}
+
+.brand-logo-root:hover {
+  opacity: 0.95;
+}
+
+.brand-logo-icon-box {
+  border-radius: 10px;
+  background: linear-gradient(135deg, #2d5a3f 0%, #153822 100%);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow:
+    0 2px 8px rgba(45, 90, 63, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  position: relative;
+  overflow: hidden;
+}
+
+.brand-logo-icon-box::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.18) 0%, transparent 100%);
+  pointer-events: none;
+}
+
+.brand-logo-text-group {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.brand-logo-title {
+  font-family: 'Plus Jakarta Sans', 'Outfit', 'Inter', system-ui, sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  color: var(--color-primary-dark, #1b4332);
+}
+
+.brand-logo-sub {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-weight: 600;
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-muted, #5e6b63);
+  margin-top: 1px;
+}
+
+/* ── Sizes ── */
+.brand-logo--xs .brand-logo-icon-box {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+}
+.brand-logo--xs .brand-logo-title {
+  font-size: 14px;
+}
+
+.brand-logo--sm .brand-logo-icon-box {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+}
+.brand-logo--sm .brand-logo-title {
+  font-size: 16px;
+}
+
+.brand-logo--md .brand-logo-icon-box {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+}
+.brand-logo--md .brand-logo-title {
+  font-size: 19px;
+}
+
+.brand-logo--lg .brand-logo-icon-box {
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+}
+.brand-logo--lg .brand-logo-title {
+  font-size: 23px;
+}
+.brand-logo--lg .brand-logo-sub {
+  font-size: 11.5px;
+}
+
+.brand-logo--xl .brand-logo-icon-box {
+  width: 58px;
+  height: 58px;
+  border-radius: 16px;
+}
+.brand-logo--xl .brand-logo-title {
+  font-size: 28px;
+}
+.brand-logo--xl .brand-logo-sub {
+  font-size: 13px;
+}
+
+/* ── Light Variant (for dark backgrounds) ── */
+.brand-logo--light .brand-logo-title {
+  color: #ffffff;
+}
+.brand-logo--light .brand-logo-sub {
+  color: rgba(255, 255, 255, 0.7);
+}

@@ -6,7 +6,6 @@ import {
   LayoutDashboard,
   BrainCircuit,
   Pill,
-  HeartPulse,
   HeartHandshake,
   Siren,
   User as UserIcon,
@@ -23,6 +22,7 @@ import {
 } from 'lucide-react';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { useUnsavedChangesContext } from '../../providers/UnsavedChangesProvider';
+import { BrandLogo } from '../shared/BrandLogo';
 import './AppShell.css';
 
 /* ────────────────────────────────────────────────────
@@ -140,20 +140,12 @@ export function AppShell() {
           {/* ── Brand Header ── */}
           <div className={`sidebar-header ${sidebarCollapsed ? 'header-collapsed' : ''}`}>
             <div className="sidebar-logo">
-              <div className="logo-icon-aura">
-                <HeartPulse size={22} className="logo-icon" />
-              </div>
-              {!sidebarCollapsed && (
-                <motion.div
-                  className="logo-text-wrap"
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -10 }}
-                >
-                  <span className="logo-text">EpiCare</span>
-                  <span className="logo-sub">Neurology AI</span>
-                </motion.div>
-              )}
+              <BrandLogo
+                size="md"
+                showText={!sidebarCollapsed}
+                subtitle="Neurology AI"
+                to="/dashboard"
+              />
             </div>
 
             <button
@@ -213,19 +205,12 @@ export function AppShell() {
             <div className="topbar-left">
             {/* Topbar Brand for Single-Console Layouts (Admin / Doctor / Caretaker) */}
             {!hasSidebar && (
-              <div
-                className="topbar-brand"
-                onClick={() => safeNavigate('/dashboard')}
-                title="EpiCare Platform"
-              >
-                <div className="logo-icon-aura topbar-logo-aura">
-                  <HeartPulse size={18} className="logo-icon" />
-                </div>
-                <div className="topbar-brand-text">
-                  <span className="logo-text">EpiCare</span>
-                  <span className="logo-sub">{user?.role === 'ADMIN' ? 'Platform Governance' : 'Clinical System'}</span>
-                </div>
-              </div>
+              <BrandLogo
+                size="sm"
+                to="/dashboard"
+                subtitle={user?.role === 'ADMIN' ? 'Platform Governance' : 'Clinical System'}
+                className="topbar-brand-logo"
+              />
             )}
 
             {hasSidebar && (
