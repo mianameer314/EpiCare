@@ -10,13 +10,16 @@ interface Option {
 
 interface SelectProps {
   id: string;
+  name?: string;
   label: string;
   value: string;
   options: Option[];
   onChange: (value: string) => void;
+  error?: string;
+  required?: boolean;
 }
 
-export function Select({ id, label, value, options, onChange }: SelectProps) {
+export function Select({ id, name: _name, label, value, options, onChange, error, required }: SelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const selectRef = useRef<HTMLDivElement>(null);
 
@@ -40,10 +43,15 @@ export function Select({ id, label, value, options, onChange }: SelectProps) {
 
   return (
     <div className={`custom-select-wrapper ${isOpen ? 'active-dropdown' : ''}`} ref={selectRef}>
-      {label ? <label htmlFor={id} className="input-label">{label}</label> : null}
+      {label ? (
+        <label htmlFor={id} className="input-label">
+          {label}
+          {required && <span className="input-required" aria-hidden="true">*</span>}
+        </label>
+      ) : null}
       
       <div 
-        className={`custom-select-trigger ${isOpen ? 'open' : ''}`}
+        className={`custom-select-trigger ${isOpen ? 'open' : ''} ${error ? 'has-error' : ''}`}
         onClick={() => setIsOpen(!isOpen)}
         tabIndex={0}
         id={id}
@@ -60,6 +68,12 @@ export function Select({ id, label, value, options, onChange }: SelectProps) {
         </motion.div>
       </div>
 
+      {error && (
+        <div className="input-error-msg" role="alert" style={{ color: 'var(--color-danger, #e74c3c)', fontSize: '0.8rem', marginTop: '4px' }}>
+          {error}
+        </div>
+      )}
+
       <AnimatePresence>
         {isOpen && (
           <motion.div 
@@ -67,7 +81,7 @@ export function Select({ id, label, value, options, onChange }: SelectProps) {
             initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
-            transition={{ duration: 0.12, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: 0.12, ease: [0.16, 1, 0.3, 1] as const }}
           >
             {options.map((option) => (
               <div

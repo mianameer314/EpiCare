@@ -5,7 +5,6 @@ import { authApi } from '../../../api/auth';
 import type { LoginPayload } from '../../../types/auth';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../hooks/useAuth';
-import { BrandLogo } from '../../../components/shared/BrandLogo';
 
 type FormState = LoginPayload & {
   otp: string;
@@ -191,9 +190,6 @@ export function LoginForm() {
   return (
     <form onSubmit={handleSubmit} className="auth-form" noValidate>
       <div className="auth-form-header">
-        <div className="auth-brand">
-          <BrandLogo size="lg" to="/" subtitle="Neurology AI Portal" />
-        </div>
         <h2>
           {forgotPasswordStep === 'none' && 'Welcome back'}
           {forgotPasswordStep === 'email' && 'Forgot Password'}

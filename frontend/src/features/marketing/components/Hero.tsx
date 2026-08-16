@@ -79,13 +79,19 @@ export function Hero() {
                   transition: { duration: 0.7, delay: 0.2, ease: [0.16, 1, 0.3, 1] as const },
                 })}
           >
-            {/* Real Editorial Image */}
+            {/* Cinematic Neural Video / Editorial Visual */}
             <div className="mk-hero-image-wrap">
-              <RemoteImage
-                media={media.heroPortrait}
-                priority={true}
-                className="mk-hero-image"
-              />
+              <video
+                className="mk-hero-video"
+                autoPlay
+                loop
+                muted
+                playsInline
+                poster={media.heroMedia.poster}
+                aria-label={media.heroMedia.alt}
+              >
+                <source src={media.heroMedia.src} type="video/mp4" />
+              </video>
               <div className="mk-hero-image-gradient" />
             </div>
 
@@ -154,7 +160,7 @@ export function Hero() {
 
             {/* Photo credit */}
             <div className="mk-hero-photo-credit">
-              <ImageCredit credit={media.heroPortrait.credit} />
+              <ImageCredit credit={media.heroMedia.credit} />
             </div>
           </motion.div>
         </div>

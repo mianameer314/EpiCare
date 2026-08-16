@@ -29,17 +29,18 @@ export type RemoteMediaItem = {
  * Centralized media registry with high-res, verified, stable Unsplash imagery.
  */
 export const media = {
-  // Hero section — calm person in natural morning light reviewing health information
-  heroPortrait: {
-    src: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=1400&h=1600&fit=crop&q=85',
-    alt: 'A person calmly reviewing health information on a laptop in a sunlit room',
+  // Hero section — Cinematic Neurology & Care visual with video + neural poster
+  heroMedia: {
+    src: '/first.mp4',
+    poster: 'https://images.unsplash.com/photo-1559757175-5700dde675bc?w=1400&h=1600&fit=crop&q=85',
+    alt: 'EpiCare Neurology AI brainwave telemetry and personalized healthcare',
     width: 1400,
     height: 1600,
-    type: 'image' as const,
+    type: 'video' as const,
     credit: {
-      photographer: 'Christina @ wocintechchat.com',
-      sourceName: 'Unsplash',
-      sourceUrl: 'https://unsplash.com',
+      photographer: 'EpiCare Neural Telemetry',
+      sourceName: 'EpiCare Clinical Platform',
+      sourceUrl: '#',
     },
   },
 
