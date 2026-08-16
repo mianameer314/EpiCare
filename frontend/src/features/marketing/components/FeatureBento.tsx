@@ -1,7 +1,7 @@
 /**
  * FeatureBento — Responsive GSAP Pinned Stacked-Card Scrollytelling
  * ===================================================================
- * Desktop (1024px+): True GSAP ScrollTrigger pinned stacked-card scrollytelling.
+ * Desktop (1024px+): True GSAP ScrollTrigger pinned scrollytelling with clean card focus (no ghost cards behind).
  * Mobile (<1024px):   Sequential vertical card flow with whileInView reveals.
  * Reduced Motion:     Accessible static layout.
  */
@@ -13,7 +13,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { Reveal } from './MarketingMotion';
-import { RemoteImage, ImageCredit } from './RemoteMedia';
+import { RemoteImage } from './RemoteMedia';
 import { media } from '../media';
 import type { LucideIcon } from 'lucide-react';
 import type { RemoteMediaItem } from '../media';
@@ -120,9 +120,6 @@ function CardBody({ card }: { card: StoryCard }) {
             ))}
           </div>
         </div>
-        <div className="sc-visual-credit">
-          <ImageCredit credit={card.image.credit} />
-        </div>
       </div>
     </>
   );
@@ -151,12 +148,12 @@ function DesktopPinnedStory() {
         const cards = gsap.utils.toArray<HTMLElement>('.sc-desktop-card', stage);
         const totalCards = cards.length;
 
-        // Position initial cards: card 0 in place, rest offscreen below
+        // Position initial cards: card 0 in place, rest offscreen below with 0 opacity
         cards.forEach((card, i) => {
           if (i > 0) {
-            gsap.set(card, { yPercent: 115, opacity: 0.3 });
+            gsap.set(card, { yPercent: 110, opacity: 0, zIndex: i });
           } else {
-            gsap.set(card, { yPercent: 0, opacity: 1 });
+            gsap.set(card, { yPercent: 0, opacity: 1, zIndex: 10 });
           }
         });
 
@@ -164,9 +161,9 @@ function DesktopPinnedStory() {
           scrollTrigger: {
             trigger: section,
             start: 'top top',
-            end: '+=3200',
+            end: '+=2400',
             pin: true,
-            scrub: 0.7,
+            scrub: 0.5,
             anticipatePin: 1,
             invalidateOnRefresh: true,
             onUpdate: (self) => {
@@ -183,33 +180,32 @@ function DesktopPinnedStory() {
         for (let i = 1; i < totalCards; i++) {
           const startTime = i - 1;
 
-          // Bring in card i
-          tl.to(
+          // Bring in card i smoothly
+          tl.fromTo(
             cards[i],
+            { yPercent: 110, opacity: 0 },
             {
               yPercent: 0,
               opacity: 1,
+              zIndex: 10 + i,
               ease: 'power2.out',
               duration: 1,
             },
             startTime
           );
 
-          // Push down earlier cards
-          for (let j = 0; j < i; j++) {
-            const depth = i - j;
-            tl.to(
-              cards[j],
-              {
-                yPercent: -6 * depth,
-                scale: 1 - 0.04 * depth,
-                opacity: Math.max(0.2, 1 - 0.35 * depth),
-                ease: 'power2.out',
-                duration: 1,
-              },
-              startTime
-            );
-          }
+          // Completely fade out the previous card so NO ghost text/overlays show behind!
+          tl.to(
+            cards[i - 1],
+            {
+              yPercent: -10,
+              scale: 0.96,
+              opacity: 0, // Fully hides earlier cards!
+              ease: 'power2.out',
+              duration: 0.9,
+            },
+            startTime
+          );
         }
       });
 
@@ -219,11 +215,13 @@ function DesktopPinnedStory() {
     return () => ctx.revert();
   }, [prefersReducedMotion]);
 
-  const handleStepClick = (index: number) => {
+  // Handle both click and hover on 1-6 module steps
+  const handleStepJump = (index: number) => {
+    setActiveIndex(index);
     if (!sectionRef.current) return;
-    const st = ScrollTrigger.getById('care-modules-pin') || ScrollTrigger.getAll().find(t => t.trigger === sectionRef.current);
+    const st = ScrollTrigger.getAll().find(t => t.trigger === sectionRef.current);
     if (st) {
-      const scrollPos = st.start + (index / (STORY_CARDS.length - 1)) * (st.end - st.start);
+      const scrollPos = st.start + (index / (STORY_CARDS.length - 1)) * (st.end - st.start) + 5;
       window.scrollTo({ top: scrollPos, behavior: 'smooth' });
     }
   };
@@ -244,7 +242,7 @@ function DesktopPinnedStory() {
             Everything in one calm place,<br /> designed with tactile clarity.
           </h2>
           <p className="sc-desktop-sub">
-            Scroll smoothly or click any module to explore your personalized neurology stack.
+            Scroll smoothly or hover over any module to explore your neurology telemetry stack.
           </p>
 
           <div className="sc-step-nav" role="tablist">
@@ -252,8 +250,8 @@ function DesktopPinnedStory() {
               <button
                 key={card.id}
                 type="button"
-                onClick={() => handleStepClick(i)}
-                onMouseEnter={() => setActiveIndex(i)}
+                onClick={() => handleStepJump(i)}
+                onMouseEnter={() => handleStepJump(i)}
                 className={`sc-step-item ${i === activeIndex ? 'sc-step-item--active' : ''}`}
                 aria-selected={i === activeIndex}
                 role="tab"
