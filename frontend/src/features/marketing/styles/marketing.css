@@ -999,11 +999,8 @@
 }
 
 .mk-how-preview {
-  display: none;
-}
-
-.mk-how-preview--active {
   display: block;
+  width: 100%;
 }
 
 .mk-how-preview-card {
