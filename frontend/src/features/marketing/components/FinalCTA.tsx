@@ -23,7 +23,7 @@ export function FinalCTA() {
               Start organizing the health information that helps you understand your care patterns and communicate with your medical team with confidence.
             </p>
             <div className="mk-final-actions">
-              <Link to="/auth" className="mk-btn mk-btn-primary mk-btn-lg mk-btn-skeuo">
+              <Link to="/auth?mode=register" className="mk-btn mk-btn-primary mk-btn-lg mk-btn-skeuo">
                 <span>Create your free account</span>
                 <ArrowRight size={16} aria-hidden="true" />
               </Link>

@@ -104,10 +104,10 @@ export function MarketingNavbar() {
 
           {/* Desktop CTAs */}
           <div className="mk-nav-actions">
-            <Link to="/auth" className="mk-nav-link mk-nav-signin">
+            <Link to="/auth?mode=login" className="mk-nav-link mk-nav-signin">
               Sign in
             </Link>
-            <Link to="/auth" className="mk-btn mk-btn-primary mk-btn-sm mk-btn-skeuo">
+            <Link to="/auth?mode=register" className="mk-btn mk-btn-primary mk-btn-sm mk-btn-skeuo">
               <span>Get started</span>
               <ArrowRight size={14} aria-hidden="true" />
             </Link>
@@ -174,14 +174,14 @@ export function MarketingNavbar() {
 
         <div className="mk-mobile-actions">
           <Link
-            to="/auth"
+            to="/auth?mode=login"
             className="mk-btn mk-btn-outline mk-btn-full"
             onClick={() => setMobileOpen(false)}
           >
             Sign in
           </Link>
           <Link
-            to="/auth"
+            to="/auth?mode=register"
             className="mk-btn mk-btn-primary mk-btn-full mk-btn-skeuo"
             onClick={() => setMobileOpen(false)}
           >

@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LoginForm } from './components/LoginForm';
 import { SignupForm } from './components/SignupForm';
@@ -6,7 +7,17 @@ import { Button } from '../../components/ui/Button';
 import './AuthPage.css';
 
 export function AuthPage() {
-  const [isLogin, setIsLogin] = useState(true);
+  const [searchParams] = useSearchParams();
+  const mode = searchParams.get('mode');
+  const [isLogin, setIsLogin] = useState(() => mode !== 'register' && mode !== 'signup');
+
+  useEffect(() => {
+    if (mode === 'register' || mode === 'signup') {
+      setIsLogin(false);
+    } else if (mode === 'login') {
+      setIsLogin(true);
+    }
+  }, [mode]);
 
   // Accessible switching
   const handleToggle = () => setIsLogin(!isLogin);
