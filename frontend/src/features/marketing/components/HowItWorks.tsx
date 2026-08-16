@@ -1,5 +1,5 @@
 /**
- * HowItWorks — 3-step editorial scroll narrative with 4-second auto-rotation,
+ * HowItWorks — 3-step editorial scroll narrative with 3-second auto-rotation,
  * hover-to-pause interaction, and buttery-smooth AnimatePresence transitions.
  */
 import { useState, useEffect } from 'react';
@@ -72,27 +72,21 @@ export function HowItWorks() {
   const [isPaused, setIsPaused] = useState(false);
   const reduceMotion = useReducedMotion();
 
-  // 3-Second Auto-rotation cycle (pauses on hover, resumes on mouse leave)
+  // 3-Second Auto-rotation cycle (active unless user is hovering the tab list)
   useEffect(() => {
-    if (isPaused || reduceMotion) return;
+    if (isPaused) return;
 
     const timer = setInterval(() => {
       setActiveStep((prev) => (prev >= STEPS.length ? 1 : prev + 1));
     }, 3000);
 
     return () => clearInterval(timer);
-  }, [isPaused, reduceMotion]);
+  }, [isPaused]);
 
   const currentStep = STEPS.find((s) => s.id === activeStep) || STEPS[0];
 
   return (
-    <section
-      id="how-it-works"
-      className="mk-how-section"
-      aria-labelledby="how-heading"
-      onMouseEnter={() => setIsPaused(true)}
-      onMouseLeave={() => setIsPaused(false)}
-    >
+    <section id="how-it-works" className="mk-how-section" aria-labelledby="how-heading">
       <div className="mk-container">
         <Reveal>
           <div className="mk-section-header">
@@ -106,8 +100,14 @@ export function HowItWorks() {
         </Reveal>
 
         <div className="mk-how-grid">
-          {/* Left: Step navigation tabs */}
-          <div className="mk-how-nav" role="tablist" aria-label="Steps">
+          {/* Left: Step navigation tabs (pauses on hover, resumes on mouse leave) */}
+          <div
+            className="mk-how-nav"
+            role="tablist"
+            aria-label="Steps"
+            onMouseEnter={() => setIsPaused(true)}
+            onMouseLeave={() => setIsPaused(false)}
+          >
             {STEPS.map((step) => (
               <Reveal key={step.id} delay={step.id * 0.08}>
                 <button
@@ -116,18 +116,13 @@ export function HowItWorks() {
                   aria-selected={activeStep === step.id}
                   aria-controls={`step-panel-${step.id}`}
                   className={`mk-how-step mk-skeuo-tab ${activeStep === step.id ? 'mk-how-step--active' : ''}`}
-                  onClick={() => {
-                    setIsPaused(true);
-                    setActiveStep(step.id);
-                  }}
-                  onMouseEnter={() => {
-                    setIsPaused(true);
-                    setActiveStep(step.id);
-                  }}
+                  onClick={() => setActiveStep(step.id)}
+                  onMouseEnter={() => setActiveStep(step.id)}
                   onFocus={() => {
                     setIsPaused(true);
                     setActiveStep(step.id);
                   }}
+                  onBlur={() => setIsPaused(false)}
                 >
                   <div className="mk-how-step-number">
                     <span>0{step.id}</span>
