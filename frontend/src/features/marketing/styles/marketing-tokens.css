@@ -1,0 +1,162 @@
+/*
+  EpiCare Marketing — Design Tokens & Skeuomorphic Depth System
+  ==============================================================
+  Signature EpiCare visual identity:
+  - Earthy greens, warm beige, soft sand, medical emerald & teal.
+  - Tactile skeuomorphic glassmorphism, multi-layer depth, inner bevel highlights.
+  - Editorial typography (Plus Jakarta Sans + Inter).
+  - Parallax-ready spatial tokens & motion curves.
+*/
+
+.marketing {
+  /* ── EpiCare Signature Color Palette ── */
+  --mk-primary: #2d5a3f;
+  --mk-primary-hover: #1e402c;
+  --mk-primary-light: #447a59;
+  --mk-primary-soft: #e8f5ec;
+  --mk-primary-100: #c6e7d0;
+  --mk-primary-200: #9dd5af;
+  --mk-primary-800: #1b4332;
+  --mk-primary-900: #0f2b19;
+
+  --mk-secondary: #0077b6;
+  --mk-secondary-soft: #e0f4ff;
+
+  --mk-teal: #0f9f98;
+  --mk-teal-soft: #e4f7f4;
+
+  --mk-sand: #f7f5f0;
+  --mk-sand-secondary: #efece5;
+  --mk-sand-warm: #fcfbf9;
+
+  --mk-background: #f8faf9;
+  --mk-surface: #ffffff;
+  --mk-surface-elevated: #ffffff;
+  --mk-surface-frosted: rgba(255, 255, 255, 0.85);
+
+  --mk-forest: #102919;
+  --mk-forest-dark: #091a10;
+  --mk-forest-glow: rgba(45, 90, 63, 0.2);
+
+  --mk-ink: #1a1e1b;
+  --mk-text-secondary: #3d4a41;
+  --mk-text-muted: #5e6b63;
+  --mk-text-placeholder: #8a9590;
+
+  --mk-border: rgba(45, 90, 63, 0.12);
+  --mk-border-subtle: rgba(45, 90, 63, 0.06);
+  --mk-border-glass: rgba(255, 255, 255, 0.85);
+  --mk-border-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+
+  /* Status Colors */
+  --mk-success: #1a7f37;
+  --mk-success-soft: rgba(26, 127, 55, 0.08);
+  --mk-warning: #9a6700;
+  --mk-warning-soft: rgba(154, 103, 0, 0.08);
+  --mk-critical: #c4232a;
+  --mk-critical-soft: rgba(196, 35, 42, 0.08);
+
+  /* ── Typography ── */
+  --mk-font-display: 'Plus Jakarta Sans', 'Outfit', 'Inter', system-ui, sans-serif;
+  --mk-font-body: 'Inter', system-ui, -apple-system, sans-serif;
+  --mk-font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+  /* ── Type Scale ── */
+  --mk-text-xs: 0.75rem;
+  --mk-text-sm: 0.875rem;
+  --mk-text-base: 1rem;
+  --mk-text-lg: 1.125rem;
+  --mk-text-xl: 1.25rem;
+  --mk-text-2xl: 1.5rem;
+  --mk-text-3xl: 1.875rem;
+  --mk-text-4xl: clamp(2rem, 1.6rem + 2vw, 2.75rem);
+  --mk-text-5xl: clamp(2.5rem, 2rem + 2.5vw, 3.5rem);
+  --mk-text-6xl: clamp(3rem, 2.25rem + 3.75vw, 4.5rem);
+
+  /* ── Spacing ── */
+  --mk-space-1: 0.25rem;
+  --mk-space-2: 0.5rem;
+  --mk-space-3: 0.75rem;
+  --mk-space-4: 1rem;
+  --mk-space-5: 1.25rem;
+  --mk-space-6: 1.5rem;
+  --mk-space-8: 2rem;
+  --mk-space-10: 2.5rem;
+  --mk-space-12: 3rem;
+  --mk-space-16: 4rem;
+  --mk-space-20: 5rem;
+  --mk-space-24: 6rem;
+  --mk-space-32: 8rem;
+
+  /* ── Border Radius ── */
+  --mk-radius-sm: 8px;
+  --mk-radius-md: 12px;
+  --mk-radius-lg: 16px;
+  --mk-radius-xl: 20px;
+  --mk-radius-2xl: 24px;
+  --mk-radius-3xl: 28px;
+  --mk-radius-full: 9999px;
+
+  /* ── Skeuomorphic & Tactile Multi-Layer Shadows ── */
+  --mk-shadow-xs: 0 1px 2px rgba(45, 90, 63, 0.04);
+  --mk-shadow-sm: 0 1px 3px rgba(45, 90, 63, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --mk-shadow-md: 0 4px 12px -2px rgba(45, 90, 63, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+  --mk-shadow-lg: 0 12px 28px -4px rgba(45, 90, 63, 0.1), 0 4px 10px -2px rgba(0, 0, 0, 0.04);
+  --mk-shadow-xl: 0 24px 48px -8px rgba(45, 90, 63, 0.14), 0 8px 16px -4px rgba(0, 0, 0, 0.04);
+
+  /* Tactile skeuomorphic card shadow with top highlight */
+  --mk-shadow-skeuo: 0 2px 4px rgba(45, 90, 63, 0.04), 0 12px 28px -4px rgba(45, 90, 63, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  --mk-shadow-card: 0 4px 20px -2px rgba(45, 90, 63, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  --mk-shadow-card-hover: 0 16px 36px -6px rgba(45, 90, 63, 0.12), 0 4px 12px -2px rgba(0, 0, 0, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  --mk-shadow-float: 0 20px 48px -10px rgba(45, 90, 63, 0.16), 0 4px 12px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  --mk-shadow-button: 0 2px 6px rgba(45, 90, 63, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.25), inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+  --mk-shadow-button-hover: 0 6px 18px rgba(45, 90, 63, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.35), inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+  --mk-shadow-emboss: inset 0 2px 4px rgba(0, 0, 0, 0.04), 0 1px 0 rgba(255, 255, 255, 0.8);
+
+  /* ── Motion & Parallax Curves ── */
+  --mk-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --mk-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --mk-duration-fast: 140ms;
+  --mk-duration-normal: 220ms;
+  --mk-duration-slow: 380ms;
+  --mk-duration-reveal: 520ms;
+
+  /* ── Layout ── */
+  --mk-max-width: 1280px;
+  --mk-gutter: 48px;
+  --mk-nav-height: 68px;
+
+  /* ── Base ── */
+  font-family: var(--mk-font-body);
+  color: var(--mk-ink);
+  background: var(--mk-background);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@media (max-width: 1024px) {
+  .marketing {
+    --mk-gutter: 32px;
+  }
+}
+
+@media (max-width: 768px) {
+  .marketing {
+    --mk-gutter: 24px;
+  }
+}
+
+@media (max-width: 640px) {
+  .marketing {
+    --mk-gutter: 20px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marketing {
+    --mk-duration-fast: 0ms;
+    --mk-duration-normal: 0ms;
+    --mk-duration-slow: 0ms;
+    --mk-duration-reveal: 0ms;
+  }
+}

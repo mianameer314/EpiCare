@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthPage } from './features/auth/AuthPage';
-import { LandingPage } from './features/landing/LandingPage';
+import { LandingPage } from './features/marketing/LandingPage';
 import { AppShell } from './components/layout/AppShell';
 import { ProtectedRoute } from './components/shared/ProtectedRoute';
 import { PatientDashboard } from './features/dashboard/PatientDashboard';
