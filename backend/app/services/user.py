@@ -104,13 +104,48 @@ async def register_user(db: AsyncSession, data: UserRegister, background_tasks: 
         await db.commit()  # Single atomic commit for both user and profile
     except IntegrityError as exc:
         await db.rollback()
-        err_msg = str(exc.orig if hasattr(exc, 'orig') else exc).lower()
-        if 'email' in err_msg or 'users_email_key' in err_msg or 'ix_users_email' in err_msg:
-            raise conflict_error("EMAIL_ALREADY_REGISTERED", "A user with this email address already exists.")
-        elif 'phone' in err_msg or 'phone_number' in err_msg:
-            raise conflict_error("PHONE_ALREADY_REGISTERED", "A user with this phone number already exists.")
-        elif 'pmdc' in err_msg:
-            raise conflict_error("PMDC_ALREADY_REGISTERED", "A doctor with this PMDC number already exists.")
+        err_msg = (str(exc.orig if hasattr(exc, 'orig') else exc) + " " + str(exc)).lower()
+
+        # 1. Primary detection via explicit, stable constraint names (and legacy index names)
+        if "uq_users_email" in err_msg or "ix_users_email" in err_msg or "users_email_key" in err_msg:
+            raise conflict_error(
+                "EMAIL_ALREADY_REGISTERED",
+                "A user with this email address already exists."
+            )
+        elif "uq_users_phone_number" in err_msg or "ix_users_phone_number" in err_msg or "users_phone_number_key" in err_msg:
+            raise conflict_error(
+                "PHONE_ALREADY_REGISTERED",
+                "A user with this phone number already exists."
+            )
+        elif (
+            "uq_doctor_profiles_pmdc_number" in err_msg
+            or "uq_users_pmdc_number" in err_msg
+            or "ix_doctor_profiles_pmdc_number" in err_msg
+            or "doctor_profiles_pmdc_number_key" in err_msg
+        ):
+            raise conflict_error(
+                "PMDC_ALREADY_REGISTERED",
+                "A doctor with this PMDC number already exists."
+            )
+
+        # 2. Secondary fallback for generic PostgreSQL column text if constraint name was omitted
+        if "email" in err_msg:
+            raise conflict_error(
+                "EMAIL_ALREADY_REGISTERED",
+                "A user with this email address already exists."
+            )
+        elif "phone" in err_msg:
+            raise conflict_error(
+                "PHONE_ALREADY_REGISTERED",
+                "A user with this phone number already exists."
+            )
+        elif "pmdc" in err_msg:
+            raise conflict_error(
+                "PMDC_ALREADY_REGISTERED",
+                "A doctor with this PMDC number already exists."
+            )
+
+        # 3. Safe fallback for any unexpected IntegrityErrors (never expose raw DB errors)
         raise conflict_error("ALREADY_REGISTERED", "User with this email, phone number, or PMDC number already exists.")
         
     await db.refresh(user)

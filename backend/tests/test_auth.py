@@ -25,14 +25,80 @@ def test_register_creates_user(client: TestClient) -> None:
 
 
 def test_register_rejects_duplicate_email(client: TestClient) -> None:
-    _register(client, "dupe@example.com")
+    _register(client, "dupe_email@example.com")
     response = client.post(
         "/api/v1/auth/register",
-        json={"email": "dupe@example.com", "password": "supersecret123", "full_name": "Dupe", "phone_number": "+923000000002", "role": "PATIENT"},
+        json={"email": "dupe_email@example.com", "password": "supersecret123", "full_name": "Dupe Email", "phone_number": "+923000000010", "role": "PATIENT"},
     )
     assert response.status_code == 409
     body = response.json()
     assert body["error"]["code"] == "EMAIL_ALREADY_REGISTERED"
+
+
+def test_register_rejects_duplicate_phone(client: TestClient) -> None:
+    client.post(
+        "/api/v1/auth/register",
+        json={"email": "phone1@example.com", "password": "supersecret123", "full_name": "Phone One", "phone_number": "+923001234567", "role": "PATIENT"},
+    )
+    response = client.post(
+        "/api/v1/auth/register",
+        json={"email": "phone2@example.com", "password": "supersecret123", "full_name": "Phone Two", "phone_number": "+923001234567", "role": "PATIENT"},
+    )
+    assert response.status_code == 409
+    body = response.json()
+    assert body["error"]["code"] == "PHONE_ALREADY_REGISTERED"
+
+
+def test_register_rejects_duplicate_pmdc(client: TestClient) -> None:
+    client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "dr1@example.com",
+            "password": "supersecret123",
+            "full_name": "Dr One",
+            "phone_number": "+923009876541",
+            "role": "DOCTOR",
+            "pmdc_number": "PMDC-DUPE-999"
+        },
+    )
+    response = client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "dr2@example.com",
+            "password": "supersecret123",
+            "full_name": "Dr Two",
+            "phone_number": "+923009876542",
+            "role": "DOCTOR",
+            "pmdc_number": "PMDC-DUPE-999"
+        },
+    )
+    assert response.status_code == 409
+    body = response.json()
+    assert body["error"]["code"] == "PMDC_ALREADY_REGISTERED"
+
+
+def test_register_handles_unexpected_integrity_error(client: TestClient, monkeypatch) -> None:
+    from sqlalchemy.exc import IntegrityError
+    from sqlalchemy.ext.asyncio import AsyncSession
+
+    async def mock_commit(self):
+        raise IntegrityError("statement", "params", Exception("unknown_unexpected_db_constraint"))
+
+    monkeypatch.setattr(AsyncSession, "commit", mock_commit)
+
+    response = client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "unexpected@example.com",
+            "password": "supersecret123",
+            "full_name": "Unexpected Error",
+            "phone_number": "+923009999999",
+            "role": "PATIENT"
+        },
+    )
+    assert response.status_code == 409
+    body = response.json()
+    assert body["error"]["code"] == "ALREADY_REGISTERED"
 
 
 def test_register_validates_password_length(client: TestClient) -> None:
