@@ -8,7 +8,7 @@ Jobs (FYP scope):
 """
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -54,6 +54,9 @@ class AppScheduler:
             url=self.jobstore_url,
             tablename="apscheduler_jobs",
         )
+        # APScheduler 3.x does not auto-create its table; ensure it exists.
+        # (no-op when the Alembic migration already created it)
+        jobstore.jobs_t.create(bind=jobstore.engine, checkfirst=True)
         self.scheduler = AsyncIOScheduler(
             jobstores={"default": jobstore},
             timezone="UTC",
@@ -176,7 +179,7 @@ async def missed_med_detection_job() -> None:
     """Detect missed doses and log MISSED entries for adherence rollups."""
     from app.db.session import SessionLocal
     from app.models.medication import MedicationSchedule, MedicationLog, Medication
-    from sqlalchemy import and_, not_, exists
+    from sqlalchemy import and_, exists, func, not_
     
     yesterday = datetime.now(timezone.utc) - timedelta(days=1)
     yesterday_date = yesterday.date()

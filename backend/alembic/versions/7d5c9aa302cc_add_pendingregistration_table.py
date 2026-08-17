@@ -37,8 +37,6 @@ def upgrade() -> None:
     )
     op.create_index(op.f('ix_pending_registrations_email'), 'pending_registrations', ['email'], unique=True)
     op.create_index(op.f('ix_pending_registrations_id'), 'pending_registrations', ['id'], unique=False)
-    op.drop_index(op.f('ix_apscheduler_jobs_next_run_time'), table_name='apscheduler_jobs')
-    op.drop_table('apscheduler_jobs')
     op.drop_index(op.f('ix_chat_messages_user_created'), table_name='chat_messages')
     op.create_index('ix_chat_messages_user_created', 'chat_messages', ['user_id', 'created_at'], unique=False)
     op.drop_index(op.f('ix_chat_sessions_user_updated'), table_name='chat_sessions')
