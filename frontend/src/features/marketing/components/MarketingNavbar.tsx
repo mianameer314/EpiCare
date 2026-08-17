@@ -17,6 +17,7 @@ const NAV_LINKS = [
 export function MarketingNavbar() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState('');
   const drawerRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
 
@@ -24,6 +25,28 @@ export function MarketingNavbar() {
     const onScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  // Track which section is currently in view
+  useEffect(() => {
+    const sectionIds = NAV_LINKS.map((l) => l.href.replace('#', ''));
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            setActiveSection('#' + entry.target.id);
+          }
+        }
+      },
+      { rootMargin: '-30% 0px -60% 0px', threshold: 0 }
+    );
+
+    sectionIds.forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) observer.observe(el);
+    });
+
+    return () => observer.disconnect();
   }, []);
 
   // Focus trap + Escape close
@@ -94,7 +117,7 @@ export function MarketingNavbar() {
               <a
                 key={link.href}
                 href={link.href}
-                className="mk-nav-link"
+                className={`mk-nav-link ${activeSection === link.href ? 'mk-nav-link--active' : ''}`}
                 onClick={(e) => handleSmoothScroll(e, link.href)}
               >
                 {link.label}
@@ -164,7 +187,7 @@ export function MarketingNavbar() {
             <a
               key={link.href}
               href={link.href}
-              className="mk-mobile-nav-link"
+              className={`mk-mobile-nav-link ${activeSection === link.href ? 'mk-mobile-nav-link--active' : ''}`}
               onClick={(e) => handleSmoothScroll(e, link.href)}
             >
               {link.label}
