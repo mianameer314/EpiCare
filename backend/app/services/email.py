@@ -31,12 +31,19 @@ fast_mail = FastMail(conf)
 
 async def send_verification_email(email: EmailStr, otp: str, user_name: str) -> None:
     """Send an elegant OTP verification email."""
+    logger.info(f"send_verification_email called for {email}")
+    
     if not settings.MAIL_USERNAME or not settings.MAIL_PASSWORD:
         logger.warning(
             "Email settings not fully configured (MAIL_USERNAME / MAIL_PASSWORD). "
             f"Would have sent OTP {otp} to {email}."
         )
         return
+
+    logger.info(
+        f"SMTP config: server={settings.MAIL_SERVER}, port={settings.MAIL_PORT}, "
+        f"from={settings.MAIL_FROM}, starttls={settings.MAIL_STARTTLS}, ssl_tls={settings.MAIL_SSL_TLS}"
+    )
 
     message = MessageSchema(
         subject="Verify your EpiCare Account",
@@ -49,12 +56,11 @@ async def send_verification_email(email: EmailStr, otp: str, user_name: str) -> 
     )
 
     try:
+        logger.info(f"Attempting to send email to {email} via {settings.MAIL_SERVER}:{settings.MAIL_PORT}...")
         await fast_mail.send_message(message, template_name="verification.html")
-        logger.info(f"Verification email sent to {email}")
+        logger.info(f"Verification email SUCCESSFULLY sent to {email}")
     except Exception as e:
-        logger.error(f"Failed to send verification email to {email}: {str(e)}")
-        # We don't raise the exception here because we don't want to fail the registration
-        # entirely if the email fails to send. The user can request a new OTP later.
+        logger.error(f"FAILED to send verification email to {email}: {type(e).__name__}: {str(e)}", exc_info=True)
 
 
 async def send_email(to_email: str, subject: str, html_content: str) -> None:
