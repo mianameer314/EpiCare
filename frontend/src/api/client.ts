@@ -42,53 +42,66 @@ function extractErrorMessage(errorData: any, defaultMessage: string): string {
   return defaultMessage;
 }
 
-let isRefreshing = false;
-let refreshSubscribers: ((token: string) => void)[] = [];
+// Single-flight token refresh: concurrent 401s share one refresh attempt.
+let refreshPromise: Promise<string | null> | null = null;
 
-function subscribeTokenRefresh(cb: (token: string) => void) {
-  refreshSubscribers.push(cb);
-}
-
-function onRefreshed(token: string) {
-  refreshSubscribers.forEach((cb) => cb(token));
-  refreshSubscribers = [];
-}
-
+/**
+ * Attempt to refresh the access token using the stored refresh token.
+ *
+ * Returns the new access token on success, or null when the refresh could
+ * not complete. The session is ONLY wiped when the server definitively
+ * rejects the refresh token (401/403). Transient failures — network errors,
+ * 5xx, rate limits — keep the stored tokens so a cold-starting backend or a
+ * mobile network blip never silently logs the user out.
+ */
 async function handleTokenRefresh(): Promise<string | null> {
   const refreshToken = localStorage.getItem('refresh_token');
   if (!refreshToken) return null;
 
-  try {
-    const res = await fetch(`${API_BASE_URL}/auth/refresh`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${refreshToken}`,
-      },
-    });
-
-    if (!res.ok) {
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
-      localStorage.removeItem('auth_user');
-      return null;
-    }
-
-    const data = await res.json();
-    if (data.access_token) {
-      localStorage.setItem('access_token', data.access_token);
-      if (data.refresh_token) {
-        localStorage.setItem('refresh_token', data.refresh_token);
+  if (!refreshPromise) {
+    refreshPromise = (async () => {
+      let res: Response;
+      try {
+        res = await fetch(`${API_BASE_URL}/auth/refresh`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${refreshToken}`,
+          },
+        });
+      } catch {
+        // Network error (backend cold-start, offline) — keep the session.
+        return null;
       }
-      return data.access_token;
-    }
-    return null;
-  } catch {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    localStorage.removeItem('auth_user');
-    return null;
+
+      if (res.status === 401 || res.status === 403) {
+        // Refresh token definitively rejected — session is dead.
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        localStorage.removeItem('auth_user');
+        return null;
+      }
+
+      if (!res.ok) {
+        // 5xx / rate limited — transient, keep the session.
+        return null;
+      }
+
+      const data = await res.json();
+      if (data.access_token) {
+        localStorage.setItem('access_token', data.access_token);
+        if (data.refresh_token) {
+          localStorage.setItem('refresh_token', data.refresh_token);
+        }
+        return data.access_token;
+      }
+      return null;
+    })().finally(() => {
+      refreshPromise = null;
+    });
   }
+
+  return refreshPromise;
 }
 
 async function request<T>(endpoint: string, options: RequestInit = {}, retryCount = 0): Promise<T> {
@@ -129,31 +142,19 @@ async function request<T>(endpoint: string, options: RequestInit = {}, retryCoun
 
   // Handle 401 Unauthorized & Token Refresh
   if (response.status === 401 && retryCount === 0 && !endpoint.includes('/auth/login') && !endpoint.includes('/auth/refresh')) {
-    const refreshToken = localStorage.getItem('refresh_token');
-    if (refreshToken) {
-      if (!isRefreshing) {
-        isRefreshing = true;
-        const newToken = await handleTokenRefresh();
-        isRefreshing = false;
-        if (newToken) {
-          onRefreshed(newToken);
-          headers.set('Authorization', `Bearer ${newToken}`);
-          return request<T>(endpoint, { ...options, headers }, retryCount + 1);
-        }
-      } else {
-        // Wait for token refresh to complete
-        return new Promise<T>((resolve) => {
-          subscribeTokenRefresh((newToken) => {
-            headers.set('Authorization', `Bearer ${newToken}`);
-            resolve(request<T>(endpoint, { ...options, headers }, retryCount + 1));
-          });
-        });
-      }
+    const newToken = await handleTokenRefresh();
+    if (newToken) {
+      headers.set('Authorization', `Bearer ${newToken}`);
+      return request<T>(endpoint, { ...options, headers }, retryCount + 1);
     }
 
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    localStorage.removeItem('auth_user');
+    // Wipe the session ONLY when the refresh token was definitively
+    // rejected (it was removed from storage). On transient failures the
+    // tokens stay, so the user is not force-logged-out.
+    if (!localStorage.getItem('refresh_token')) {
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('auth_user');
+    }
   }
 
   if (!response.ok) {

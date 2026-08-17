@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Navigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '../../hooks/useAuth';
 import { LoginForm } from './components/LoginForm';
 import { SignupForm } from './components/SignupForm';
 import { Button } from '../../components/ui/Button';
@@ -9,6 +10,7 @@ import { AuthSignalWave } from './components/AuthSignalWave';
 import './AuthPage.css';
 
 export function AuthPage() {
+  const { isAuthenticated, isLoading } = useAuth();
   const [searchParams] = useSearchParams();
   const mode = searchParams.get('mode');
   const [isLogin, setIsLogin] = useState(() => mode !== 'register' && mode !== 'signup');
@@ -20,6 +22,11 @@ export function AuthPage() {
       setIsLogin(true);
     }
   }, [mode]);
+
+  // Already signed in? Skip the login/register page entirely.
+  if (!isLoading && isAuthenticated) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   // Accessible switching
   const handleToggle = () => setIsLogin(!isLogin);
