@@ -11,6 +11,7 @@ export interface FirebaseClientConfig {
 }
 
 let cachedToken: string | null = null;
+let tokenFetchPromise: Promise<string | null> | null = null;
 let configCache: FirebaseClientConfig | null = null;
 
 /**
@@ -25,30 +26,41 @@ export async function registerFcmDeviceToken(token: string) {
   }
 }
 
-let firebaseLoaded = false;
-async function loadFirebaseScripts(): Promise<any> {
-  if (firebaseLoaded && (window as any).firebase) {
-    return (window as any).firebase;
-  }
+let firebaseLoadPromise: Promise<any> | null = null;
 
-  const loadScript = (src: string) =>
-    new Promise((resolve, reject) => {
-      const existing = document.querySelector(`script[src="${src}"]`);
-      if (existing) {
-        resolve(true);
-        return;
+/**
+ * Loads the Firebase compat scripts exactly once. Concurrent callers (app
+ * startup + session restore + login can all request this at once) share the
+ * same promise, so nobody can proceed with a half-loaded Firebase where
+ * `firebase.messaging` is missing.
+ */
+function loadFirebaseScripts(): Promise<any> {
+  if (!firebaseLoadPromise) {
+    firebaseLoadPromise = (async () => {
+      if ((window as any).firebase?.messaging) {
+        return (window as any).firebase;
       }
-      const script = document.createElement('script');
-      script.src = src;
-      script.onload = () => resolve(true);
-      script.onerror = reject;
-      document.head.appendChild(script);
-    });
 
-  await loadScript('https://www.gstatic.com/firebasejs/10.9.0/firebase-app-compat.js');
-  await loadScript('https://www.gstatic.com/firebasejs/10.9.0/firebase-messaging-compat.js');
-  firebaseLoaded = true;
-  return (window as any).firebase;
+      const loadScript = (src: string) =>
+        new Promise((resolve, reject) => {
+          const existing = document.querySelector(`script[src="${src}"]`);
+          if (existing) {
+            resolve(true);
+            return;
+          }
+          const script = document.createElement('script');
+          script.src = src;
+          script.onload = () => resolve(true);
+          script.onerror = reject;
+          document.head.appendChild(script);
+        });
+
+      await loadScript('https://www.gstatic.com/firebasejs/10.9.0/firebase-app-compat.js');
+      await loadScript('https://www.gstatic.com/firebasejs/10.9.0/firebase-messaging-compat.js');
+      return (window as any).firebase;
+    })();
+  }
+  return firebaseLoadPromise;
 }
 
 /**
@@ -71,19 +83,27 @@ async function getFirebaseConfig(): Promise<FirebaseClientConfig | null> {
 }
 
 /**
- * Obtains (or reuses) the FCM device token. Safe to call repeatedly —
- * this is what makes background SOS/reminder push work with the screen off.
- *
- * Returns the token, or null when push is unavailable (permission denied,
- * unsupported browser, config missing, or token fetch failed).
+ * Obtains (or reuses) the FCM device token. Single-flight: concurrent callers
+ * (startup + session restore + login) share one fetch instead of each
+ * re-registering the service worker and retrying getToken. Returns the token,
+ * or null when push is unavailable (permission denied, unsupported browser,
+ * config missing, or token fetch failed).
  */
-export async function getFcmToken(): Promise<string | null> {
+export function getFcmToken(): Promise<string | null> {
+  if (cachedToken) return Promise.resolve(cachedToken);
   if (typeof window === 'undefined' || !('Notification' in window) || !('serviceWorker' in navigator)) {
-    return null;
+    return Promise.resolve(null);
   }
-  if (cachedToken) return cachedToken;
-  if (Notification.permission !== 'granted') return null;
+  if (Notification.permission !== 'granted') return Promise.resolve(null);
+  if (!tokenFetchPromise) {
+    tokenFetchPromise = doGetFcmToken().finally(() => {
+      tokenFetchPromise = null;
+    });
+  }
+  return tokenFetchPromise;
+}
 
+async function doGetFcmToken(): Promise<string | null> {
   try {
     const config = await getFirebaseConfig();
     if (!config) return null;

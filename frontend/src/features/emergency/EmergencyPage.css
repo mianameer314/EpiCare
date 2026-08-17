@@ -676,6 +676,9 @@
 }
 
 @media (max-width: 768px) {
+  .emergency-grid {
+    grid-template-columns: 1fr;
+  }
   .sos-filters-bar {
     flex-direction: column;
     align-items: stretch;

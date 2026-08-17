@@ -495,6 +495,23 @@ export function AppShell() {
                   </NavLink>
                 ))}
 
+                <NavLink
+                  to="/profile"
+                  className={({ isActive }) =>
+                    `mobile-link ${isActive ? 'active' : ''}`
+                  }
+                  onClick={(e) => {
+                    setMobileMenuOpen(false);
+                    if (isDirty && location.pathname !== '/profile') {
+                      e.preventDefault();
+                      safeNavigate('/profile');
+                    }
+                  }}
+                >
+                  <span className="mobile-link-icon"><UserIcon size={20} /></span>
+                  <span>Account & Profile</span>
+                </NavLink>
+
                 <button
                   className="mobile-link logout-action"
                   onClick={() => {
