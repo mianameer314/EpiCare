@@ -5,6 +5,7 @@
  * row-by-row synchronized checklist tick reveals, and 3D hover interactions.
  */
 import { motion, useReducedMotion } from 'framer-motion';
+import type { Variants } from 'framer-motion';
 import {
   Eye, Stethoscope, ShieldCheck, CheckCircle2,
   AlertCircle, Lock, ArrowRight, FileSpreadsheet, Activity
@@ -68,7 +69,7 @@ const SAFETY_PILLARS = [
   },
 ];
 
-const containerVariants = {
+const containerVariants:  Variants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
@@ -78,7 +79,7 @@ const containerVariants = {
   },
 };
 
-const cardVariants = {
+const cardVariants: Variants = {
   hidden: { opacity: 0, y: 32, scale: 0.97 },
   visible: {
     opacity: 1,
@@ -138,7 +139,7 @@ export function SafetySection() {
                 key={pillar.id}
                 variants={reduceMotion ? undefined : cardVariants}
                 whileHover={reduceMotion ? undefined : { y: -8, scale: 1.015 }}
-                transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+                transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] as const }}
                 className={`sf-card sf-card--${pillar.theme}`}
               >
                 <div className="sf-card-header">
@@ -168,7 +169,7 @@ export function SafetySection() {
                         transition={{
                           duration: 0.4,
                           delay,
-                          ease: [0.16, 1, 0.3, 1],
+                          ease: [0.16, 1, 0.3, 1] as const,
                         }}
                       >
                         <motion.div
