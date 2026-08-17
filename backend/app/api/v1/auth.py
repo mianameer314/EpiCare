@@ -20,13 +20,15 @@ from app.schemas.user import (
     ResetPasswordRequest,
 )
 from app.services import user as user_service
+from app.models.doctor_profile import DoctorProfile
+from sqlalchemy import select
+from app.models.enums import UserRole
 
 router = APIRouter(prefix="/auth", tags=["🔐 Authentication"])
 
 
 @router.post(
     "/register",
-    response_model=UserOut,
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(REGISTER_LIMIT)],
     summary="Register a new user",
@@ -75,8 +77,7 @@ async def login(data: LoginRequest, db: DbDep):
         
     from app.models.enums import UserRole
     if user.role == UserRole.DOCTOR:
-        from app.models.doctor_profile import DoctorProfile
-        from sqlalchemy import select
+        
         
         result = await db.execute(select(DoctorProfile).where(DoctorProfile.user_id == user.id))
         doctor_profile = result.scalar_one_or_none()
@@ -104,18 +105,23 @@ async def login(data: LoginRequest, db: DbDep):
 )
 async def verify_email(data: VerifyOTPRequest, db: DbDep):
     """Verify the 6-digit OTP sent to user's email."""
+    # 1. Check if user is fully registered already
     user = await user_service.get_user_by_email(db, data.email)
-    if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-        
-    if user.is_email_verified:
+    if user and user.is_email_verified:
         return {"message": "Email is already verified"}
         
-    is_valid = await user_service.verify_user_otp(db, user, data.otp)
-    if not is_valid:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired OTP")
+    # 2. Try to verify via pending registrations
+    is_valid_pending = await user_service.verify_registration_otp(db, data.email, data.otp)
+    if is_valid_pending:
+        return {"message": "Email verified successfully"}
         
-    return {"message": "Email verified successfully"}
+    # 3. Fallback to legacy unverified users if they somehow still exist in the DB
+    if user and not user.is_email_verified:
+        is_valid_legacy = await user_service.verify_user_otp(db, user, data.otp)
+        if is_valid_legacy:
+            return {"message": "Email verified successfully"}
+
+    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired OTP")
 
 
 @router.post(
@@ -132,14 +138,18 @@ async def verify_email(data: VerifyOTPRequest, db: DbDep):
 async def resend_otp(data: ResendOTPRequest, db: DbDep, background_tasks: BackgroundTasks):
     """Resend a new OTP to the user's email."""
     user = await user_service.get_user_by_email(db, data.email)
-    if not user:
-        # Don't reveal user existence
-        return {"message": "If an account exists, a new OTP has been sent."}
-        
-    if user.is_email_verified:
+    if user and user.is_email_verified:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email is already verified")
         
-    await user_service.generate_and_send_otp(db, user, background_tasks)
+    if user and not user.is_email_verified:
+        # Legacy unverified user
+        await user_service.generate_and_send_otp(db, user, background_tasks)
+        return {"message": "If an account exists, a new OTP has been sent."}
+        
+    # Try pending registration
+    resend_success = await user_service.resend_registration_otp(db, data.email, background_tasks)
+    
+    # We return success either way to prevent email enumeration
     return {"message": "If an account exists, a new OTP has been sent."}
 
 

@@ -3,6 +3,9 @@ User service — registration, login lookup, and profile queries (async).
 """
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import IntegrityError
+from app.models.enums import UserRole
+from app.models.pending_registration import PendingRegistration
 
 from app.core.exceptions import conflict_error
 from app.core.security import hash_password
@@ -41,143 +44,156 @@ def _generate_otp() -> str:
     """Generate a 6-digit OTP."""
     return "".join(secrets.choice("0123456789") for _ in range(6))
 
-async def register_user(db: AsyncSession, data: UserRegister, background_tasks: BackgroundTasks) -> User:
-    """Public user registration. Raises 409 on duplicate verified email or phone."""
-    from sqlalchemy.exc import IntegrityError
-    from app.models.enums import UserRole
+async def register_user(db: AsyncSession, data: UserRegister, background_tasks: BackgroundTasks) -> dict:
+    """Public user registration. Creates a PendingRegistration and sends OTP."""
+  
     
+    # 1. Check if verified user already exists
     existing_email = await get_user_by_email(db, data.email)
-    if existing_email and existing_email.is_email_verified:
-        raise conflict_error("EMAIL_ALREADY_REGISTERED", "A user with this email address already exists.")
+    if existing_email:
+        if existing_email.is_email_verified:
+            raise conflict_error("EMAIL_ALREADY_REGISTERED", "A user with this email address already exists.")
+        else:
+            # If an unverified user somehow exists in the main table (legacy), delete it to start fresh
+            await db.delete(existing_email)
+            await db.commit()
 
     existing_phone = await get_user_by_phone(db, data.phone_number)
-    if existing_phone and existing_phone.is_phone_verified and (not existing_email or existing_phone.id != existing_email.id):
-        raise conflict_error("PHONE_ALREADY_REGISTERED", "A user with this phone number already exists.")
+    if existing_phone:
+        if existing_phone.is_phone_verified:
+            raise conflict_error("PHONE_ALREADY_REGISTERED", "A user with this phone number already exists.")
+        else:
+            await db.delete(existing_phone)
+            await db.commit()
 
     if data.role == UserRole.DOCTOR and not data.pmdc_number:
         from fastapi import HTTPException
         raise HTTPException(status_code=400, detail="PMDC number is required for doctors")
 
+    # 2. Check Doctor PMDC in main profiles
+    if data.role == UserRole.DOCTOR:
+        from app.models.doctor_profile import DoctorProfile
+        res = await db.execute(select(DoctorProfile).where(DoctorProfile.pmdc_number == data.pmdc_number))
+        if res.scalar_one_or_none():
+            raise conflict_error("PMDC_ALREADY_REGISTERED", "A doctor with this PMDC number already exists.")
+
     otp_plain = _generate_otp()
     
-    if existing_email and not existing_email.is_email_verified:
-        # Re-use and update unverified pending registration
-        user = existing_email
-        user.password_hash = hash_password(data.password)
-        user.phone_number = data.phone_number
-        user.full_name = data.full_name
-        user.role = data.role
-        user.otp_secret_hash = hash_password(otp_plain)
-        user.otp_expires_at = datetime.now(timezone.utc) + timedelta(minutes=10)
+    # 3. Create or update PendingRegistration
+    res = await db.execute(select(PendingRegistration).where(PendingRegistration.email == data.email))
+    pending = res.scalar_one_or_none()
+    
+    if pending:
+        pending.password_hash = hash_password(data.password)
+        pending.phone_number = data.phone_number
+        pending.full_name = data.full_name
+        pending.role = data.role
+        pending.pmdc_number = data.pmdc_number
+        pending.otp_secret_hash = hash_password(otp_plain)
+        pending.otp_expires_at = datetime.now(timezone.utc) + timedelta(minutes=10)
     else:
-        user = User(
+        pending = PendingRegistration(
             email=data.email,
             password_hash=hash_password(data.password),
             phone_number=data.phone_number,
             full_name=data.full_name,
             role=data.role,
-            is_active=True,
-            is_email_verified=False,
-            is_phone_verified=False,
+            pmdc_number=data.pmdc_number,
             otp_secret_hash=hash_password(otp_plain),
             otp_expires_at=datetime.now(timezone.utc) + timedelta(minutes=10)
         )
-        db.add(user)
+        db.add(pending)
     
     try:
-        await db.flush()  # Gets user.id without committing the transaction
-        
-        # Create Role-Specific Profile if not already present
-        if user.role == UserRole.PATIENT:
-            from app.models.patient_profile import PatientProfile
-            from sqlalchemy import select
-            res = await db.execute(select(PatientProfile).where(PatientProfile.user_id == user.id))
-            if not res.scalar_one_or_none():
-                profile = PatientProfile(
-                    user_id=user.id,
-                    date_of_birth=datetime.now(timezone.utc).date()
-                )
-                db.add(profile)
-        elif user.role == UserRole.DOCTOR:
-            from app.models.doctor_profile import DoctorProfile
-            from sqlalchemy import select
-            res = await db.execute(select(DoctorProfile).where(DoctorProfile.user_id == user.id))
-            doc_prof = res.scalar_one_or_none()
-            if not doc_prof:
-                profile = DoctorProfile(
-                    user_id=user.id,
-                    pmdc_number=data.pmdc_number,
-                    specialty="Neurologist"
-                )
-                db.add(profile)
-            else:
-                doc_prof.pmdc_number = data.pmdc_number
-        elif user.role == UserRole.CARETAKER:
-            from app.models.caretaker_profile import CaretakerProfile
-            from sqlalchemy import select
-            res = await db.execute(select(CaretakerProfile).where(CaretakerProfile.user_id == user.id))
-            if not res.scalar_one_or_none():
-                profile = CaretakerProfile(
-                    user_id=user.id
-                )
-                db.add(profile)
-            
-        await db.commit()  # Single atomic commit for both user and profile
+        await db.commit()
     except IntegrityError as exc:
         await db.rollback()
-        err_msg = (str(exc.orig if hasattr(exc, 'orig') else exc) + " " + str(exc)).lower()
-
-        # 1. Primary detection via explicit, stable constraint names (and legacy index names)
-        if "uq_users_email" in err_msg or "ix_users_email" in err_msg or "users_email_key" in err_msg:
-            raise conflict_error(
-                "EMAIL_ALREADY_REGISTERED",
-                "A user with this email address already exists."
-            )
-        elif "uq_users_phone_number" in err_msg or "ix_users_phone_number" in err_msg or "users_phone_number_key" in err_msg:
-            raise conflict_error(
-                "PHONE_ALREADY_REGISTERED",
-                "A user with this phone number already exists."
-            )
-        elif (
-            "uq_doctor_profiles_pmdc_number" in err_msg
-            or "uq_users_pmdc_number" in err_msg
-            or "ix_doctor_profiles_pmdc_number" in err_msg
-            or "doctor_profiles_pmdc_number_key" in err_msg
-        ):
-            raise conflict_error(
-                "PMDC_ALREADY_REGISTERED",
-                "A doctor with this PMDC number already exists."
-            )
-
-        # 2. Secondary fallback for generic PostgreSQL column text if constraint name was omitted
-        if "email" in err_msg:
-            raise conflict_error(
-                "EMAIL_ALREADY_REGISTERED",
-                "A user with this email address already exists."
-            )
-        elif "phone" in err_msg:
-            raise conflict_error(
-                "PHONE_ALREADY_REGISTERED",
-                "A user with this phone number already exists."
-            )
-        elif "pmdc" in err_msg:
-            raise conflict_error(
-                "PMDC_ALREADY_REGISTERED",
-                "A doctor with this PMDC number already exists."
-            )
-
-        # 3. Safe fallback for any unexpected IntegrityErrors (never expose raw DB errors)
-        raise conflict_error("ALREADY_REGISTERED", "User with this email, phone number, or PMDC number already exists.")
+        raise conflict_error("ALREADY_REGISTERED", "Registration data conflict.")
         
-    await db.refresh(user)
+    # 4. Dispatch email
+    background_tasks.add_task(send_verification_email, pending.email, otp_plain, pending.full_name)
     
-    # Dispatch email
-    background_tasks.add_task(send_verification_email, user.email, otp_plain, user.full_name)
+    return {"message": "Verification code sent to your email.", "email": pending.email}
+
+
+async def verify_registration_otp(db: AsyncSession, email: str, otp: str) -> bool:
+    """Verify OTP for a pending registration and promote to User."""
+    from app.core.security import verify_password
+    from app.models.pending_registration import PendingRegistration
+    from app.models.enums import UserRole
     
-    # Placeholder for SMS
-    print(f"DEBUG (SMS Gateway Skipped): Sending OTP {otp_plain} to {user.phone_number}")
+    res = await db.execute(select(PendingRegistration).where(PendingRegistration.email == email))
+    pending = res.scalar_one_or_none()
     
-    return user
+    if not pending:
+        return False
+        
+    if datetime.now(timezone.utc) > pending.otp_expires_at:
+        return False
+        
+    if not verify_password(otp, pending.otp_secret_hash):
+        return False
+        
+    # OTP is valid -> Promote to actual User
+    user = User(
+        email=pending.email,
+        password_hash=pending.password_hash,
+        phone_number=pending.phone_number,
+        full_name=pending.full_name,
+        role=pending.role,
+        is_active=True,
+        is_email_verified=True,  # They just verified it
+        is_phone_verified=False,
+    )
+    db.add(user)
+    await db.flush()  # Get user.id
+    
+    # Create Role-Specific Profile
+    if user.role == UserRole.PATIENT:
+        from app.models.patient_profile import PatientProfile
+        profile = PatientProfile(
+            user_id=user.id,
+            date_of_birth=datetime.now(timezone.utc).date()
+        )
+        db.add(profile)
+    elif user.role == UserRole.DOCTOR:
+        from app.models.doctor_profile import DoctorProfile
+        profile = DoctorProfile(
+            user_id=user.id,
+            pmdc_number=pending.pmdc_number,
+            specialty="Neurologist"
+        )
+        db.add(profile)
+    elif user.role == UserRole.CARETAKER:
+        from app.models.caretaker_profile import CaretakerProfile
+        profile = CaretakerProfile(
+            user_id=user.id
+        )
+        db.add(profile)
+        
+    # Delete pending record
+    await db.delete(pending)
+    await db.commit()
+    
+    return True
+
+
+async def resend_registration_otp(db: AsyncSession, email: str, background_tasks: BackgroundTasks) -> bool:
+    """Generate and send a new OTP for a pending registration."""
+    from app.models.pending_registration import PendingRegistration
+    res = await db.execute(select(PendingRegistration).where(PendingRegistration.email == email))
+    pending = res.scalar_one_or_none()
+    
+    if not pending:
+        return False
+        
+    otp_plain = _generate_otp()
+    pending.otp_secret_hash = hash_password(otp_plain)
+    pending.otp_expires_at = datetime.now(timezone.utc) + timedelta(minutes=10)
+    await db.commit()
+    
+    background_tasks.add_task(send_verification_email, pending.email, otp_plain, pending.full_name)
+    return True
 
 
 async def generate_and_send_otp(db: AsyncSession, user: User, background_tasks: BackgroundTasks) -> None:
