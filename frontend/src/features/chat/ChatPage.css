@@ -762,10 +762,93 @@
   }
 }
 
-@media (max-width: 640px) {
+/* ── Mobile: compact header + one-line scrollable topic chips so the
+   actual chat gets the screen instead of chrome ── */
+@media (max-width: 768px) {
   .chat-page-layout {
-    height: calc(100vh - 90px);
+    height: calc(100vh - 96px);
+    gap: var(--space-3);
   }
+
+  .chat-header {
+    margin-bottom: var(--space-2);
+    gap: var(--space-2);
+  }
+
+  .chat-bot-avatar-aura {
+    width: 36px;
+    height: 36px;
+  }
+
+  .chat-header h1 {
+    font-size: var(--text-base);
+  }
+
+  .chat-header p {
+    display: none;
+  }
+
+  .chat-status-badge {
+    font-size: 10px;
+    padding: 2px 8px;
+  }
+
+  .reset-chat-btn {
+    padding: 6px 9px;
+  }
+
+  .reset-chat-btn span {
+    display: none;
+  }
+
+  /* Topic chips: single horizontally scrollable row, label hidden */
+  .topic-bar {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    margin-bottom: var(--space-2);
+    padding-bottom: 2px;
+  }
+
+  .topic-bar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .topic-bar-label {
+    display: none;
+  }
+
+  .topic-chips-scroll {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .topic-chips-scroll::-webkit-scrollbar {
+    display: none;
+  }
+
+  .topic-chip-btn {
+    flex-shrink: 0;
+  }
+
+  .chat-disclaimer-card {
+    font-size: 10.5px;
+    padding: var(--space-2) var(--space-3);
+    gap: var(--space-1);
+  }
+
+  .messages-area {
+    padding: var(--space-3);
+    gap: var(--space-3);
+  }
+
+  .message-bubble {
+    padding: var(--space-3);
+  }
+
   .message-row {
     max-width: 92%;
   }

@@ -177,7 +177,11 @@ export function ChatPage() {
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  // On small screens the sessions drawer starts closed (it would otherwise
+  // cover the whole chat); the "Discussions" button reopens it.
+  const [isSidebarOpen, setIsSidebarOpen] = useState(
+    () => typeof window === 'undefined' || window.innerWidth >= 900
+  );
   const [sessionSearch, setSessionSearch] = useState('');
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
@@ -245,12 +249,15 @@ export function ChatPage() {
     if (activeSessionId === sessionId) return;
     setActiveSessionId(sessionId);
     loadSessionMessages(sessionId);
+    // On mobile the drawer overlays the chat — dismiss it after choosing a session.
+    if (window.innerWidth < 900) setIsSidebarOpen(false);
   };
 
   const handleNewSession = () => {
     setActiveSessionId(null);
     setMessages([initialWelcomeMessage]);
     setInput('');
+    if (window.innerWidth < 900) setIsSidebarOpen(false);
     setTimeout(() => inputRef.current?.focus(), 100);
   };
 
