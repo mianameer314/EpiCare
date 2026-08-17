@@ -63,6 +63,15 @@ export function AppShell() {
   const userRole = user?.role?.toUpperCase();
   const hasSidebar = userRole === 'PATIENT';
 
+  // Auto-collapse the sidebar when visiting the profile page, and expand it elsewhere
+  useEffect(() => {
+    if (location.pathname.startsWith('/profile')) {
+      setSidebarCollapsed(true);
+    } else {
+      setSidebarCollapsed(false);
+    }
+  }, [location.pathname]);
+
   // Close dropdown on outside click
   useEffect(() => {
     const handleOutsideClick = (e: MouseEvent) => {
