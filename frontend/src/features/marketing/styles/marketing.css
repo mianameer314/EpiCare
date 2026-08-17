@@ -2263,6 +2263,9 @@
   position: relative;
   width: 100%;
   clear: both;
+  z-index: 1;
+  overflow: hidden;
+  background: var(--mk-surface, #f8faf9);
 }
 
 /* Responsive visibility toggles */
@@ -2283,7 +2286,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: transparent;
+  background: var(--mk-surface, #f8faf9);
+  z-index: 2;
+  isolation: isolate;
 }
 
 .sc-desktop-layout {
@@ -2405,6 +2410,7 @@
   max-width: 680px;
   height: 510px;
   border-radius: var(--mk-radius-2xl);
+  overflow: hidden;
 }
 
 .sc-desktop-card {
@@ -2597,9 +2603,11 @@
   position: relative;
   width: 100%;
   padding: var(--mk-space-20) 0 var(--mk-space-24);
-  background: transparent;
+  background: var(--mk-surface, #f8faf9);
   color: var(--mk-ink);
   overflow: hidden;
+  z-index: 5;
+  isolation: isolate;
 }
 
 .sf-content-wrap {

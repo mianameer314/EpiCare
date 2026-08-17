@@ -169,7 +169,7 @@ function DesktopPinnedStory() {
             onUpdate: (self) => {
               const idx = Math.min(
                 totalCards - 1,
-                Math.max(0, Math.floor(self.progress * totalCards))
+                Math.max(0, Math.round(self.progress * totalCards))
               );
               setActiveIndex(idx);
             },
@@ -207,6 +207,10 @@ function DesktopPinnedStory() {
             startTime
           );
         }
+
+        // Add a rest period at the end of the timeline so the last card stays on screen
+        // before the pin releases. This gives the timeline a total duration of `totalCards` (6).
+        tl.to({}, { duration: 1 });
       });
 
       return () => mm.revert();
@@ -219,9 +223,13 @@ function DesktopPinnedStory() {
   const handleStepJump = (index: number) => {
     setActiveIndex(index);
     if (!sectionRef.current) return;
-    const st = ScrollTrigger.getAll().find(t => t.trigger === sectionRef.current);
+    const st = ScrollTrigger.getAll().find((t) => t.trigger === sectionRef.current);
     if (st) {
-      const scrollPos = st.start + (index / (STORY_CARDS.length - 1)) * (st.end - st.start) + 5;
+      // Timeline duration is STORY_CARDS.length because of the 1s rest period at the end.
+      // So time = index maps exactly to when the card finishes animating in.
+      const progress = index / STORY_CARDS.length;
+      // Add a tiny bit (0.02) so it's definitively "arrived" in the GSAP playhead
+      const scrollPos = st.start + (progress + 0.02) * (st.end - st.start);
       window.scrollTo({ top: scrollPos, behavior: 'smooth' });
     }
   };
