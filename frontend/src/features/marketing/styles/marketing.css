@@ -2265,7 +2265,7 @@
   clear: both;
   z-index: 1;
   overflow: hidden;
-  background: var(--mk-surface, #f8faf9);
+  background: transparent;
 }
 
 /* Responsive visibility toggles */
@@ -2286,7 +2286,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--mk-surface, #f8faf9);
+  background: transparent;
   z-index: 2;
   isolation: isolate;
 }
@@ -2603,7 +2603,7 @@
   position: relative;
   width: 100%;
   padding: var(--mk-space-20) 0 var(--mk-space-24);
-  background: var(--mk-surface, #f8faf9);
+  background: transparent;
   color: var(--mk-ink);
   overflow: hidden;
   z-index: 5;

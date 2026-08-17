@@ -259,7 +259,6 @@ function DesktopPinnedStory() {
                 key={card.id}
                 type="button"
                 onClick={() => handleStepJump(i)}
-                onMouseEnter={() => handleStepJump(i)}
                 className={`sc-step-item ${i === activeIndex ? 'sc-step-item--active' : ''}`}
                 aria-selected={i === activeIndex}
                 role="tab"
