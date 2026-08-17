@@ -2,7 +2,6 @@ import logging
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 import httpx
-from fastapi_mail import MessageSchema, MessageType
 import firebase_admin
 from firebase_admin import credentials, messaging
 from firebase_admin.exceptions import FirebaseError
@@ -10,7 +9,7 @@ from firebase_admin.exceptions import FirebaseError
 from app.core.config import settings
 from app.models.emergency import EmergencyContact, SosEvent
 from app.models.user import User
-from app.services.email import fast_mail
+from app.services.email import send_email
 
 logger = logging.getLogger(__name__)
 
@@ -180,21 +179,13 @@ class EmailSOSProvider(BaseSOSProvider):
                 # Contact does not have email (likely phone number)
                 results[f"contact_{contact.id}"] = "NO_EMAIL"
 
-        if not settings.MAIL_USERNAME or not settings.MAIL_PASSWORD:
-            logger.warning(f"Email credentials not set. Simulated SOS email dispatch for {len(recipient_emails)} recipients.")
-            for key, email, name in recipient_emails:
-                results[key] = "SENT"
-            return results
-
         for key, email, name in recipient_emails:
             try:
-                message = MessageSchema(
+                await send_email(
+                    to_email=email,
                     subject=f"🚨 URGENT: Seizure Alert for {patient_name} 🚨",
-                    recipients=[email],
-                    body=html_content,
-                    subtype=MessageType.html,
+                    html_content=html_content,
                 )
-                await fast_mail.send_message(message)
                 logger.info(f"SOS Email successfully dispatched to {name} ({email})")
                 results[key] = "SENT"
             except Exception as e:
