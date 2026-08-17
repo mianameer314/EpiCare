@@ -183,7 +183,7 @@ export function AppShell() {
                     <motion.div
                       className="sidebar-active-pill"
                       layoutId="activeNavPill"
-                      transition={{ type: 'spring', stiffness: 450, damping: 35 }}
+                      transition={{ type: 'spring', stiffness: 500, damping: 38 }}
                     />
                   )}
                   <span className="sidebar-link-icon">{item.icon}</span>
@@ -227,9 +227,7 @@ export function AppShell() {
               {location.pathname === '/dashboard' ? (
                 <div className="topbar-actions-cluster">
                   {/* Live Epilepsy Safety Pulse Widget */}
-                  <motion.div
-                    layoutId="topbarSafetyPill"
-                    transition={{ type: 'spring', stiffness: 360, damping: 32 }}
+                  <div
                     className="topbar-safety-pill"
                     title="Live System Health & AI Telemetry"
                   >
@@ -249,32 +247,28 @@ export function AppShell() {
                     <svg className="live-telemetry-wave" viewBox="0 0 36 12" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M0 6H8L11 1L15 11L18 4L21 8L24 6H36" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
-                  </motion.div>
+                  </div>
 
                   {/* AI Assistant Button */}
-                  <motion.button
-                    layoutId="topbarAiBtn"
-                    transition={{ type: 'spring', stiffness: 360, damping: 32 }}
+                  <button
                     className="topbar-ai-btn"
                     onClick={() => safeNavigate('/chat')}
                     title="Open AI Medical Assistant"
                   >
                     <Bot size={15} className="ai-sparkle-icon" />
                     <span className="ai-btn-text">AI Assistant</span>
-                  </motion.button>
+                  </button>
 
                   {/* Quick Emergency SOS Button (Patients & Caretakers) */}
                   {(user?.role === 'PATIENT' || user?.role === 'CARETAKER') && (
-                    <motion.button
-                      layoutId="topbarSosBtn"
-                      transition={{ type: 'spring', stiffness: 360, damping: 32 }}
+                    <button
                       className="topbar-sos-btn"
                       onClick={() => safeNavigate('/emergency')}
                       title="Immediate Emergency Protocol"
                     >
                       <Siren size={16} className="sos-icon-pulse" />
                       <span className="sos-btn-text">Emergency SOS</span>
-                    </motion.button>
+                    </button>
                   )}
                 </div>
               ) : (
@@ -295,13 +289,11 @@ export function AppShell() {
 
             {/* Top Bar Right Items: Safety Status, SOS Button, User Profile */}
             <div className="topbar-right">
-              {/* On sub-pages: Action Cluster smoothly glides horizontally to the right */}
+              {/* On sub-pages: Action Cluster smoothly sits on the right */}
               {location.pathname !== '/dashboard' && (
                 <div className="topbar-actions-cluster">
                   {/* Live Epilepsy Safety Pulse Widget */}
-                  <motion.div
-                    layoutId="topbarSafetyPill"
-                    transition={{ type: 'spring', stiffness: 360, damping: 32 }}
+                  <div
                     className="topbar-safety-pill"
                     title="Live System Health & AI Telemetry"
                   >
@@ -321,45 +313,39 @@ export function AppShell() {
                     <svg className="live-telemetry-wave" viewBox="0 0 36 12" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M0 6H8L11 1L15 11L18 4L21 8L24 6H36" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
-                  </motion.div>
+                  </div>
 
                   {/* AI Assistant Button */}
                   {location.pathname === '/chat' ? (
-                    <motion.button
-                      layoutId="topbarAiBtn"
-                      transition={{ type: 'spring', stiffness: 360, damping: 32 }}
+                    <button
                       className="topbar-ai-btn active-back"
                       onClick={() => safeNavigate('/dashboard')}
                       title="Return to Main Dashboard"
                     >
                       <LayoutDashboard size={14} />
                       <span className="ai-btn-text">Exit to Dashboard</span>
-                    </motion.button>
+                    </button>
                   ) : (
-                    <motion.button
-                      layoutId="topbarAiBtn"
-                      transition={{ type: 'spring', stiffness: 360, damping: 32 }}
+                    <button
                       className="topbar-ai-btn"
                       onClick={() => safeNavigate('/chat')}
                       title="Open AI Medical Assistant"
                     >
                       <Bot size={15} className="ai-sparkle-icon" />
                       <span className="ai-btn-text">AI Assistant</span>
-                    </motion.button>
+                    </button>
                   )}
 
                   {/* Quick Emergency SOS Button (Patients & Caretakers) */}
                   {(user?.role === 'PATIENT' || user?.role === 'CARETAKER') && (
-                    <motion.button
-                      layoutId="topbarSosBtn"
-                      transition={{ type: 'spring', stiffness: 360, damping: 32 }}
+                    <button
                       className="topbar-sos-btn"
                       onClick={() => safeNavigate('/emergency')}
                       title="Immediate Emergency Protocol"
                     >
                       <Siren size={16} className="sos-icon-pulse" />
                       <span className="sos-btn-text">Emergency SOS</span>
-                    </motion.button>
+                    </button>
                   )}
                 </div>
               )}
