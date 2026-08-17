@@ -12,7 +12,11 @@ type FormState = LoginPayload & {
   confirm_password: string;
 };
 
-export function LoginForm() {
+interface LoginFormProps {
+  onToggleMode?: () => void;
+}
+
+export function LoginForm({ onToggleMode }: LoginFormProps) {
   const navigate = useNavigate();
   const { login } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
@@ -21,6 +25,7 @@ export function LoginForm() {
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof FormState, string>>>({});
   
   const [forgotPasswordStep, setForgotPasswordStep] = useState<'none' | 'email' | 'otp' | 'reset'>('none');
+  const [rememberMe, setRememberMe] = useState(false);
 
   const [formData, setFormData] = useState<FormState>({
     email: '',
@@ -196,11 +201,12 @@ export function LoginForm() {
           {forgotPasswordStep === 'otp' && 'OTP Verification'}
           {forgotPasswordStep === 'reset' && 'Create New Password'}
         </h2>
-        {forgotPasswordStep === 'otp' && (
-          <p style={{ fontSize: '0.9rem', color: 'var(--color-text-light)', marginTop: '8px' }}>
-            Enter the 6-digit code sent to<br/><strong>{formData.email}</strong>
-          </p>
-        )}
+        <p>
+          {forgotPasswordStep === 'none' && 'Sign in to access your neurology telemetry portal.'}
+          {forgotPasswordStep === 'email' && 'Enter your email to receive a password reset code.'}
+          {forgotPasswordStep === 'otp' && `Enter the 6-digit code sent to ${formData.email}`}
+          {forgotPasswordStep === 'reset' && 'Create a new secure password for your account.'}
+        </p>
       </div>
 
       {globalError && (
@@ -210,7 +216,7 @@ export function LoginForm() {
       )}
       
       {globalSuccess && forgotPasswordStep !== 'otp' && (
-        <div className="auth-success-banner" role="alert" style={{ background: 'rgba(46, 204, 113, 0.1)', color: '#27ae60', padding: '12px', borderRadius: '8px', marginBottom: '16px', border: '1px solid rgba(46, 204, 113, 0.3)', fontSize: '0.9rem' }}>
+        <div className="auth-success-banner" role="alert">
           {globalSuccess}
         </div>
       )}
@@ -220,7 +226,7 @@ export function LoginForm() {
           id="email"
           type="email"
           label="Email address"
-          placeholder="Enter your email address"
+          placeholder="name@example.com"
           autoComplete="email"
           required
           value={formData.email}
@@ -231,44 +237,49 @@ export function LoginForm() {
       )}
 
       {forgotPasswordStep === 'none' && (
-        <div style={{ position: 'relative' }}>
+        <>
           <Input
             id="password"
             type="password"
             label="Password"
-            placeholder="Enter your password"
+            placeholder="••••••••"
             autoComplete="current-password"
             required
             value={formData.password}
             onChange={handleChange}
             error={fieldErrors.password}
           />
-          <a
-            href="#"
-            style={{
-              position: 'absolute',
-              right: 0,
-              top: 0,
-              fontSize: 'var(--text-sm)',
-              color: 'var(--color-primary)',
-              textDecoration: 'none',
-              fontWeight: 500
-            }}
-            onClick={(e) => {
-              e.preventDefault();
-              setForgotPasswordStep('email');
-              setGlobalError('');
-              setGlobalSuccess('');
-              setFieldErrors({});
-            }}
-          >
-            Forgot password?
-          </a>
-        </div>
+          <div className="auth-forgot-row">
+            <label 
+              className="auth-remember-toggle"
+              onClick={() => setRememberMe(!rememberMe)}
+            >
+              <div 
+                className={`auth-switch ${rememberMe ? 'on' : ''}`} 
+                role="switch" 
+                aria-checked={rememberMe}
+              />
+              <span>Remember me</span>
+            </label>
+            <a
+              href="#"
+              className="auth-forgot-link"
+              onClick={(e) => {
+                e.preventDefault();
+                setForgotPasswordStep('email');
+                setGlobalError('');
+                setGlobalSuccess('');
+                setFieldErrors({});
+              }}
+            >
+              Forgot password?
+            </a>
+          </div>
+        </>
       )}
 
       {forgotPasswordStep === 'otp' && (
-        <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', margin: '24px 0' }}>
+        <div className="otp-container" style={{ display: 'flex', gap: '8px', justifyContent: 'center', margin: '24px 0' }}>
           {otpArray.map((digit, index) => (
             <input
               key={index}
@@ -280,24 +291,18 @@ export function LoginForm() {
               value={digit}
               onChange={(e) => handleOtpChange(index, e.target.value)}
               onKeyDown={(e) => handleOtpKeyDown(index, e)}
+              className={`otp-digit-input ${otpError ? 'error' : ''} ${otpSuccess ? 'success' : ''}`}
               style={{
-                width: '45px',
-                height: '55px',
+                width: '46px',
+                height: '52px',
                 textAlign: 'center',
                 fontSize: '1.5rem',
                 fontWeight: 'bold',
-                borderRadius: '8px',
-                border: `2px solid ${
-                  otpError ? '#e74c3c' : 
-                  otpSuccess ? '#2ecc71' : 
-                  digit ? 'var(--color-primary)' : 
-                  '#e2e8f0'
-                }`,
-                background: otpError ? 'rgba(231, 76, 60, 0.05)' : otpSuccess ? 'rgba(46, 204, 113, 0.05)' : '#f8fafc',
+                borderRadius: '10px',
+                border: 'none',
+                background: '#edf1ee',
                 color: otpError ? '#c0392b' : otpSuccess ? '#27ae60' : 'var(--color-text-main)',
-                transition: 'all 0.2s',
                 outline: 'none',
-                boxShadow: digit && !otpError && !otpSuccess ? '0 0 0 3px rgba(45, 90, 63, 0.1)' : 'none'
               }}
               disabled={isLoading || otpSuccess}
             />
@@ -330,7 +335,7 @@ export function LoginForm() {
         </>
       )}
 
-      <div className="auth-form-actions" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      <div className="auth-form-actions">
         {forgotPasswordStep !== 'otp' && (
           <Button type="submit" className="w-full" isLoading={isLoading}>
             {forgotPasswordStep === 'none' && 'Sign In'}
@@ -348,10 +353,17 @@ export function LoginForm() {
               setGlobalSuccess('');
               setOtpArray(Array(6).fill(''));
             }}
-            style={{ background: 'none', border: 'none', color: 'var(--color-text-main)', cursor: 'pointer', fontSize: '0.9rem' }}
+            className="auth-back-link"
           >
             Back to Sign In
           </button>
+        )}
+
+        {forgotPasswordStep === 'none' && onToggleMode && (
+          <div className="auth-switch-text">
+            Don't have an account?{' '}
+            <a onClick={onToggleMode}>Sign up</a>
+          </div>
         )}
       </div>
     </form>
