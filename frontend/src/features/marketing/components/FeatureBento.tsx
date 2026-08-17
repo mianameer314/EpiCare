@@ -165,7 +165,7 @@ function DesktopPinnedStory() {
           scrollTrigger: {
             trigger: section,
             start: 'top top',
-            end: '+=3200', // Increased scroll distance for smoother reads
+            end: '+=4000', // Increased scroll distance to guarantee the last card shows completely
             pin: true,
             scrub: 0.5,
             anticipatePin: 1,
@@ -190,9 +190,8 @@ function DesktopPinnedStory() {
         // Add timeline steps for remaining cards
         for (let i = 1; i < totalCards; i++) {
           // Bring in card i smoothly
-          tl.fromTo(
+          tl.to(
             cards[i],
-            { yPercent: 110, opacity: 0 },
             {
               yPercent: 0,
               opacity: 1,
@@ -224,7 +223,15 @@ function DesktopPinnedStory() {
         }
       });
 
-      return () => mm.revert();
+      // Fix for React Router client-side navigation (Scroll Restoration bug)
+      const timer = setTimeout(() => {
+        ScrollTrigger.refresh();
+      }, 100);
+
+      return () => {
+        clearTimeout(timer);
+        mm.revert();
+      };
     }, sectionRef);
 
     return () => ctx.revert();
