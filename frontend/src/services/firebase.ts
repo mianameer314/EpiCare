@@ -10,6 +10,9 @@ export interface FirebaseClientConfig {
   vapidKey: string;
 }
 
+let cachedToken: string | null = null;
+let configCache: FirebaseClientConfig | null = null;
+
 /**
  * Registers an FCM device registration token with the EpiCare backend API.
  */
@@ -49,30 +52,43 @@ async function loadFirebaseScripts(): Promise<any> {
 }
 
 /**
- * Requests browser/device notification permission, retrieves the FCM token,
- * and syncs it with the user account dynamically using backend-provided configuration.
+ * Fetches the public Firebase Web config from the backend (cached).
  */
-export async function requestPushNotificationPermission(): Promise<string | null> {
-  if (typeof window === 'undefined' || !('Notification' in window) || !('serviceWorker' in navigator)) {
-    return null;
-  }
-
+async function getFirebaseConfig(): Promise<FirebaseClientConfig | null> {
+  if (configCache) return configCache;
   try {
-    const permission = await Notification.requestPermission();
-    if (permission !== 'granted') {
-      return null;
-    }
-
-    // 1. Fetch Firebase Web config dynamically from backend (no hardcoding / no frontend env needed)
     const config = await apiClient.get<FirebaseClientConfig>('/auth/firebase-config');
     if (!config || !config.apiKey || !config.vapidKey) {
       console.info('[FCM] Firebase Web Push credentials pending in backend/.env');
       return null;
     }
+    configCache = config;
+    return config;
+  } catch (err) {
+    console.warn('[FCM] Failed to fetch firebase config:', err);
+    return null;
+  }
+}
 
-    // 2. Load Firebase SDK dynamically via official Google CDN
+/**
+ * Obtains (or reuses) the FCM device token. Safe to call repeatedly —
+ * this is what makes background SOS/reminder push work with the screen off.
+ *
+ * Returns the token, or null when push is unavailable (permission denied,
+ * unsupported browser, config missing, or token fetch failed).
+ */
+export async function getFcmToken(): Promise<string | null> {
+  if (typeof window === 'undefined' || !('Notification' in window) || !('serviceWorker' in navigator)) {
+    return null;
+  }
+  if (cachedToken) return cachedToken;
+  if (Notification.permission !== 'granted') return null;
+
+  try {
+    const config = await getFirebaseConfig();
+    if (!config) return null;
+
     const firebase = await loadFirebaseScripts();
-
     const firebaseConfig = {
       apiKey: config.apiKey,
       authDomain: config.authDomain,
@@ -87,19 +103,80 @@ export async function requestPushNotificationPermission(): Promise<string | null
     }
 
     const messaging = firebase.messaging();
-    const swReg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-    if (swReg.active) {
-      swReg.active.postMessage({ type: 'INIT_FIREBASE', config: firebaseConfig });
+
+    // Register the service worker first — required for background push.
+    let swReg: ServiceWorkerRegistration | null = null;
+    try {
+      swReg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+      if (swReg.active) {
+        swReg.active.postMessage({ type: 'INIT_FIREBASE', config: firebaseConfig });
+      }
+    } catch (err) {
+      console.warn('[FCM] Service worker registration failed:', err);
     }
 
-    const token = await messaging.getToken({ vapidKey: config.vapidKey, serviceWorkerRegistration: swReg });
+    // getToken can transiently fail (sender ID mismatch, SW still activating)
+    // so retry a few times before giving up.
+    let token: string | null = null;
+    for (let attempt = 0; attempt < 3 && !token; attempt++) {
+      try {
+        token = await messaging.getToken({
+          vapidKey: config.vapidKey,
+          serviceWorkerRegistration: swReg || undefined,
+        });
+      } catch (err) {
+        console.warn(`[FCM] getToken attempt ${attempt + 1} failed:`, err);
+        if (attempt < 2) {
+          await new Promise((r) => setTimeout(r, 1000));
+        }
+      }
+    }
 
     if (token) {
-      await registerFcmDeviceToken(token);
+      cachedToken = token;
       return token;
     }
   } catch (error) {
     console.error('[FCM] Error obtaining FCM device token:', error);
+  }
+
+  return null;
+}
+
+/**
+ * Ensures notifications are working for the current user:
+ *  - asks for permission if not yet decided (safe no-op if already granted),
+ *  - obtains the FCM token,
+ *  - and registers it with the backend.
+ *
+ * Called on login, session restore, and app startup.
+ */
+export async function requestPushNotificationPermission(): Promise<string | null> {
+  if (typeof window === 'undefined' || !('Notification' in window) || !('serviceWorker' in navigator)) {
+    return null;
+  }
+
+  try {
+    // If already granted this is a no-op that returns "granted" immediately.
+    const permission =
+      Notification.permission === 'granted'
+        ? Notification.permission
+        : await Notification.requestPermission();
+    if (permission !== 'granted') {
+      console.info('[FCM] Notification permission not granted:', permission);
+      return null;
+    }
+
+    const token = await getFcmToken();
+    if (token) {
+      // Only sync with the backend when there is an active session.
+      if (localStorage.getItem('access_token')) {
+        await registerFcmDeviceToken(token);
+      }
+      return token;
+    }
+  } catch (error) {
+    console.error('[FCM] Error requesting push permission:', error);
   }
 
   return null;

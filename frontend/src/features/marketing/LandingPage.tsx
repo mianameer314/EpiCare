@@ -4,6 +4,8 @@
  * Composes all 13 sections into a single premium landing page.
  * Wrapped in MarketingMotionProvider for reduced-motion support.
  */
+import { Navigate } from 'react-router-dom';
+import { useAuth } from '../../hooks/useAuth';
 import { MarketingMotionProvider } from './components/MarketingMotion';
 import { AnnouncementBar } from './components/AnnouncementBar';
 import { MarketingNavbar } from './components/MarketingNavbar';
@@ -22,6 +24,13 @@ import './styles/marketing-tokens.css';
 import './styles/marketing.css';
 
 export function LandingPage() {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  // Already signed in? Go straight to the app instead of the marketing page.
+  if (!isLoading && isAuthenticated) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
   return (
     <MarketingMotionProvider>
       <div className="marketing">

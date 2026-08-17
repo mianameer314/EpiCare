@@ -73,6 +73,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     refreshUser();
   }, [refreshUser]);
 
+  // Register push notifications on startup whenever a session exists, even if
+  // the /auth/me bootstrap is slow or the backend is cold-starting. This is
+  // what makes SOS / reminder push arrive with the screen off or app closed.
+  useEffect(() => {
+    if (localStorage.getItem(TOKEN_KEY)) {
+      requestPushNotificationPermission().catch(() => {});
+    }
+  }, []);
+
   /* ── Login ── */
   const login = useCallback(async (email: string, password: string) => {
     const res = await apiClient.post<{ access_token: string; refresh_token: string; token_type: string }>('/auth/login', { email, password });
