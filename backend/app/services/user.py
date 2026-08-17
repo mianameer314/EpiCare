@@ -42,64 +42,85 @@ def _generate_otp() -> str:
     return "".join(secrets.choice("0123456789") for _ in range(6))
 
 async def register_user(db: AsyncSession, data: UserRegister, background_tasks: BackgroundTasks) -> User:
-    """Public user registration. Raises 409 on duplicate email or phone."""
+    """Public user registration. Raises 409 on duplicate verified email or phone."""
     from sqlalchemy.exc import IntegrityError
-    
-    existing_email = await get_user_by_email(db, data.email)
-    if existing_email:
-        raise conflict_error("EMAIL_ALREADY_REGISTERED", "Email already registered")
-
-    existing_phone = await get_user_by_phone(db, data.phone_number)
-    if existing_phone:
-        raise conflict_error("PHONE_ALREADY_REGISTERED", "Phone number already registered")
-
     from app.models.enums import UserRole
     
+    existing_email = await get_user_by_email(db, data.email)
+    if existing_email and existing_email.is_email_verified:
+        raise conflict_error("EMAIL_ALREADY_REGISTERED", "A user with this email address already exists.")
+
+    existing_phone = await get_user_by_phone(db, data.phone_number)
+    if existing_phone and existing_phone.is_phone_verified and (not existing_email or existing_phone.id != existing_email.id):
+        raise conflict_error("PHONE_ALREADY_REGISTERED", "A user with this phone number already exists.")
+
     if data.role == UserRole.DOCTOR and not data.pmdc_number:
         from fastapi import HTTPException
         raise HTTPException(status_code=400, detail="PMDC number is required for doctors")
 
     otp_plain = _generate_otp()
     
-    user = User(
-        email=data.email,
-        password_hash=hash_password(data.password),
-        phone_number=data.phone_number,
-        full_name=data.full_name,
-        role=data.role,
-        is_active=True,
-        is_email_verified=False,
-        is_phone_verified=False,
-        otp_secret_hash=hash_password(otp_plain),
-        otp_expires_at=datetime.now(timezone.utc) + timedelta(minutes=10)
-    )
-    db.add(user)
+    if existing_email and not existing_email.is_email_verified:
+        # Re-use and update unverified pending registration
+        user = existing_email
+        user.password_hash = hash_password(data.password)
+        user.phone_number = data.phone_number
+        user.full_name = data.full_name
+        user.role = data.role
+        user.otp_secret_hash = hash_password(otp_plain)
+        user.otp_expires_at = datetime.now(timezone.utc) + timedelta(minutes=10)
+    else:
+        user = User(
+            email=data.email,
+            password_hash=hash_password(data.password),
+            phone_number=data.phone_number,
+            full_name=data.full_name,
+            role=data.role,
+            is_active=True,
+            is_email_verified=False,
+            is_phone_verified=False,
+            otp_secret_hash=hash_password(otp_plain),
+            otp_expires_at=datetime.now(timezone.utc) + timedelta(minutes=10)
+        )
+        db.add(user)
     
     try:
         await db.flush()  # Gets user.id without committing the transaction
         
-        # Create Role-Specific Profile
+        # Create Role-Specific Profile if not already present
         if user.role == UserRole.PATIENT:
             from app.models.patient_profile import PatientProfile
-            profile = PatientProfile(
-                user_id=user.id,
-                date_of_birth=datetime.now(timezone.utc).date() # Placeholder, they should update later or pass in registration
-            )
-            db.add(profile)
+            from sqlalchemy import select
+            res = await db.execute(select(PatientProfile).where(PatientProfile.user_id == user.id))
+            if not res.scalar_one_or_none():
+                profile = PatientProfile(
+                    user_id=user.id,
+                    date_of_birth=datetime.now(timezone.utc).date()
+                )
+                db.add(profile)
         elif user.role == UserRole.DOCTOR:
             from app.models.doctor_profile import DoctorProfile
-            profile = DoctorProfile(
-                user_id=user.id,
-                pmdc_number=data.pmdc_number,
-                specialty="Neurologist"
-            )
-            db.add(profile)
+            from sqlalchemy import select
+            res = await db.execute(select(DoctorProfile).where(DoctorProfile.user_id == user.id))
+            doc_prof = res.scalar_one_or_none()
+            if not doc_prof:
+                profile = DoctorProfile(
+                    user_id=user.id,
+                    pmdc_number=data.pmdc_number,
+                    specialty="Neurologist"
+                )
+                db.add(profile)
+            else:
+                doc_prof.pmdc_number = data.pmdc_number
         elif user.role == UserRole.CARETAKER:
             from app.models.caretaker_profile import CaretakerProfile
-            profile = CaretakerProfile(
-                user_id=user.id
-            )
-            db.add(profile)
+            from sqlalchemy import select
+            res = await db.execute(select(CaretakerProfile).where(CaretakerProfile.user_id == user.id))
+            if not res.scalar_one_or_none():
+                profile = CaretakerProfile(
+                    user_id=user.id
+                )
+                db.add(profile)
             
         await db.commit()  # Single atomic commit for both user and profile
     except IntegrityError as exc:

@@ -24,8 +24,28 @@ def test_register_creates_user(client: TestClient) -> None:
     assert payload["is_active"] is True
 
 
+def _verify_email(email: str):
+    import asyncio
+    from app.db.session import TestSessionLocal
+    from app.models.user import User
+    from sqlalchemy import select
+
+    async def _do_verify():
+        async with TestSessionLocal() as session:
+            result = await session.execute(select(User).where(User.email == email))
+            user = result.scalar_one_or_none()
+            if user:
+                user.is_email_verified = True
+                user.is_phone_verified = True
+                await session.commit()
+
+    asyncio.run(_do_verify())
+
+
 def test_register_rejects_duplicate_email(client: TestClient) -> None:
     _register(client, "dupe_email@example.com")
+    _verify_email("dupe_email@example.com")
+
     response = client.post(
         "/api/v1/auth/register",
         json={"email": "dupe_email@example.com", "password": "supersecret123", "full_name": "Dupe Email", "phone_number": "+923000000010", "role": "PATIENT"},
@@ -35,11 +55,26 @@ def test_register_rejects_duplicate_email(client: TestClient) -> None:
     assert body["error"]["code"] == "EMAIL_ALREADY_REGISTERED"
 
 
+def test_register_allows_unverified_email_retry(client: TestClient) -> None:
+    # User registers initially but doesn't verify OTP
+    _register(client, "unverified_retry@example.com")
+    
+    # Submitting again with the same unverified email should succeed and refresh OTP
+    response = client.post(
+        "/api/v1/auth/register",
+        json={"email": "unverified_retry@example.com", "password": "newpassword123", "full_name": "Updated Name", "phone_number": "+923000000099", "role": "PATIENT"},
+    )
+    assert response.status_code == 201
+    assert response.json()["full_name"] == "Updated Name"
+
+
 def test_register_rejects_duplicate_phone(client: TestClient) -> None:
     client.post(
         "/api/v1/auth/register",
         json={"email": "phone1@example.com", "password": "supersecret123", "full_name": "Phone One", "phone_number": "+923001234567", "role": "PATIENT"},
     )
+    _verify_email("phone1@example.com")
+
     response = client.post(
         "/api/v1/auth/register",
         json={"email": "phone2@example.com", "password": "supersecret123", "full_name": "Phone Two", "phone_number": "+923001234567", "role": "PATIENT"},
@@ -61,6 +96,8 @@ def test_register_rejects_duplicate_pmdc(client: TestClient) -> None:
             "pmdc_number": "PMDC-DUPE-999"
         },
     )
+    _verify_email("dr1@example.com")
+
     response = client.post(
         "/api/v1/auth/register",
         json={

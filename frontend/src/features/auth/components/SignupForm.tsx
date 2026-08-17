@@ -488,7 +488,7 @@ export function SignupForm({ onToggleMode }: SignupFormProps) {
 
       <div className="auth-form-actions">
         <Button type="submit" isLoading={isLoading} className="w-full">
-          Create Account
+          Send OTP
         </Button>
 
         {onToggleMode && (

@@ -160,18 +160,30 @@
   cursor: pointer;
 }
 
-/* Fix browser autofill styling so it always stays neumorphic #edf1ee */
+/* Universal Autofill Fix for all inputs including PhoneInput */
+.auth-form input:-webkit-autofill,
+.auth-form input:-webkit-autofill:hover, 
+.auth-form input:-webkit-autofill:focus, 
+.auth-form input:-webkit-autofill:active,
 .auth-form .input-field:-webkit-autofill,
 .auth-form .input-field:-webkit-autofill:hover, 
 .auth-form .input-field:-webkit-autofill:focus, 
-.auth-form .input-field:-webkit-autofill:active {
+.auth-form .input-field:-webkit-autofill:active,
+.auth-form .PhoneInputInput:-webkit-autofill,
+.auth-form .PhoneInputInput:-webkit-autofill:hover,
+.auth-form .PhoneInputInput:-webkit-autofill:focus,
+.auth-form .PhoneInputInput:-webkit-autofill:active,
+.auth-form .custom-phone-container input:-webkit-autofill,
+.auth-form .custom-phone-container input:-webkit-autofill:hover,
+.auth-form .custom-phone-container input:-webkit-autofill:focus,
+.auth-form .custom-phone-container input:-webkit-autofill:active {
   -webkit-box-shadow: 
     inset -3px -3px 7px rgba(255, 255, 255, 0.95),
     inset 3px 3px 7px rgba(175, 188, 180, 0.45),
     inset 0 0 0 50px #edf1ee !important;
   -webkit-text-fill-color: #24382c !important;
   background-color: #edf1ee !important;
-  transition: background-color 5000s ease-in-out 0s;
+  transition: background-color 5000s ease-in-out 0s !important;
 }
 
 .auth-form .input-field::placeholder {
@@ -249,6 +261,7 @@
     inset 3px 3px 7px rgba(175, 188, 180, 0.45) !important;
   transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1) !important;
   overflow: hidden;
+  position: relative;
 }
 
 .auth-form .custom-phone-container .PhoneInput:hover {
@@ -268,17 +281,59 @@
 .auth-form .custom-phone-container .PhoneInputCountry {
   display: flex !important;
   align-items: center !important;
+  justify-content: center !important;
+  align-self: center !important;
   margin-right: 10px !important;
   padding-right: 10px !important;
-  border-right: 1px solid rgba(45, 90, 63, 0.18) !important;
+  border-right: 1.5px solid rgba(45, 90, 63, 0.18) !important;
   background: transparent !important;
-  height: 24px !important;
+  height: 28px !important;
+  position: relative !important;
+}
+
+.auth-form .custom-phone-container .PhoneInputCountryIcon {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 24px !important;
+  height: 16px !important;
+  border-radius: 3px !important;
+  overflow: hidden !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15) !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  margin: 0 !important;
+}
+
+.auth-form .custom-phone-container .PhoneInputCountryIconImg {
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
 }
 
 .auth-form .custom-phone-container .PhoneInputCountrySelect {
   cursor: pointer;
   background: transparent !important;
   border: none !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  opacity: 0 !important;
+  z-index: 2 !important;
+}
+
+.auth-form .custom-phone-container .PhoneInputCountrySelectArrow {
+  display: block !important;
+  margin-left: 6px !important;
+  width: 6px !important;
+  height: 6px !important;
+  border-right: 2px solid #586e61 !important;
+  border-bottom: 2px solid #586e61 !important;
+  transform: rotate(45deg) !important;
+  opacity: 0.75 !important;
+  margin-top: -2px !important;
 }
 
 .auth-form .custom-phone-container .PhoneInputInput {
