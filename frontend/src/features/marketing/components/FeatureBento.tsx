@@ -157,29 +157,38 @@ function DesktopPinnedStory() {
           }
         });
 
+        const restDuration = 0.8;
+        const transitionDuration = 1.0;
+        let currentTime = 0;
+
         const tl = gsap.timeline({
           scrollTrigger: {
             trigger: section,
             start: 'top top',
-            end: '+=2400',
+            end: '+=3200', // Increased scroll distance for smoother reads
             pin: true,
             scrub: 0.5,
             anticipatePin: 1,
             invalidateOnRefresh: true,
             onUpdate: (self) => {
+              const cycle = restDuration + transitionDuration;
+              const totalTime = totalCards * restDuration + (totalCards - 1) * transitionDuration;
+              const time = self.progress * totalTime;
               const idx = Math.min(
                 totalCards - 1,
-                Math.max(0, Math.round(self.progress * totalCards))
+                Math.max(0, Math.round(time / cycle))
               );
               setActiveIndex(idx);
             },
           },
         });
 
-        // Add timeline steps for cards 1..5
-        for (let i = 1; i < totalCards; i++) {
-          const startTime = i - 1;
+        // Rest for card 0
+        tl.to({}, { duration: restDuration }, currentTime);
+        currentTime += restDuration;
 
+        // Add timeline steps for remaining cards
+        for (let i = 1; i < totalCards; i++) {
           // Bring in card i smoothly
           tl.fromTo(
             cards[i],
@@ -189,28 +198,30 @@ function DesktopPinnedStory() {
               opacity: 1,
               zIndex: 10 + i,
               ease: 'power2.out',
-              duration: 1,
+              duration: transitionDuration,
             },
-            startTime
+            currentTime
           );
 
-          // Completely fade out the previous card so NO ghost text/overlays show behind!
+          // Completely fade out the previous card
           tl.to(
             cards[i - 1],
             {
               yPercent: -10,
               scale: 0.96,
-              opacity: 0, // Fully hides earlier cards!
+              opacity: 0,
               ease: 'power2.out',
-              duration: 0.9,
+              duration: transitionDuration * 0.9,
             },
-            startTime
+            currentTime
           );
-        }
 
-        // Add a rest period at the end of the timeline so the last card stays on screen
-        // before the pin releases. This gives the timeline a total duration of `totalCards` (6).
-        tl.to({}, { duration: 1 });
+          currentTime += transitionDuration;
+
+          // Rest for card i
+          tl.to({}, { duration: restDuration }, currentTime);
+          currentTime += restDuration;
+        }
       });
 
       return () => mm.revert();
@@ -225,11 +236,17 @@ function DesktopPinnedStory() {
     if (!sectionRef.current) return;
     const st = ScrollTrigger.getAll().find((t) => t.trigger === sectionRef.current);
     if (st) {
-      // Timeline duration is STORY_CARDS.length because of the 1s rest period at the end.
-      // So time = index maps exactly to when the card finishes animating in.
-      const progress = index / STORY_CARDS.length;
-      // Add a tiny bit (0.02) so it's definitively "arrived" in the GSAP playhead
-      const scrollPos = st.start + (progress + 0.02) * (st.end - st.start);
+      const restDuration = 0.8;
+      const transitionDuration = 1.0;
+      const cycle = restDuration + transitionDuration;
+      const totalCards = STORY_CARDS.length;
+      const totalTime = totalCards * restDuration + (totalCards - 1) * transitionDuration;
+      
+      // Target the center of the rest period for the hovered/clicked card
+      const targetTime = index * cycle + (restDuration / 2);
+      const progress = targetTime / totalTime;
+      
+      const scrollPos = st.start + progress * (st.end - st.start);
       window.scrollTo({ top: scrollPos, behavior: 'smooth' });
     }
   };
@@ -259,6 +276,7 @@ function DesktopPinnedStory() {
                 key={card.id}
                 type="button"
                 onClick={() => handleStepJump(i)}
+                onMouseEnter={() => handleStepJump(i)}
                 className={`sc-step-item ${i === activeIndex ? 'sc-step-item--active' : ''}`}
                 aria-selected={i === activeIndex}
                 role="tab"
