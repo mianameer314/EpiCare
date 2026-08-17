@@ -986,4 +986,47 @@
   .app-main {
     padding: var(--space-4);
   }
+
+  /* ── Mobile Topbar: icon-only buttons so the dock never overflows ── */
+  .app-topbar.glass-dock-pipe {
+    padding: 0 10px;
+    gap: 6px;
+    overflow-x: auto;
+  }
+
+  .topbar-left,
+  .topbar-right,
+  .topbar-actions-cluster {
+    gap: 6px;
+  }
+
+  .topbar-ai-btn .ai-btn-text,
+  .topbar-sos-btn .sos-btn-text {
+    display: none;
+  }
+
+  .topbar-ai-btn,
+  .topbar-sos-btn {
+    padding: 7px 10px;
+  }
+
+  .topbar-user-pill {
+    padding: 4px;
+  }
+
+  .topbar-user-info {
+    display: none;
+  }
+
+  .topbar-chevron {
+    display: none;
+  }
+
+  .topbar-safety-pill {
+    padding: 6px 10px;
+  }
+
+  .live-telemetry-wave {
+    display: none;
+  }
 }

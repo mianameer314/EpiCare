@@ -903,7 +903,7 @@ export function MedicationsPage() {
                   onChange={(e) => setFormData(p => ({ ...p, name: e.target.value }))}
                 />
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--space-4)' }}>
                   <Input
                     id="med_dosage"
                     label="Dosage per Intake"
@@ -928,7 +928,7 @@ export function MedicationsPage() {
                   />
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--space-4)' }}>
                   <Input
                     id="med_start"
                     type="date"

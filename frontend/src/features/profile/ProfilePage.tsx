@@ -1155,7 +1155,7 @@ export function ProfilePage() {
                 </div>
 
                 {/* 5. Timezone & Notes View */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 'var(--space-4)', borderTop: '1px solid rgba(45, 90, 63, 0.08)', paddingTop: 'var(--space-3)' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 'var(--space-4)', borderTop: '1px solid rgba(45, 90, 63, 0.08)', paddingTop: 'var(--space-3)' }}>
                   <div>
                     <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', marginBottom: '4px' }}>Preferred Timezone</div>
                     <div style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>{patientForm.timezone || detectedTz}</div>
@@ -1344,7 +1344,9 @@ export function ProfilePage() {
                         background: 'rgba(255, 255, 255, 0.9)',
                         fontSize: 'var(--text-xs)',
                         outline: 'none',
-                        width: '260px',
+                        width: '100%',
+                        maxWidth: '260px',
+                        minWidth: 0,
                       }}
                     />
                     <button
@@ -1359,7 +1361,7 @@ export function ProfilePage() {
                 </div>
 
                 {/* Clinical Notes & Timezone */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.8fr', gap: 'var(--space-4)' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 'var(--space-4)' }}>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
                       <label htmlFor="p_tz" className="input-label" style={{ margin: 0 }}>

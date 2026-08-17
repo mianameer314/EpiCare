@@ -671,7 +671,7 @@ export function CaretakerWorkspace() {
                 ]}
               />
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-3)' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--space-3)' }}>
                 <Input
                   id="c_seizure_time"
                   type="datetime-local"
@@ -722,7 +722,7 @@ export function CaretakerWorkspace() {
             </div>
 
             <form onSubmit={(e) => { e.preventDefault(); logSleepMutation.mutate(sleepForm); }} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-3)' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--space-3)' }}>
                 <Input
                   id="c_sleep_at"
                   type="datetime-local"
