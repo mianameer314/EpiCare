@@ -154,9 +154,10 @@ export function SignupForm({ onToggleMode }: SignupFormProps) {
       let errorMsg = 'Registration failed. Please check your information and try again.';
       const newFieldErrors: typeof fieldErrors = {};
 
-      const detail = errData?.detail;
-      const errorCode = detail?.error?.code || '';
-      const serverMsg = detail?.error?.message || (typeof detail === 'string' ? detail : errData?.message || '');
+      // Handle both standard FastAPI 'detail' and our custom global exception format
+      const errorObj = errData?.error || errData?.detail?.error;
+      const errorCode = errorObj?.code || '';
+      const serverMsg = errorObj?.message || (typeof errData?.detail === 'string' ? errData.detail : errData?.message || '');
 
       const lowerMsg = (serverMsg || errorCode).toLowerCase();
 
@@ -171,8 +172,8 @@ export function SignupForm({ onToggleMode }: SignupFormProps) {
         newFieldErrors.pmdc_number = 'PMDC number already registered';
       } else if (serverMsg) {
         errorMsg = serverMsg;
-      } else if (Array.isArray(detail)) {
-        errorMsg = detail.map((d: any) => d.msg).join(', ');
+      } else if (Array.isArray(errData?.detail)) {
+        errorMsg = errData.detail.map((d: any) => d.msg).join(', ');
       }
 
       setFieldErrors(newFieldErrors);
