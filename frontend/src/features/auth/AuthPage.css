@@ -229,18 +229,56 @@
   font-weight: 700;
 }
 
-/* PhoneInput alignment */
+/* PhoneInput 100% Neumorphic Alignment */
+.auth-form .custom-phone-container {
+  width: 100%;
+}
+
 .auth-form .custom-phone-container .PhoneInput {
-  display: flex;
-  align-items: center;
-  padding: 0 12px;
+  width: 100% !important;
+  height: 44px !important;
+  display: flex !important;
+  align-items: center !important;
+  padding: 0 14px !important;
+  background: #edf1ee !important;
+  border: none !important;
+  outline: none !important;
+  border-radius: 12px !important;
+  box-shadow:
+    inset -3px -3px 7px rgba(255, 255, 255, 0.95),
+    inset 3px 3px 7px rgba(175, 188, 180, 0.45) !important;
+  transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1) !important;
   overflow: hidden;
 }
 
+.auth-form .custom-phone-container .PhoneInput:hover {
+  background: #edf1ee !important;
+}
+
+.auth-form .custom-phone-container .PhoneInput:focus-within {
+  transform: translateY(-1px) !important;
+  background: #f4f7f5 !important;
+  border: none !important;
+  box-shadow:
+    inset 3px 3px 6px rgba(27, 67, 50, 0.25),
+    inset -3px -3px 6px rgba(255, 255, 255, 0.9),
+    0 0 0 2px rgba(45, 90, 63, 0.25) !important;
+}
+
 .auth-form .custom-phone-container .PhoneInputCountry {
-  margin-right: 8px;
-  padding-right: 8px;
-  border-right: 1px solid rgba(45, 90, 63, 0.15);
+  display: flex !important;
+  align-items: center !important;
+  margin-right: 10px !important;
+  padding-right: 10px !important;
+  border-right: 1px solid rgba(45, 90, 63, 0.18) !important;
+  background: transparent !important;
+  height: 24px !important;
+}
+
+.auth-form .custom-phone-container .PhoneInputCountrySelect {
+  cursor: pointer;
+  background: transparent !important;
+  border: none !important;
 }
 
 .auth-form .custom-phone-container .PhoneInputInput {
@@ -248,15 +286,105 @@
   outline: none !important;
   background: transparent !important;
   box-shadow: none !important;
-  color: #24382c;
-  font-size: 14px;
-  font-weight: 500;
-  padding: 0;
-  height: 100%;
+  color: #24382c !important;
+  font-family: inherit !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.2px !important;
+  padding: 0 !important;
+  height: 100% !important;
 }
 
-.auth-form .custom-phone-container .PhoneInputCountrySelect {
-  cursor: pointer;
+.auth-form .custom-phone-container .PhoneInputInput::placeholder {
+  color: #92a499 !important;
+  font-weight: 400 !important;
+}
+
+/* =======================================
+   NEUMORPHIC OTP VERIFICATION BOXES
+   ======================================= */
+
+.otp-container {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  align-items: center;
+  margin: 28px 0;
+}
+
+.otp-digit-input {
+  width: 50px !important;
+  height: 58px !important;
+  font-size: 1.65rem !important;
+  font-weight: 800 !important;
+  font-family: var(--font-family-mono, monospace, sans-serif) !important;
+  text-align: center !important;
+  border-radius: 14px !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.9) !important;
+  background: #edf1ee !important;
+  color: #1e3d2b !important;
+  outline: none !important;
+  box-shadow:
+    -4px -4px 9px #ffffff,
+    4px 4px 9px rgba(175, 188, 180, 0.5),
+    inset 0 1px 1px rgba(255, 255, 255, 0.8) !important;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  cursor: text;
+}
+
+.otp-digit-input:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow:
+    -5px -5px 12px #ffffff,
+    5px 5px 12px rgba(175, 188, 180, 0.6) !important;
+}
+
+.otp-digit-input:focus,
+.otp-digit-input.active {
+  transform: translateY(-1px) !important;
+  background: #f4f7f5 !important;
+  border-color: rgba(45, 90, 63, 0.45) !important;
+  color: #1b4332 !important;
+  box-shadow:
+    inset 3px 3px 6px rgba(27, 67, 50, 0.22),
+    inset -3px -3px 6px rgba(255, 255, 255, 0.95),
+    0 0 0 2px rgba(45, 90, 63, 0.28) !important;
+}
+
+/* Success state: All boxes turn Emerald Green */
+.otp-digit-input.success {
+  background: #eef7f2 !important;
+  border-color: #27ae60 !important;
+  color: #1b4332 !important;
+  box-shadow:
+    inset 2px 2px 5px rgba(39, 174, 96, 0.25),
+    inset -2px -2px 5px rgba(255, 255, 255, 0.95),
+    0 0 0 2px rgba(39, 174, 96, 0.45) !important;
+  animation: otpSuccessPulse 0.4s ease forwards;
+}
+
+/* Error state: All boxes turn Warning Red with shake */
+.otp-digit-input.error {
+  background: #fdf3f2 !important;
+  border-color: #e74c3c !important;
+  color: #c0392b !important;
+  box-shadow:
+    inset 2px 2px 5px rgba(231, 76, 60, 0.25),
+    inset -2px -2px 5px rgba(255, 255, 255, 0.95),
+    0 0 0 2px rgba(231, 76, 60, 0.45) !important;
+  animation: otpShake 0.4s ease-in-out;
+}
+
+@keyframes otpShake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-5px); }
+  40%, 80% { transform: translateX(5px); }
+}
+
+@keyframes otpSuccessPulse {
+  0% { transform: scale(0.96); }
+  50% { transform: scale(1.04); }
+  100% { transform: scale(1); }
 }
 
 /* Password Eye Button */

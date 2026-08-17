@@ -69,6 +69,16 @@ export function SignupForm({ onToggleMode }: SignupFormProps) {
     }
   };
 
+  // Auto-focus first OTP input when step becomes 'otp'
+  useEffect(() => {
+    if (step === 'otp') {
+      const t = setTimeout(() => {
+        otpInputRefs.current[0]?.focus();
+      }, 100);
+      return () => clearTimeout(t);
+    }
+  }, [step]);
+
   const validate = () => {
     const errors: typeof fieldErrors = {};
 
@@ -140,13 +150,60 @@ export function SignupForm({ onToggleMode }: SignupFormProps) {
       setCanResend(false);
       setGlobalSuccess('Registration successful! Verification code sent to your email.');
     } catch (err: any) {
+      const errData = err.response?.data;
+      let errorMsg = 'Registration failed. Please check your information and try again.';
+      const newFieldErrors: typeof fieldErrors = {};
+
+      const detail = errData?.detail;
+      const errorCode = detail?.error?.code || '';
+      const serverMsg = detail?.error?.message || (typeof detail === 'string' ? detail : errData?.message || '');
+
+      const lowerMsg = (serverMsg || errorCode).toLowerCase();
+
+      if (errorCode === 'EMAIL_ALREADY_REGISTERED' || lowerMsg.includes('email')) {
+        errorMsg = 'This email address is already registered. Please sign in or use another email.';
+        newFieldErrors.email = 'Email already registered';
+      } else if (errorCode === 'PHONE_ALREADY_REGISTERED' || lowerMsg.includes('phone')) {
+        errorMsg = 'This phone number is already registered. Please use another phone number.';
+        newFieldErrors.phone_number = 'Phone number already registered';
+      } else if (errorCode === 'PMDC_ALREADY_REGISTERED' || lowerMsg.includes('pmdc')) {
+        errorMsg = 'This PMDC number is already registered. Please verify your PMDC registration.';
+        newFieldErrors.pmdc_number = 'PMDC number already registered';
+      } else if (serverMsg) {
+        errorMsg = serverMsg;
+      } else if (Array.isArray(detail)) {
+        errorMsg = detail.map((d: any) => d.msg).join(', ');
+      }
+
+      setFieldErrors(newFieldErrors);
+      setGlobalError(errorMsg);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Dedicated verification function with automatic feedback
+  const submitVerification = async (otpCode: string) => {
+    if (otpCode.length !== 6 || isLoading) return;
+
+    setIsLoading(true);
+    setGlobalError('');
+    setOtpError(false);
+    try {
+      await authApi.verifyEmail({ email: registeredEmail, otp: otpCode });
+      setOtpSuccess(true);
+      setGlobalSuccess('Verification successful! Redirecting...');
+      setTimeout(() => {
+        setStep('verified');
+      }, 700);
+    } catch (err: any) {
+      setOtpError(true);
+      const detail = err.response?.data?.detail;
       const msg =
-        err.response?.data?.detail ||
+        (typeof detail === 'object' ? detail?.error?.message : detail) ||
         err.response?.data?.message ||
-        (Array.isArray(err.response?.data?.detail)
-          ? err.response?.data?.detail.map((d: any) => d.msg).join(', ')
-          : 'Registration failed. Please check your information and try again.');
-      setGlobalError(typeof msg === 'string' ? msg : 'Registration failed.');
+        'Invalid or expired verification code. Please try again.';
+      setGlobalError(msg);
     } finally {
       setIsLoading(false);
     }
@@ -165,6 +222,11 @@ export function SignupForm({ onToggleMode }: SignupFormProps) {
     if (value && index < 5) {
       otpInputRefs.current[index + 1]?.focus();
     }
+
+    // Auto-verify when all 6 digits are entered
+    if (newOtp.every((digit) => digit !== '')) {
+      submitVerification(newOtp.join(''));
+    }
   };
 
   const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -180,6 +242,7 @@ export function SignupForm({ onToggleMode }: SignupFormProps) {
       const digits = pastedData.split('');
       setOtpArray(digits);
       otpInputRefs.current[5]?.focus();
+      submitVerification(pastedData);
     }
   };
 
@@ -191,22 +254,7 @@ export function SignupForm({ onToggleMode }: SignupFormProps) {
       setGlobalError('Please enter all 6 digits of the verification code.');
       return;
     }
-
-    setIsLoading(true);
-    setGlobalError('');
-    try {
-      await authApi.verifyEmail({ email: registeredEmail, otp: otpCode });
-      setOtpSuccess(true);
-      setTimeout(() => {
-        setStep('verified');
-      }, 800);
-    } catch (err: any) {
-      setOtpError(true);
-      const msg = err.response?.data?.detail || err.response?.data?.message || 'Invalid or expired OTP code.';
-      setGlobalError(msg);
-    } finally {
-      setIsLoading(false);
-    }
+    await submitVerification(otpCode);
   };
 
   const handleResendOtp = async () => {
@@ -214,6 +262,7 @@ export function SignupForm({ onToggleMode }: SignupFormProps) {
     setIsLoading(true);
     setGlobalError('');
     setGlobalSuccess('');
+    setOtpError(false);
     try {
       await authApi.resendOtp({ email: registeredEmail });
       setGlobalSuccess('A fresh verification code has been sent to your email.');
@@ -222,7 +271,11 @@ export function SignupForm({ onToggleMode }: SignupFormProps) {
       setOtpArray(Array(6).fill(''));
       otpInputRefs.current[0]?.focus();
     } catch (err: any) {
-      const msg = err.response?.data?.detail || err.response?.data?.message || 'Failed to resend code.';
+      const detail = err.response?.data?.detail;
+      const msg =
+        (typeof detail === 'object' ? detail?.error?.message : detail) ||
+        err.response?.data?.message ||
+        'Failed to resend verification code.';
       setGlobalError(msg);
     } finally {
       setIsLoading(false);
@@ -279,7 +332,7 @@ export function SignupForm({ onToggleMode }: SignupFormProps) {
         )}
 
         <form onSubmit={handleVerifyOtp}>
-          <div className="otp-container" style={{ display: 'flex', gap: '8px', justifyContent: 'center', margin: '24px 0' }}>
+          <div className="otp-container">
             {otpArray.map((digit, idx) => (
               <input
                 key={idx}
@@ -293,25 +346,14 @@ export function SignupForm({ onToggleMode }: SignupFormProps) {
                 onPaste={handleOtpPaste}
                 disabled={isLoading || otpSuccess}
                 className={`otp-digit-input ${otpError ? 'error' : ''} ${otpSuccess ? 'success' : ''}`}
-                style={{
-                  width: '46px',
-                  height: '52px',
-                  fontSize: '1.5rem',
-                  fontWeight: 'bold',
-                  textAlign: 'center',
-                  borderRadius: '10px',
-                  border: 'none',
-                  background: '#edf1ee',
-                  color: 'var(--color-text-main, #222)',
-                  outline: 'none',
-                  transition: 'all 0.2s',
-                }}
+                autoComplete="one-time-code"
+                aria-label={`Verification digit ${idx + 1}`}
               />
             ))}
           </div>
 
           <Button type="submit" isLoading={isLoading} className="w-full" disabled={otpSuccess}>
-            {otpSuccess ? 'Verified!' : 'Confirm OTP'}
+            {otpSuccess ? 'Verified ✓' : 'Confirm OTP'}
           </Button>
 
           <div style={{ marginTop: '20px', fontSize: '0.9rem', color: '#6b7c72' }}>

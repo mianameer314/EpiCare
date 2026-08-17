@@ -279,7 +279,7 @@ export function LoginForm({ onToggleMode }: LoginFormProps) {
       )}
 
       {forgotPasswordStep === 'otp' && (
-        <div className="otp-container" style={{ display: 'flex', gap: '8px', justifyContent: 'center', margin: '24px 0' }}>
+        <div className="otp-container">
           {otpArray.map((digit, index) => (
             <input
               key={index}
@@ -287,24 +287,25 @@ export function LoginForm({ onToggleMode }: LoginFormProps) {
                 otpInputRefs.current[index] = el;
               }}
               type="text"
+              inputMode="numeric"
               maxLength={1}
               value={digit}
               onChange={(e) => handleOtpChange(index, e.target.value)}
               onKeyDown={(e) => handleOtpKeyDown(index, e)}
-              className={`otp-digit-input ${otpError ? 'error' : ''} ${otpSuccess ? 'success' : ''}`}
-              style={{
-                width: '46px',
-                height: '52px',
-                textAlign: 'center',
-                fontSize: '1.5rem',
-                fontWeight: 'bold',
-                borderRadius: '10px',
-                border: 'none',
-                background: '#edf1ee',
-                color: otpError ? '#c0392b' : otpSuccess ? '#27ae60' : 'var(--color-text-main)',
-                outline: 'none',
+              onPaste={(e) => {
+                e.preventDefault();
+                const pasted = e.clipboardData.getData('text').trim();
+                if (/^\d{6}$/.test(pasted)) {
+                  const digits = pasted.split('');
+                  setOtpArray(digits);
+                  otpInputRefs.current[5]?.focus();
+                  handleOtpChange(5, digits[5]);
+                }
               }}
+              className={`otp-digit-input ${otpError ? 'error' : ''} ${otpSuccess ? 'success' : ''}`}
               disabled={isLoading || otpSuccess}
+              autoComplete="one-time-code"
+              aria-label={`Reset verification digit ${index + 1}`}
             />
           ))}
         </div>

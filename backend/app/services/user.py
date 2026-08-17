@@ -102,8 +102,15 @@ async def register_user(db: AsyncSession, data: UserRegister, background_tasks: 
             db.add(profile)
             
         await db.commit()  # Single atomic commit for both user and profile
-    except IntegrityError:
+    except IntegrityError as exc:
         await db.rollback()
+        err_msg = str(exc.orig if hasattr(exc, 'orig') else exc).lower()
+        if 'email' in err_msg or 'users_email_key' in err_msg or 'ix_users_email' in err_msg:
+            raise conflict_error("EMAIL_ALREADY_REGISTERED", "A user with this email address already exists.")
+        elif 'phone' in err_msg or 'phone_number' in err_msg:
+            raise conflict_error("PHONE_ALREADY_REGISTERED", "A user with this phone number already exists.")
+        elif 'pmdc' in err_msg:
+            raise conflict_error("PMDC_ALREADY_REGISTERED", "A doctor with this PMDC number already exists.")
         raise conflict_error("ALREADY_REGISTERED", "User with this email, phone number, or PMDC number already exists.")
         
     await db.refresh(user)
