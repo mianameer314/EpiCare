@@ -1,45 +1,65 @@
-/*
-  EpiCare — Profile Page Styles
-  =============================
-*/
+/* ==========================================================
+   EpiCare — Clean, Tactile Neumorphic Profile Experience
+   ========================================================== */
 
 .profile-page {
   max-width: var(--content-max-width);
   margin: 0 auto;
   width: 100%;
+  padding-bottom: var(--space-8);
 }
 
+/* ── Profile Header ── */
 .profile-header {
   margin-bottom: var(--space-6);
 }
 
 .profile-header h1 {
-  font-size: var(--text-3xl);
-  font-weight: var(--font-weight-bold);
-  margin: 0 0 var(--space-1);
+  font-family: var(--font-family-display, 'Plus Jakarta Sans', sans-serif);
+  font-size: 2rem;
+  font-weight: 800;
+  color: #1e3d2b;
+  letter-spacing: -0.02em;
+  margin: 0 0 4px;
+  text-shadow: 1px 1px 1px rgba(255, 255, 255, 0.95), -1px -1px 1px rgba(160, 175, 165, 0.2);
 }
 
 .profile-header p {
-  font-size: var(--text-sm);
-  color: var(--color-text-muted);
+  font-size: 0.92rem;
+  color: #6b7c72;
+  font-weight: 500;
   margin: 0;
 }
 
-/* ── Dynamic Profile Completion Hero Banner ── */
+/* ==========================================
+   NEUMORPHIC DYNAMIC COMPLETION HERO CARD
+   (Warm Amber Clinical Warning Alert Theme)
+   ========================================== */
+
 .profile-completion-card {
-  padding: var(--space-5) var(--space-6);
-  border-radius: var(--radius-2xl);
+  padding: var(--space-6);
+  border-radius: 24px;
   margin-bottom: var(--space-6);
   position: relative;
   overflow: hidden;
-  border: 1px solid rgba(45, 90, 63, 0.18);
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.94) 0%, rgba(246, 252, 248, 0.88) 100%);
-  box-shadow: 0 12px 32px -8px rgba(15, 43, 25, 0.07);
+  background: linear-gradient(135deg, #fffdf5 0%, #fef8e8 50%, #fef3c7 100%);
+  border: 1.5px solid rgba(217, 119, 6, 0.35);
+  box-shadow:
+    -14px -14px 28px #ffffff,
+    14px 14px 30px #d2ded5,
+    0 8px 24px rgba(217, 119, 6, 0.12),
+    inset 0 1px 1px rgba(255, 255, 255, 0.95);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .profile-completion-card.complete {
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
   border-color: rgba(22, 101, 52, 0.35);
-  background: linear-gradient(135deg, rgba(240, 253, 244, 0.96) 0%, rgba(255, 255, 255, 0.9) 100%);
+  box-shadow:
+    -14px -14px 28px #ffffff,
+    14px 14px 30px #c0cbc4,
+    0 8px 24px rgba(34, 197, 94, 0.15),
+    inset 0 1px 1px rgba(255, 255, 255, 0.9);
 }
 
 .completion-top-row {
@@ -49,32 +69,38 @@
   margin-bottom: var(--space-4);
 }
 
+/* 3D Neumorphic Percentage Circle (Warning Amber by Default) */
 .completion-percentage-circle {
-  width: 58px;
-  height: 58px;
+  width: 66px;
+  height: 66px;
   border-radius: var(--radius-full);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  font-size: 17px;
+  font-size: 20px;
   font-weight: 800;
-  color: var(--color-primary);
-  background: linear-gradient(135deg, #e8f5ec, #c6e7d0);
-  border: 2px solid rgba(45, 90, 63, 0.25);
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.18);
+  color: #9a3412;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border: 2px solid rgba(217, 119, 6, 0.45);
+  box-shadow:
+    -4px -4px 8px #ffffff,
+    4px 4px 10px rgba(217, 119, 6, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
 }
 
 .completion-percentage-circle.complete {
-  background: linear-gradient(135deg, #dcfce7, #86efac);
-  color: #15803d;
-  box-shadow: 0 4px 16px rgba(22, 101, 52, 0.25);
+  background: linear-gradient(135deg, #2d5a3f 0%, #1b4332 100%);
+  color: #ffffff;
+  border-color: rgba(52, 211, 153, 0.4);
+  box-shadow:
+    0 6px 18px rgba(27, 67, 50, 0.35),
+    -2px -2px 6px #ffffff;
 }
 
 .completion-percentage-circle.low {
-  background: linear-gradient(135deg, #fef3c7, #fde68a);
-  color: #b45309;
-  border-color: rgba(217, 119, 6, 0.25);
+  color: #c2410c;
+  border-color: rgba(194, 65, 12, 0.45);
 }
 
 .completion-info {
@@ -92,22 +118,30 @@
 
 .completion-title-row h3 {
   margin: 0;
-  font-size: var(--text-lg);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text-main);
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: #7c2d12;
 }
 
+.profile-completion-card.complete .completion-title-row h3 {
+  color: #1e3d2b;
+}
+
+/* Status Warning Pill */
 .completion-status-pill {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 3px 10px;
+  gap: 5px;
+  padding: 4px 12px;
   border-radius: var(--radius-full);
   font-size: 11px;
-  font-weight: var(--font-weight-semibold);
-  background: #f1f5f9;
-  color: #475569;
-  border: 1px solid #e2e8f0;
+  font-weight: 800;
+  background: #ffedd5;
+  color: #9a3412;
+  border: 1px solid rgba(234, 88, 12, 0.35);
+  box-shadow:
+    -2px -2px 4px #ffffff,
+    2px 2px 4px rgba(217, 119, 6, 0.2);
 }
 
 .completion-status-pill.complete {
@@ -118,9 +152,14 @@
 
 .completion-subtitle {
   margin: 0 0 var(--space-3);
-  font-size: var(--text-xs);
-  color: var(--color-text-muted);
+  font-size: 13px;
+  color: #854d0e;
   line-height: 1.5;
+  font-weight: 600;
+}
+
+.profile-completion-card.complete .completion-subtitle {
+  color: #166534;
 }
 
 /* Missing Fields Checklist */
@@ -133,8 +172,8 @@
 
 .missing-fields-lead {
   font-size: 11px;
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text-secondary);
+  font-weight: 800;
+  color: #9a3412;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -150,82 +189,361 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 3px 9px;
+  padding: 4px 11px;
   border-radius: var(--radius-full);
-  font-size: 11px;
-  font-weight: var(--font-weight-medium);
-  background: #fff;
-  border: 1px solid rgba(45, 90, 63, 0.2);
-  color: var(--color-primary-dark);
+  font-size: 11.5px;
+  font-weight: 700;
+  background: #ffffff;
+  border: 1px solid rgba(217, 119, 6, 0.35);
+  color: #9a3412;
   cursor: pointer;
-  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  box-shadow:
+    -2px -2px 5px #ffffff,
+    2px 2px 6px rgba(217, 119, 6, 0.18);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .missing-field-btn:hover {
-  background: var(--color-primary-50);
-  border-color: var(--color-primary);
-  color: var(--color-primary);
+  background: #fef3c7;
+  color: #7c2d12;
+  border-color: #d97706;
   transform: translateY(-1px);
-  box-shadow: 0 3px 8px rgba(16, 185, 129, 0.15);
+  box-shadow:
+    -3px -3px 7px #ffffff,
+    3px 3px 8px rgba(217, 119, 6, 0.3);
 }
 
-/* Progress bar track */
+.missing-field-btn:active {
+  transform: translateY(0);
+  box-shadow:
+    inset 2px 2px 4px rgba(217, 119, 6, 0.3),
+    inset -2px -2px 4px #ffffff;
+}
+
+/* Progress bar track with Inset Warning Groove */
 .completion-progress-track {
   width: 100%;
-  height: 6px;
+  height: 8px;
   border-radius: var(--radius-full);
-  background: rgba(45, 90, 63, 0.08);
+  background: #fde68a;
+  box-shadow:
+    inset 2px 2px 5px rgba(180, 83, 9, 0.35),
+    inset -2px -2px 5px #ffffff;
   overflow: hidden;
-  margin-top: var(--space-2);
+  margin-top: var(--space-3);
 }
 
 .completion-progress-bar {
   height: 100%;
   border-radius: var(--radius-full);
+  background: linear-gradient(90deg, #f59e0b, #d97706);
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.6);
   transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* ── Interactive Trigger Picker Tags ── */
-.trigger-picker-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: var(--space-2);
+.profile-completion-card.complete .completion-progress-bar {
+  background: linear-gradient(90deg, #34d399, #15803d);
+  box-shadow: 0 0 10px rgba(52, 211, 153, 0.5);
 }
 
-.trigger-pill-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 5px 12px;
-  border-radius: var(--radius-full);
-  font-size: 11.5px;
-  font-weight: var(--font-weight-medium);
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(45, 90, 63, 0.15);
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.trigger-pill-toggle:hover {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-}
-
-.trigger-pill-toggle.selected {
-  background: linear-gradient(135deg, #15803d, #166534);
-  border-color: transparent;
-  color: #ffffff;
-  box-shadow: 0 2px 8px rgba(22, 101, 52, 0.2);
-}
+/* ==========================================
+   NEUMORPHIC BASE CARDS & GRID
+   ========================================== */
 
 .profile-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--space-6);
 }
+
+.profile-page .glass-panel,
+.profile-card {
+  background: #edf1ee !important;
+  border-radius: 24px !important;
+  border: 1px solid rgba(255, 255, 255, 0.8) !important;
+  box-shadow:
+    -12px -12px 24px #ffffff,
+    12px 12px 28px #c4cfc8,
+    inset 0 1px 1px rgba(255, 255, 255, 0.9) !important;
+  padding: var(--space-6) !important;
+  position: relative;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.profile-page .glass-panel:hover,
+.profile-card:hover {
+  box-shadow:
+    -14px -14px 28px #ffffff,
+    14px 14px 32px #bfc9c2,
+    inset 0 1px 1px rgba(255, 255, 255, 0.9) !important;
+}
+
+/* Bento Header inside Profile Cards */
+.profile-page .bento-header h3 {
+  font-family: var(--font-family-display, 'Plus Jakarta Sans', sans-serif);
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #1e3d2b;
+  letter-spacing: -0.01em;
+}
+
+/* ==========================================
+   NEUMORPHIC INSET INPUTS & SELECTS
+   ========================================== */
+
+.profile-page .input-wrapper {
+  margin-bottom: 14px;
+}
+
+.profile-page .input-label {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #3d5a49;
+  letter-spacing: 0.01em;
+  margin-bottom: 4px;
+}
+
+.profile-page .input-field,
+.profile-page select.custom-select,
+.profile-page .custom-select-trigger,
+.profile-page .PhoneInput {
+  width: 100%;
+  height: 44px;
+  padding: 0 16px;
+  border: none !important;
+  outline: none;
+  background: #edf1ee !important;
+  color: #24382c;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 12px !important;
+  box-shadow:
+    inset -3px -3px 7px rgba(255, 255, 255, 0.95),
+    inset 3px 3px 7px rgba(175, 188, 180, 0.45) !important;
+  transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.profile-page .custom-select-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+}
+
+.profile-page .input-field:focus,
+.profile-page .input-field:focus-visible,
+.profile-page select.custom-select:focus,
+.profile-page select.custom-select:focus-visible,
+.profile-page .custom-select-trigger:focus,
+.profile-page .custom-select-trigger:focus-visible,
+.profile-page .custom-select-trigger.open,
+.profile-page .PhoneInput:focus-within {
+  transform: translateY(-1px);
+  background: #f4f7f5 !important;
+  box-shadow:
+    inset 3px 3px 6px rgba(27, 67, 50, 0.25),
+    inset -3px -3px 6px rgba(255, 255, 255, 0.9),
+    0 0 0 2px rgba(45, 90, 63, 0.25) !important;
+}
+
+/* Custom Select Dropdown in Profile */
+.profile-page .custom-select-dropdown {
+  background: #edf1ee !important;
+  border: 1px solid rgba(255, 255, 255, 0.8) !important;
+  border-radius: 14px !important;
+  box-shadow: 
+    0 16px 36px rgba(0, 0, 0, 0.15),
+    -6px -6px 14px rgba(255, 255, 255, 0.9),
+    6px 6px 14px rgba(175, 188, 180, 0.5) !important;
+  padding: 6px !important;
+  z-index: 9999;
+}
+
+.profile-page .custom-select-option {
+  border-radius: 8px;
+  padding: 9px 14px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #24382c;
+  transition: all 0.15s ease;
+}
+
+.profile-page .custom-select-option:hover {
+  background: rgba(45, 90, 63, 0.12);
+  color: #1b4332;
+}
+
+.profile-page .custom-select-option.selected {
+  background: #2d5a3f !important;
+  color: #ffffff !important;
+  font-weight: 700;
+}
+
+/* ==========================================
+   TACTILE TRIGGER PILL TOGGLES
+   ========================================== */
+
+.trigger-picker-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: var(--space-2);
+}
+
+.trigger-pill-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  font-weight: 600;
+  background: #edf1ee;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  color: #4a5d52;
+  cursor: pointer;
+  box-shadow:
+    -3px -3px 6px #ffffff,
+    3px 3px 6px rgba(175, 188, 180, 0.45);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.trigger-pill-toggle:hover {
+  color: #1b4332;
+  transform: translateY(-1px);
+  box-shadow:
+    -4px -4px 8px #ffffff,
+    4px 4px 9px rgba(175, 188, 180, 0.55);
+}
+
+.trigger-pill-toggle.selected {
+  background: linear-gradient(135deg, #2d5a3f 0%, #1b4332 100%);
+  border-color: rgba(52, 211, 153, 0.35);
+  color: #ffffff;
+  box-shadow:
+    0 4px 14px rgba(27, 67, 50, 0.35),
+    -2px -2px 6px #ffffff;
+}
+
+/* ==========================================
+   NEUMORPHIC BUTTONS & ACTIONS
+   ========================================= */
+
+.profile-page .btn,
+.profile-page button.btn-primary,
+.profile-page button.btn-secondary {
+  position: relative;
+  overflow: hidden;
+  border-radius: 12px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.profile-page button.btn-primary {
+  background: linear-gradient(145deg, #2d5a3f 0%, #1b4332 100%) !important;
+  color: #ffffff !important;
+  border: none !important;
+  box-shadow:
+    -4px -4px 10px rgba(255, 255, 255, 0.85),
+    4px 4px 12px rgba(160, 175, 165, 0.45),
+    inset 0 1px 1px rgba(255, 255, 255, 0.3) !important;
+}
+
+.profile-page button.btn-primary:hover {
+  transform: translateY(-1.5px);
+  box-shadow:
+    0 8px 20px rgba(27, 67, 50, 0.35),
+    -3px -3px 10px rgba(255, 255, 255, 0.7) !important;
+}
+
+.profile-page button.btn-primary:active {
+  transform: translateY(0) scale(0.98);
+  box-shadow:
+    inset 3px 3px 6px rgba(15, 43, 25, 0.5),
+    inset -3px -3px 6px rgba(52, 211, 153, 0.25) !important;
+}
+
+.profile-page button.btn-secondary,
+.profile-page button.btn-outline,
+.profile-page button.btn-ghost {
+  background: #edf1ee !important;
+  color: #1e3d2b !important;
+  border: 1px solid rgba(255, 255, 255, 0.8) !important;
+  box-shadow:
+    -3px -3px 7px #ffffff,
+    3px 3px 7px rgba(175, 188, 180, 0.5) !important;
+}
+
+.profile-page button.btn-secondary:hover,
+.profile-page button.btn-outline:hover,
+.profile-page button.btn-ghost:hover {
+  transform: translateY(-1px);
+  color: #15803d !important;
+  box-shadow:
+    -4px -4px 9px #ffffff,
+    4px 4px 10px rgba(175, 188, 180, 0.6) !important;
+}
+
+.profile-page button.btn-secondary:active,
+.profile-page button.btn-outline:active,
+.profile-page button.btn-ghost:active {
+  transform: scale(0.98);
+  box-shadow:
+    inset 2px 2px 5px rgba(175, 188, 180, 0.5),
+    inset -2px -2px 5px #ffffff !important;
+}
+
+/* Autodetect & Quick Action Buttons */
+.profile-autodetect-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #edf1ee;
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  color: #1e3d2b;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: var(--radius-full);
+  padding: 4px 12px;
+  cursor: pointer;
+  box-shadow:
+    -2px -2px 5px #ffffff,
+    2px 2px 5px rgba(175, 188, 180, 0.45);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.profile-autodetect-btn:hover {
+  color: #15803d;
+  transform: translateY(-1px);
+  box-shadow:
+    -3px -3px 7px #ffffff,
+    3px 3px 7px rgba(45, 90, 63, 0.25);
+}
+
+/* ==========================================
+   STATIC DETAIL VALUES & DISPLAY INSETS
+   ========================================== */
+
+.profile-page .detail-view-box {
+  background: #edf1ee;
+  border-radius: 12px;
+  padding: 10px 14px;
+  box-shadow:
+    inset 2px 2px 4px rgba(175, 188, 180, 0.35),
+    inset -2px -2px 4px rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+}
+
+/* ==========================================
+   RESPONSIVE DESIGN
+   ========================================== */
 
 @media (max-width: 900px) {
   .profile-grid {
@@ -243,32 +561,3 @@
     justify-content: center;
   }
 }
-
-.profile-autodetect-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  background: rgba(45, 90, 63, 0.08);
-  border: 1px solid rgba(45, 90, 63, 0.22);
-  color: var(--color-primary-dark);
-  font-size: 11px;
-  font-weight: 600;
-  border-radius: var(--radius-full);
-  padding: 3px 10px;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
-}
-
-.profile-autodetect-btn:hover {
-  background: var(--color-primary);
-  color: #ffffff;
-  border-color: var(--color-primary);
-  transform: translateY(-1px);
-  box-shadow: 0 3px 8px rgba(45, 90, 63, 0.25);
-}
-
-.profile-autodetect-btn:active {
-  transform: translateY(0);
-}
-
