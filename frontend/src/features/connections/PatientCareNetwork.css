@@ -281,72 +281,121 @@
   transform: translateY(0);
 }
 
-/* ── Premium Smooth Proxy Toggle Switch ── */
+/* ── Neumorphic Proxy Toggle Switch ── */
 .proxy-toggle-wrap {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: 10px;
   cursor: pointer;
   user-select: none;
-  padding: 4px 8px;
+  padding: 6px 12px;
   border-radius: var(--radius-full);
-  transition: background-color 0.2s ease;
+  background: #edf1ee;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow:
+    -3px -3px 6px #ffffff,
+    3px 3px 6px rgba(175, 188, 180, 0.4);
+  transition: box-shadow 180ms ease, transform 150ms ease;
   outline: none;
 }
 
-.proxy-toggle-wrap:focus-visible {
-  box-shadow: 0 0 0 2px var(--color-primary-light);
+.proxy-toggle-wrap:hover {
+  box-shadow:
+    -4px -4px 8px #ffffff,
+    4px 4px 10px rgba(175, 188, 180, 0.5);
 }
 
+.proxy-toggle-wrap:active {
+  transform: scale(0.97);
+  box-shadow:
+    inset 2px 2px 5px rgba(175, 188, 180, 0.5),
+    inset -2px -2px 5px #ffffff;
+}
+
+.proxy-toggle-wrap:focus-visible {
+  box-shadow:
+    0 0 0 2px #2d5a3f,
+    -3px -3px 6px #ffffff,
+    3px 3px 6px rgba(175, 188, 180, 0.4);
+}
+
+/* Inset grooved track */
 .proxy-toggle-switch {
   position: relative;
-  width: 42px;
-  height: 22px;
+  width: 44px;
+  height: 24px;
   border-radius: var(--radius-full);
-  background: #cbd5e1;
-  transition: background 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease;
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: #dde3de;
+  border: 1px solid rgba(175, 188, 180, 0.3);
+  box-shadow:
+    inset 2px 2px 5px rgba(175, 188, 180, 0.55),
+    inset -2px -2px 5px rgba(255, 255, 255, 0.9);
+  transition: background 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   padding: 2px;
 }
 
+/* Active emerald track */
 .proxy-toggle-switch.active {
-  background: linear-gradient(135deg, #16a34a, #15803d);
-  border-color: rgba(22, 101, 52, 0.3);
-  box-shadow: 0 2px 8px rgba(22, 101, 52, 0.25);
+  background: linear-gradient(135deg, #2d5a3f 0%, #1b4332 100%);
+  border-color: rgba(52, 211, 153, 0.4);
+  box-shadow:
+    inset 2px 2px 5px rgba(0, 0, 0, 0.15),
+    inset -1px -1px 3px rgba(52, 211, 153, 0.3),
+    0 2px 8px rgba(27, 67, 50, 0.25);
 }
 
+/* Embossed thumb knob */
 .proxy-toggle-thumb {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   border-radius: var(--radius-full);
-  background: #ffffff;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), 0 0 1px rgba(0, 0, 0, 0.1);
-  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  background: linear-gradient(145deg, #f8faf9, #e8ede9);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow:
+    -2px -2px 4px rgba(255, 255, 255, 0.8),
+    2px 2px 4px rgba(175, 188, 180, 0.45),
+    0 1px 3px rgba(0, 0, 0, 0.08);
+  transition: transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 200ms ease;
   transform: translateX(0);
 }
 
+/* Thumb slides to the right when active */
 .proxy-toggle-switch.active .proxy-toggle-thumb {
   transform: translateX(20px);
+  background: linear-gradient(145deg, #ffffff, #f0f5f1);
+  box-shadow:
+    -2px -2px 4px rgba(52, 211, 153, 0.25),
+    2px 2px 4px rgba(0, 0, 0, 0.12),
+    0 0 6px rgba(255, 255, 255, 0.4);
 }
 
+/* Label text */
 .proxy-toggle-label {
   font-size: 11.5px;
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.01em;
   transition: color 0.2s ease;
   display: flex;
   align-items: center;
   gap: 4px;
 }
 
+/* Hover accents */
 .proxy-toggle-wrap:hover .proxy-toggle-switch:not(.active) {
-  background: #94a3b8;
+  background: #d4dad6;
+  box-shadow:
+    inset 3px 3px 6px rgba(175, 188, 180, 0.6),
+    inset -2px -2px 5px rgba(255, 255, 255, 0.95);
 }
 
 .proxy-toggle-wrap:hover .proxy-toggle-switch.active {
-  box-shadow: 0 3px 12px rgba(22, 101, 52, 0.35);
+  box-shadow:
+    inset 2px 2px 5px rgba(0, 0, 0, 0.18),
+    inset -1px -1px 3px rgba(52, 211, 153, 0.35),
+    0 4px 14px rgba(27, 67, 50, 0.35);
 }
 
 @media (max-width: 900px) {
