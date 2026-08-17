@@ -114,6 +114,11 @@ class Settings(BaseSettings):
     MAIL_STARTTLS: bool = True
     MAIL_SSL_TLS: bool = False
 
+    # Gmail API over HTTPS (used when SMTP is blocked, e.g. on Railway)
+    GMAIL_CLIENT_ID: str = ""
+    GMAIL_CLIENT_SECRET: str = ""
+    GMAIL_REFRESH_TOKEN: str = ""
+
     # ==========================================================
     # Admin diagnostics and Superuser
     # ==========================================================
