@@ -226,7 +226,7 @@ export function LoginForm({ onToggleMode }: LoginFormProps) {
           id="email"
           type="email"
           label="Email address"
-          placeholder="name@example.com"
+          placeholder="Enter your email address"
           autoComplete="email"
           required
           value={formData.email}

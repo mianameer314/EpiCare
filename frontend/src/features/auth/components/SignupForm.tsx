@@ -8,7 +8,11 @@ import { authApi } from '../../../api/auth';
 import type { RegisterPayload } from '../../../types/auth';
 import { motion } from 'framer-motion';
 
-export function SignupForm() {
+interface SignupFormProps {
+  onToggleMode?: () => void;
+}
+
+export function SignupForm({ onToggleMode }: SignupFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [globalError, setGlobalError] = useState('');
   const [globalSuccess, setGlobalSuccess] = useState('');
@@ -243,6 +247,11 @@ export function SignupForm() {
           Your email has been confirmed and your EpiCare account is active.<br />
           You can now switch to <strong>Sign In</strong> to access your dashboard.
         </p>
+        {onToggleMode && (
+          <Button onClick={onToggleMode} className="w-full">
+            Proceed to Sign In
+          </Button>
+        )}
       </motion.div>
     );
   }
@@ -252,7 +261,7 @@ export function SignupForm() {
       <div className="auth-form" style={{ textAlign: 'center' }}>
         <div className="auth-form-header">
           <h2>Verify Your Email</h2>
-          <p style={{ fontSize: '0.9rem', color: 'var(--color-text-muted, #666)', marginTop: '8px' }}>
+          <p style={{ fontSize: '0.9rem', color: '#6b7c72', marginTop: '6px' }}>
             Enter the 6-digit verification code sent to<br/><strong>{registeredEmail}</strong>
           </p>
         </div>
@@ -285,14 +294,14 @@ export function SignupForm() {
                 disabled={isLoading || otpSuccess}
                 className={`otp-digit-input ${otpError ? 'error' : ''} ${otpSuccess ? 'success' : ''}`}
                 style={{
-                  width: '44px',
+                  width: '46px',
                   height: '52px',
                   fontSize: '1.5rem',
                   fontWeight: 'bold',
                   textAlign: 'center',
-                  borderRadius: '8px',
-                  border: otpError ? '2px solid var(--color-danger, #e74c3c)' : '1.5px solid var(--color-border, #ddd)',
-                  background: 'var(--color-background, #fff)',
+                  borderRadius: '10px',
+                  border: 'none',
+                  background: '#edf1ee',
                   color: 'var(--color-text-main, #222)',
                   outline: 'none',
                   transition: 'all 0.2s',
@@ -305,7 +314,7 @@ export function SignupForm() {
             {otpSuccess ? 'Verified!' : 'Confirm OTP'}
           </Button>
 
-          <div style={{ marginTop: '20px', fontSize: '0.9rem', color: 'var(--color-text-muted, #777)' }}>
+          <div style={{ marginTop: '20px', fontSize: '0.9rem', color: '#6b7c72' }}>
             Didn't receive the code?{' '}
             <button
               type="button"
@@ -315,8 +324,8 @@ export function SignupForm() {
                 background: 'none',
                 border: 'none',
                 padding: 0,
-                color: canResend ? 'var(--color-primary, #1b4332)' : 'var(--color-text-muted, #999)',
-                fontWeight: '600',
+                color: canResend ? '#2d5a3f' : '#88988e',
+                fontWeight: '700',
                 cursor: canResend ? 'pointer' : 'default',
                 textDecoration: canResend ? 'underline' : 'none',
               }}
@@ -333,6 +342,7 @@ export function SignupForm() {
     <form onSubmit={handleSubmit} className="auth-form" noValidate>
       <div className="auth-form-header">
         <h2>Create an account</h2>
+        <p>Sign up to start organizing and tracking your neurology data.</p>
       </div>
 
       {globalError && (
@@ -349,7 +359,7 @@ export function SignupForm() {
           value={formData.full_name}
           onChange={handleChange}
           error={fieldErrors.full_name}
-          placeholder="Enter your full name"
+          placeholder="Enter Your Full Name"
           required
         />
         <Input
@@ -360,7 +370,7 @@ export function SignupForm() {
           value={formData.email}
           onChange={handleChange}
           error={fieldErrors.email}
-          placeholder="Enter your email address"
+          placeholder="Enter Your Email Address"
           required
         />
       </div>
@@ -438,6 +448,13 @@ export function SignupForm() {
         <Button type="submit" isLoading={isLoading} className="w-full">
           Create Account
         </Button>
+
+        {onToggleMode && (
+          <div className="auth-switch-text">
+            Already have an account?{' '}
+            <a onClick={onToggleMode}>Sign in</a>
+          </div>
+        )}
       </div>
     </form>
   );
