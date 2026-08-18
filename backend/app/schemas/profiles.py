@@ -85,7 +85,11 @@ class DoctorProfileCreate(StrictModel):
     years_of_experience: Optional[int] = Field(None, ge=0, le=80)
     consultation_fee: Optional[Decimal] = Field(None, ge=0, max_digits=10, decimal_places=2)
     available_days: Optional[list[str]] = None
+    available_day_start: Optional[str] = Field(None, max_length=20)
+    available_day_end: Optional[str] = Field(None, max_length=20)
     available_times: Optional[list[str]] = None
+    available_time_start: Optional[str] = Field(None, max_length=20)
+    available_time_end: Optional[str] = Field(None, max_length=20)
     languages_spoken: Optional[list[str]] = None
     bio: Optional[str] = Field(None, max_length=2000)
     consultation_types: Optional[list[str]] = None
@@ -97,7 +101,11 @@ class DoctorProfileUpdate(StrictModel):
     years_of_experience: Optional[int] = Field(None, ge=0, le=80)
     consultation_fee: Optional[Decimal] = Field(None, ge=0, max_digits=10, decimal_places=2)
     available_days: Optional[list[str]] = None
+    available_day_start: Optional[str] = Field(None, max_length=20)
+    available_day_end: Optional[str] = Field(None, max_length=20)
     available_times: Optional[list[str]] = None
+    available_time_start: Optional[str] = Field(None, max_length=20)
+    available_time_end: Optional[str] = Field(None, max_length=20)
     languages_spoken: Optional[list[str]] = None
     bio: Optional[str] = Field(None, max_length=2000)
     consultation_types: Optional[list[str]] = None
@@ -119,7 +127,11 @@ class DoctorProfileOut(StrictModel):
     years_of_experience: Optional[int] = None
     consultation_fee: Optional[Decimal] = None
     available_days: Optional[list[str]] = None
+    available_day_start: Optional[str] = None
+    available_day_end: Optional[str] = None
     available_times: Optional[list[str]] = None
+    available_time_start: Optional[str] = None
+    available_time_end: Optional[str] = None
     languages_spoken: Optional[list[str]] = None
     bio: Optional[str] = None
     consultation_types: Optional[list[str]] = None

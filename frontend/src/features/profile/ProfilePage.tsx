@@ -21,6 +21,8 @@ import {
   FileText,
   X,
   Camera,
+  ChevronDown,
+  Check,
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { apiClient } from '../../api/client';
@@ -81,6 +83,145 @@ function detectLocalTimezone(): string {
     return 'Asia/Karachi';
   }
 }
+
+type SelectorOption = { value: string; label: string };
+
+interface NeumorphicMultiSelectProps {
+  id: string;
+  label: string;
+  values: string[];
+  options: SelectorOption[];
+  placeholder: string;
+  onChange: (values: string[]) => void;
+}
+
+function NeumorphicMultiSelect({ id, label, values, options, placeholder, onChange }: NeumorphicMultiSelectProps) {
+  const [open, setOpen] = useState(false);
+  const allSelected = options.length > 0 && values.length === options.length;
+  const selectedLabels = values
+    .map((value) => options.find((option) => option.value === value)?.label || value)
+    .join(', ');
+
+  const toggleValue = (value: string) => {
+    onChange(values.includes(value) ? values.filter((item) => item !== value) : [...values, value]);
+  };
+
+  return (
+    <div id={id} className="profile-neumorphic-select-wrap">
+      <div className="profile-field-label">{label}</div>
+      <button
+        type="button"
+        className={`profile-neumorphic-select ${open ? 'open' : ''}`}
+        onClick={() => setOpen((current) => !current)}
+        aria-expanded={open}
+        aria-haspopup="listbox"
+      >
+        <span className={values.length ? '' : 'placeholder'}>{selectedLabels || placeholder}</span>
+        <ChevronDown size={15} className={open ? 'rotate-180' : ''} />
+      </button>
+      {open && (
+        <div className="profile-neumorphic-menu" role="listbox" aria-label={label}>
+          <button
+            type="button"
+            className="profile-neumorphic-menu-action"
+            onClick={() => onChange(allSelected ? [] : options.map((option) => option.value))}
+          >
+            {allSelected ? 'Clear all' : 'Select all'}
+          </button>
+          {options.map((option) => {
+            const selected = values.includes(option.value);
+            return (
+              <button
+                key={option.value}
+                type="button"
+                className={`profile-neumorphic-option ${selected ? 'selected' : ''}`}
+                onClick={() => toggleValue(option.value)}
+                role="option"
+                aria-selected={selected}
+              >
+                <span>{option.label}</span>
+                {selected && <Check size={14} />}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface NeumorphicRangeSelectProps {
+  id: string;
+  label: string;
+  startValue?: string;
+  endValue?: string;
+  options: SelectorOption[];
+  startPlaceholder: string;
+  endPlaceholder: string;
+  onChange: (startValue: string | undefined, endValue: string | undefined) => void;
+}
+
+function NeumorphicRangeSelect({ id, label, startValue, endValue, options, startPlaceholder, endPlaceholder, onChange }: NeumorphicRangeSelectProps) {
+  const startIndex = options.findIndex((option) => option.value === startValue);
+  const endIndex = options.findIndex((option) => option.value === endValue);
+  const invalidRange = startIndex >= 0 && endIndex >= 0 && endIndex < startIndex;
+
+  return (
+    <div id={id} className="profile-neumorphic-select-wrap">
+      <div className="profile-field-label">{label}</div>
+      <div className="profile-range-grid">
+        <label className="profile-range-part">
+          <span>From</span>
+          <select
+            className="profile-neumorphic-select"
+            value={startValue || ''}
+            onChange={(event) => onChange(event.target.value || undefined, endValue)}
+          >
+            <option value="">{startPlaceholder}</option>
+            {options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+          </select>
+        </label>
+        <label className="profile-range-part">
+          <span>To</span>
+          <select
+            className="profile-neumorphic-select"
+            value={endValue || ''}
+            onChange={(event) => onChange(startValue, event.target.value || undefined)}
+          >
+            <option value="">{endPlaceholder}</option>
+            {options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+          </select>
+        </label>
+      </div>
+      {invalidRange && <div className="profile-range-error">The end of the range must be after the start.</div>}
+    </div>
+  );
+}
+
+const DOCTOR_DAY_OPTIONS: SelectorOption[] = [
+  { value: 'Monday', label: 'Monday' },
+  { value: 'Tuesday', label: 'Tuesday' },
+  { value: 'Wednesday', label: 'Wednesday' },
+  { value: 'Thursday', label: 'Thursday' },
+  { value: 'Friday', label: 'Friday' },
+  { value: 'Saturday', label: 'Saturday' },
+  { value: 'Sunday', label: 'Sunday' },
+];
+
+const DOCTOR_TIME_OPTIONS: SelectorOption[] = [
+  '6:00 AM', '6:30 AM', '7:00 AM', '7:30 AM','08:00 AM', '08:30 AM', '09:00 AM', '09:30 AM', '10:00 AM', '10:30 AM',
+  '11:00 AM', '11:30 AM', '12:00 PM', '12:30 PM', '01:00 PM', '01:30 PM',
+  '02:00 PM', '02:30 PM', '03:00 PM', '03:30 PM', '04:00 PM', '04:30 PM',
+  '05:00 PM', '05:30 PM', '06:00 PM', '06:30 PM', '07:00 PM', '07:30 PM',
+  '08:00 PM','08:30 PM','09:00 PM','09:30 PM','10:00 PM','10:30 PM',
+  '11:00 PM', '11:30 PM', '11:59 PM',
+].map((time) => ({ value: time, label: time }));
+
+const DOCTOR_CONSULTATION_OPTIONS: SelectorOption[] = [
+  { value: 'Video', label: 'Video consultation' },
+  { value: 'In-person', label: 'In-person consultation' },
+  { value: 'Chat', label: 'Chat consultation' },
+];
 
 interface MissingFieldItem {
   id: string;
@@ -162,21 +303,23 @@ function computeProfileCompletion(
     total++;
     if (patient?.known_triggers && patient.known_triggers.length > 0) filled++; else missing.push({ id: 'p_triggers', label: 'Known Seizure Triggers', category: 'clinical' });
   } else if (role === 'DOCTOR') {
-    // 1. PMDC Number
-    total++;
-    if (doctor?.pmdc_number?.trim()) filled++; else missing.push({ id: 'doc_pmdc', label: 'PMDC License Number', category: 'clinical' });
+    const addDoctorField = (condition: boolean, id: string, label: string) => {
+      total++;
+      if (condition) filled++; else missing.push({ id, label, category: 'clinical' });
+    };
 
-    // 2. Specialty
-    total++;
-    if (doctor?.specialty?.trim()) filled++; else missing.push({ id: 'doc_spec', label: 'Clinical Specialty', category: 'clinical' });
-
-    // 3. Hospital Affiliation
-    total++;
-    if (doctor?.hospital_affiliation?.trim()) filled++; else missing.push({ id: 'doc_hosp', label: 'Hospital / Clinic Affiliation', category: 'clinical' });
-
-    // 4. License Image / Document URL
-    total++;
-    if (doctor?.license_image_url?.trim()) filled++; else missing.push({ id: 'doc_license_doc', label: 'PMDC Verification Certificate', category: 'clinical' });
+    addDoctorField(Boolean(doctor?.pmdc_number?.trim()), 'doc_pmdc', 'PMDC License Number');
+    addDoctorField(Boolean(doctor?.specialty?.trim()), 'doc_spec', 'Clinical Specialty');
+    addDoctorField(Boolean(doctor?.hospital_affiliation?.trim()), 'doc_hosp', 'Hospital / Clinic Affiliation');
+    addDoctorField(Boolean(doctor?.profile_photo_path?.trim()), 'doc_photo', 'Profile Photo');
+    addDoctorField(Boolean(doctor?.pmdc_certificate_path?.trim() || doctor?.license_image_url?.trim()), 'doc_certificate', 'PMDC Verification Certificate');
+    addDoctorField(doctor?.years_of_experience !== undefined && doctor?.years_of_experience !== null, 'doc_exp', 'Years of Experience');
+    addDoctorField(doctor?.consultation_fee !== undefined && doctor?.consultation_fee !== null && String(doctor.consultation_fee).trim() !== '', 'doc_fee', 'Consultation Fee');
+    addDoctorField(Boolean(doctor?.languages_spoken?.length), 'doc_languages', 'Languages Spoken');
+    addDoctorField(Boolean((doctor?.available_day_start && doctor?.available_day_end) || doctor?.available_days?.length), 'doc_days', 'Available Days');
+    addDoctorField(Boolean((doctor?.available_time_start && doctor?.available_time_end) || doctor?.available_times?.length), 'doc_times', 'Available Times');
+    addDoctorField(Boolean(doctor?.consultation_types?.length), 'doc_types', 'Consultation Types');
+    addDoctorField(Boolean(doctor?.bio?.trim()), 'doc_bio', 'Professional Bio');
   } else if (role === 'CARETAKER') {
     // 1. Relationship to Patient
     total++;
@@ -230,7 +373,11 @@ export function ProfilePage() {
     years_of_experience: undefined,
     consultation_fee: '',
     available_days: [],
+    available_day_start: '',
+    available_day_end: '',
     available_times: [],
+    available_time_start: '',
+    available_time_end: '',
     languages_spoken: [],
     bio: '',
     consultation_types: [],
@@ -250,6 +397,10 @@ export function ProfilePage() {
   const [isEditingDoctor, setIsEditingDoctor] = useState(false);
   const [certificatePreviewUrl, setCertificatePreviewUrl] = useState<string | null>(null);
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
+  const [pendingCertificateFile, setPendingCertificateFile] = useState<File | null>(null);
+  const [pendingPhotoFile, setPendingPhotoFile] = useState<File | null>(null);
+  const [removePendingCertificate, setRemovePendingCertificate] = useState(false);
+  const [removePendingPhoto, setRemovePendingPhoto] = useState(false);
   const [uploadError, setUploadError] = useState('');
 
   // User Bio editing state
@@ -342,7 +493,14 @@ export function ProfilePage() {
 
   useEffect(() => {
     if (doctorProfile) {
-      setDoctorForm((prev) => ({ ...prev, ...doctorProfile }));
+      setDoctorForm((prev) => ({
+        ...prev,
+        ...doctorProfile,
+        available_day_start: doctorProfile.available_day_start || doctorProfile.available_days?.[0] || '',
+        available_day_end: doctorProfile.available_day_end || doctorProfile.available_days?.[doctorProfile.available_days.length - 1] || '',
+        available_time_start: doctorProfile.available_time_start || doctorProfile.available_times?.[0] || '',
+        available_time_end: doctorProfile.available_time_end || doctorProfile.available_times?.[doctorProfile.available_times.length - 1] || '',
+      }));
     }
   }, [doctorProfile]);
 
@@ -427,12 +585,20 @@ export function ProfilePage() {
       (doctorProfile.years_of_experience ?? '') !== (doctorForm.years_of_experience ?? '') ||
       String(doctorProfile.consultation_fee ?? '') !== String(doctorForm.consultation_fee ?? '') ||
       (doctorProfile.bio || '') !== (doctorForm.bio || '') ||
+      (doctorProfile.available_day_start || '') !== (doctorForm.available_day_start || '') ||
+      (doctorProfile.available_day_end || '') !== (doctorForm.available_day_end || '') ||
+      (doctorProfile.available_time_start || '') !== (doctorForm.available_time_start || '') ||
+      (doctorProfile.available_time_end || '') !== (doctorForm.available_time_end || '') ||
       !sameList(doctorProfile.available_days, doctorForm.available_days) ||
       !sameList(doctorProfile.available_times, doctorForm.available_times) ||
       !sameList(doctorProfile.languages_spoken, doctorForm.languages_spoken) ||
-      !sameList(doctorProfile.consultation_types, doctorForm.consultation_types)
+      !sameList(doctorProfile.consultation_types, doctorForm.consultation_types) ||
+      Boolean(pendingCertificateFile) ||
+      Boolean(pendingPhotoFile) ||
+      removePendingCertificate ||
+      removePendingPhoto
     );
-  }, [doctorProfile, doctorForm]);
+  }, [doctorProfile, doctorForm, pendingCertificateFile, pendingPhotoFile, removePendingCertificate, removePendingPhoto]);
 
   // Check if Caretaker form has unsaved modifications
   const isCaretakerDirty = useMemo(() => {
@@ -596,43 +762,63 @@ export function ProfilePage() {
     onError: (err: any) => parseBackendError(err),
   });
 
-  const updateDoctorMutation = useMutation({
-    mutationFn: (data: Partial<DoctorProfileData>) => usersApi.updateDoctorProfile(data),
-    onSuccess: () => {
+  const saveDoctorMutation = useMutation({
+    mutationFn: async (payload: {
+      data: Partial<DoctorProfileData>;
+      certificate?: File | null;
+      photo?: File | null;
+      removeCertificate?: boolean;
+      removePhoto?: boolean;
+    }) => {
+      let profile = await usersApi.updateDoctorProfile(payload.data);
+      if (payload.removeCertificate) await usersApi.removeDoctorCertificate();
+      if (payload.removePhoto) await usersApi.removeDoctorPhoto();
+      if (payload.removeCertificate || payload.removePhoto) profile = await usersApi.getDoctorProfile();
+      if (payload.certificate) profile = await usersApi.uploadDoctorCertificate(payload.certificate);
+      if (payload.photo) profile = await usersApi.uploadDoctorPhoto(payload.photo);
+      return profile;
+    },
+    onSuccess: (profile) => {
+      queryClient.setQueryData(['profile', 'doctor'], profile);
       queryClient.invalidateQueries({ queryKey: ['profile', 'doctor'] });
-      setProfileSuccess('Doctor credentials updated successfully.');
+      setDoctorForm((prev) => ({ ...prev, ...profile }));
+      setPendingCertificateFile(null);
+      setPendingPhotoFile(null);
+      setRemovePendingCertificate(false);
+      setRemovePendingPhoto(false);
+      setProfileSuccess('Doctor profile and uploaded files saved successfully.');
       setProfileError('');
       setUploadError('');
       setErrors({});
       setIsEditingDoctor(false);
       setTimeout(() => setProfileSuccess(''), 4000);
     },
-    onError: (err: any) => parseBackendError(err),
+    onError: (err: any) => setUploadError(err?.message || 'Unable to save the doctor profile and files.'),
   });
 
-  const uploadCertificateMutation = useMutation({
-    mutationFn: (file: File) => usersApi.uploadDoctorCertificate(file),
-    onSuccess: (profile) => {
-      queryClient.setQueryData(['profile', 'doctor'], profile);
-      setDoctorForm((prev) => ({ ...prev, ...profile }));
-      setUploadError('');
-      setProfileSuccess('PMDC certificate uploaded successfully and is ready for admin review.');
-      setTimeout(() => setProfileSuccess(''), 5000);
-    },
-    onError: (err: any) => setUploadError(err?.message || 'Certificate upload failed.'),
-  });
-
-  const uploadPhotoMutation = useMutation({
-    mutationFn: (file: File) => usersApi.uploadDoctorPhoto(file),
-    onSuccess: (profile) => {
-      queryClient.setQueryData(['profile', 'doctor'], profile);
-      setDoctorForm((prev) => ({ ...prev, ...profile }));
-      setUploadError('');
-      setProfileSuccess('Profile photo uploaded successfully.');
-      setTimeout(() => setProfileSuccess(''), 4000);
-    },
-    onError: (err: any) => setUploadError(err?.message || 'Profile photo upload failed.'),
-  });
+  const stageDoctorFile = (kind: 'certificate' | 'photo', file: File) => {
+    const isPhoto = kind === 'photo';
+    const allowedTypes = isPhoto
+      ? ['image/jpeg', 'image/png', 'image/webp']
+      : ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
+    const maxBytes = (isPhoto ? 5 : 10) * 1024 * 1024;
+    if (!allowedTypes.includes(file.type)) {
+      setUploadError(isPhoto ? 'Profile photo must be JPG, PNG, or WEBP.' : 'Certificate must be PDF, JPG, PNG, or WEBP.');
+      return;
+    }
+    if (file.size > maxBytes) {
+      setUploadError(`${isPhoto ? 'Profile photo' : 'Certificate'} must be smaller than ${isPhoto ? 5 : 10} MB.`);
+      return;
+    }
+    setUploadError('');
+    if (isPhoto) {
+      setPendingPhotoFile(file);
+      setRemovePendingPhoto(false);
+    } else {
+      setPendingCertificateFile(file);
+      setRemovePendingCertificate(false);
+    }
+  };
 
   const previewDoctorFile = async (kind: 'certificate' | 'photo') => {
     setUploadError('');
@@ -724,6 +910,18 @@ export function ProfilePage() {
       setProfileError('Years of experience must be between 0 and 80.');
       return;
     }
+    const dayStartIndex = DOCTOR_DAY_OPTIONS.findIndex((option) => option.value === doctorForm.available_day_start);
+    const dayEndIndex = DOCTOR_DAY_OPTIONS.findIndex((option) => option.value === doctorForm.available_day_end);
+    if ((doctorForm.available_day_start && !doctorForm.available_day_end) || (!doctorForm.available_day_start && doctorForm.available_day_end) || (dayStartIndex >= 0 && dayEndIndex >= 0 && dayEndIndex < dayStartIndex)) {
+      setProfileError('Choose a valid available day range with the end day on or after the start day.');
+      return;
+    }
+    const timeStartIndex = DOCTOR_TIME_OPTIONS.findIndex((option) => option.value === doctorForm.available_time_start);
+    const timeEndIndex = DOCTOR_TIME_OPTIONS.findIndex((option) => option.value === doctorForm.available_time_end);
+    if ((doctorForm.available_time_start && !doctorForm.available_time_end) || (!doctorForm.available_time_start && doctorForm.available_time_end) || (timeStartIndex >= 0 && timeEndIndex >= 0 && timeEndIndex < timeStartIndex)) {
+      setProfileError('Choose a valid available time range with the end time after the start time.');
+      return;
+    }
     const activeErrors = Object.entries(formErrors).filter(([_, msg]) => !!msg);
     if (activeErrors.length > 0) {
       setErrors(formErrors);
@@ -732,16 +930,26 @@ export function ProfilePage() {
     }
 
     setErrors({});
-    updateDoctorMutation.mutate({
-      specialty: doctorForm.specialty?.trim() || undefined,
-      hospital_affiliation: doctorForm.hospital_affiliation?.trim() || undefined,
-      years_of_experience: doctorForm.years_of_experience,
-      consultation_fee: doctorForm.consultation_fee === '' ? undefined : doctorForm.consultation_fee,
-      available_days: doctorForm.available_days || [],
-      available_times: doctorForm.available_times || [],
-      languages_spoken: doctorForm.languages_spoken || [],
-      bio: doctorForm.bio?.trim() || undefined,
-      consultation_types: doctorForm.consultation_types || [],
+    saveDoctorMutation.mutate({
+      data: {
+        specialty: doctorForm.specialty?.trim() || undefined,
+        hospital_affiliation: doctorForm.hospital_affiliation?.trim() || undefined,
+        years_of_experience: doctorForm.years_of_experience,
+        consultation_fee: doctorForm.consultation_fee === '' ? undefined : doctorForm.consultation_fee,
+        available_days: doctorForm.available_day_start && doctorForm.available_day_end ? [doctorForm.available_day_start, doctorForm.available_day_end] : [],
+        available_day_start: doctorForm.available_day_start || undefined,
+        available_day_end: doctorForm.available_day_end || undefined,
+        available_times: doctorForm.available_time_start && doctorForm.available_time_end ? [doctorForm.available_time_start, doctorForm.available_time_end] : [],
+        available_time_start: doctorForm.available_time_start || undefined,
+        available_time_end: doctorForm.available_time_end || undefined,
+        languages_spoken: doctorForm.languages_spoken || [],
+        bio: doctorForm.bio?.trim() || undefined,
+        consultation_types: doctorForm.consultation_types || [],
+      },
+      certificate: pendingCertificateFile,
+      photo: pendingPhotoFile,
+      removeCertificate: removePendingCertificate && !pendingCertificateFile,
+      removePhoto: removePendingPhoto && !pendingPhotoFile,
     });
   };
 
@@ -915,16 +1123,19 @@ export function ProfilePage() {
                           onClick={() => {
                             if (field.category === 'account') {
                               setIsEditingBio(true);
-                            } else if (field.category === 'clinical' || field.category === 'emergency') {
-                              if (user?.role === 'PATIENT') setIsEditingPatient(true);
+                            } else if (user?.role === 'PATIENT') {
+                              setIsEditingPatient(true);
+                            } else if (user?.role === 'DOCTOR') {
+                              setIsEditingDoctor(true);
                             }
-                            setTimeout(() => {
+                            window.setTimeout(() => {
                               const el = document.getElementById(field.id);
                               if (el) {
                                 el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                el.focus();
+                                const focusTarget = el.querySelector<HTMLElement>('input, textarea, button, select');
+                                focusTarget?.focus({ preventScroll: true });
                               }
-                            }, 100);
+                            }, 180);
                           }}
                           title={`Click to jump to ${field.label}`}
                         >
@@ -1562,8 +1773,8 @@ export function ProfilePage() {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 'var(--space-4)', marginTop: 'var(--space-5)' }}>
                   <div><div className="profile-field-label">Languages Spoken</div><div className="profile-field-value">{doctorProfile?.languages_spoken?.join(', ') || 'Not provided'}</div></div>
                   <div><div className="profile-field-label">Consultation Types</div><div className="profile-field-value">{doctorProfile?.consultation_types?.join(', ') || 'Not provided'}</div></div>
-                  <div><div className="profile-field-label">Available Days</div><div className="profile-field-value">{doctorProfile?.available_days?.join(', ') || 'Not provided'}</div></div>
-                  <div><div className="profile-field-label">Available Times</div><div className="profile-field-value">{doctorProfile?.available_times?.join(', ') || 'Not provided'}</div></div>
+                  <div><div className="profile-field-label">Available Days</div><div className="profile-field-value">{doctorProfile?.available_day_start && doctorProfile?.available_day_end ? `${doctorProfile.available_day_start} – ${doctorProfile.available_day_end}` : doctorProfile?.available_days?.join(' – ') || 'Not provided'}</div></div>
+                  <div><div className="profile-field-label">Available Times</div><div className="profile-field-value">{doctorProfile?.available_time_start && doctorProfile?.available_time_end ? `${doctorProfile.available_time_start} – ${doctorProfile.available_time_end}` : doctorProfile?.available_times?.join(' – ') || 'Not provided'}</div></div>
                 </div>
 
                 <div style={{ marginTop: 'var(--space-4)', padding: 'var(--space-3)', background: 'rgba(255,255,255,.46)', borderRadius: 'var(--radius-md)' }}>
@@ -1577,7 +1788,7 @@ export function ProfilePage() {
                     <span style={{ fontSize: 'var(--text-sm)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{doctorProfile?.pmdc_certificate_name || 'PMDC certificate not uploaded'}</span>
                     {doctorProfile?.pmdc_certificate_path && <button type="button" className="btn btn-ghost btn-sm" onClick={() => previewDoctorFile('certificate')}>View / Download</button>}
                   </div>
-                  <button type="button" className="btn btn-outline btn-sm" onClick={() => { setDoctorForm((prev) => ({ ...prev, ...(doctorProfile || {}) })); setIsEditingDoctor(true); setUploadError(''); }}>
+                  <button type="button" className="btn btn-outline btn-sm" onClick={() => { setDoctorForm((prev) => ({ ...prev, ...(doctorProfile || {}) })); setPendingCertificateFile(null); setPendingPhotoFile(null); setRemovePendingCertificate(false); setRemovePendingPhoto(false); setIsEditingDoctor(true); setUploadError(''); }}>
                     <Edit3 size={13} /> Edit Doctor Profile
                   </button>
                 </div>
@@ -1597,34 +1808,45 @@ export function ProfilePage() {
                   <Input id="doc_exp" label="Years of Experience" type="number" min="0" max="80" value={doctorForm.years_of_experience ?? ''} onChange={(e) => setDoctorForm(p => ({ ...p, years_of_experience: e.target.value === '' ? undefined : Number(e.target.value) }))} />
                   <Input id="doc_fee" label="Consultation Fee (PKR)" type="number" min="0" step="0.01" placeholder="e.g. 3000" value={doctorForm.consultation_fee ?? ''} onChange={(e) => setDoctorForm(p => ({ ...p, consultation_fee: e.target.value }))} />
                   <Input id="doc_languages" label="Languages Spoken" placeholder="Urdu, English, Punjabi" value={(doctorForm.languages_spoken || []).join(', ')} onChange={(e) => setDoctorForm(p => ({ ...p, languages_spoken: e.target.value.split(',').map(v => v.trim()).filter(Boolean) }))} />
-                  <Input id="doc_days" label="Available Days" placeholder="Monday, Wednesday, Friday" value={(doctorForm.available_days || []).join(', ')} onChange={(e) => setDoctorForm(p => ({ ...p, available_days: e.target.value.split(',').map(v => v.trim()).filter(Boolean) }))} />
-                  <Input id="doc_times" label="Available Times" placeholder="5:00 PM - 8:00 PM" value={(doctorForm.available_times || []).join(', ')} onChange={(e) => setDoctorForm(p => ({ ...p, available_times: e.target.value.split(',').map(v => v.trim()).filter(Boolean) }))} />
-                  <Input id="doc_types" label="Consultation Types" placeholder="Video, In-person, Chat" value={(doctorForm.consultation_types || []).join(', ')} onChange={(e) => setDoctorForm(p => ({ ...p, consultation_types: e.target.value.split(',').map(v => v.trim()).filter(Boolean) }))} />
+                  <NeumorphicRangeSelect id="doc_days" label="Available Days" startValue={doctorForm.available_day_start} endValue={doctorForm.available_day_end} options={DOCTOR_DAY_OPTIONS} startPlaceholder="Start day" endPlaceholder="End day" onChange={(startValue, endValue) => setDoctorForm(p => ({ ...p, available_day_start: startValue, available_day_end: endValue, available_days: startValue && endValue ? [startValue, endValue] : [] }))} />
+                  <NeumorphicRangeSelect id="doc_times" label="Available Times" startValue={doctorForm.available_time_start} endValue={doctorForm.available_time_end} options={DOCTOR_TIME_OPTIONS} startPlaceholder="Start time" endPlaceholder="End time" onChange={(startValue, endValue) => setDoctorForm(p => ({ ...p, available_time_start: startValue, available_time_end: endValue, available_times: startValue && endValue ? [startValue, endValue] : [] }))} />
+                  <NeumorphicMultiSelect id="doc_types" label="Consultation Types" placeholder="Select consultation types" values={doctorForm.consultation_types || []} options={DOCTOR_CONSULTATION_OPTIONS} onChange={(values) => setDoctorForm(p => ({ ...p, consultation_types: values }))} />
                 </div>
                 <Input id="doc_bio" label="Professional Bio" placeholder="Tell patients about your clinical experience and approach." value={doctorForm.bio || ''} onChange={(e) => setDoctorForm(p => ({ ...p, bio: e.target.value }))} />
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 'var(--space-4)' }}>
-                  <div className="profile-upload-box">
+                  <div id="doc_photo" className="profile-upload-box">
                     <div className="profile-field-label">Profile Photo</div>
-                    <p style={{ margin: '4px 0 10px', fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>JPG, PNG, or WEBP up to 5 MB.</p>
-                    <label className="btn btn-outline btn-sm" htmlFor="doctor-photo-upload"><Camera size={13} /> Choose Photo</label>
-                    <input id="doctor-photo-upload" type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={(e) => { const file = e.target.files?.[0]; if (file) uploadPhotoMutation.mutate(file); e.currentTarget.value = ''; }} />
-                    {uploadPhotoMutation.isPending && <Loader2 size={14} className="animate-spin" />}
+                    <p style={{ margin: '4px 0 10px', fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>Choose a replacement, remove the current photo, then click Save.</p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      <label className="btn btn-outline btn-sm" htmlFor="doctor-photo-upload"><Camera size={13} /> {pendingPhotoFile ? 'Replace Selected Photo' : 'Choose Photo'}</label>
+                      <input id="doctor-photo-upload" type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={(e) => { const file = e.target.files?.[0]; if (file) stageDoctorFile('photo', file); e.currentTarget.value = ''; }} />
+                      {(pendingPhotoFile || doctorProfile?.profile_photo_path) && !removePendingPhoto && <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setPendingPhotoFile(null); setRemovePendingPhoto(Boolean(doctorProfile?.profile_photo_path)); setUploadError(''); }}><X size={13} /> Remove</button>}
+                      {removePendingPhoto && <button type="button" className="btn btn-ghost btn-sm" onClick={() => setRemovePendingPhoto(false)}>Undo remove</button>}
+                    </div>
+                    <span style={{ display: 'block', marginTop: 8, fontSize: 'var(--text-xs)', color: removePendingPhoto ? 'var(--color-error)' : 'var(--color-text-muted)' }}>
+                      {removePendingPhoto ? 'Photo will be deleted when you save.' : pendingPhotoFile ? `${pendingPhotoFile.name} — waiting for Save` : doctorProfile?.profile_photo_path ? 'Current photo uploaded' : 'No photo selected'}
+                    </span>
                   </div>
-                  <div className="profile-upload-box">
+                  <div id="doc_certificate" className="profile-upload-box">
                     <div className="profile-field-label">PMDC Certificate</div>
-                    <p style={{ margin: '4px 0 10px', fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>PDF, JPG, PNG, or WEBP up to 10 MB.</p>
-                    <label className="btn btn-outline btn-sm" htmlFor="doctor-certificate-upload"><Upload size={13} /> Choose Certificate</label>
-                    <input id="doctor-certificate-upload" type="file" accept="application/pdf,image/jpeg,image/png,image/webp" hidden onChange={(e) => { const file = e.target.files?.[0]; if (file) uploadCertificateMutation.mutate(file); e.currentTarget.value = ''; }} />
-                    {uploadCertificateMutation.isPending && <Loader2 size={14} className="animate-spin" />}
-                    {doctorForm.pmdc_certificate_name && <span style={{ display: 'block', marginTop: 8, fontSize: 'var(--text-xs)' }}>{doctorForm.pmdc_certificate_name}</span>}
+                    <p style={{ margin: '4px 0 10px', fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>Choose a replacement, remove the current certificate, then click Save.</p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      <label className="btn btn-outline btn-sm" htmlFor="doctor-certificate-upload"><Upload size={13} /> {pendingCertificateFile ? 'Replace Selected Certificate' : 'Choose Certificate'}</label>
+                      <input id="doctor-certificate-upload" type="file" accept="application/pdf,image/jpeg,image/png,image/webp" hidden onChange={(e) => { const file = e.target.files?.[0]; if (file) stageDoctorFile('certificate', file); e.currentTarget.value = ''; }} />
+                      {(pendingCertificateFile || doctorProfile?.pmdc_certificate_path) && !removePendingCertificate && <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setPendingCertificateFile(null); setRemovePendingCertificate(Boolean(doctorProfile?.pmdc_certificate_path)); setUploadError(''); }}><X size={13} /> Remove</button>}
+                      {removePendingCertificate && <button type="button" className="btn btn-ghost btn-sm" onClick={() => setRemovePendingCertificate(false)}>Undo remove</button>}
+                    </div>
+                    <span style={{ display: 'block', marginTop: 8, fontSize: 'var(--text-xs)', color: removePendingCertificate ? 'var(--color-error)' : 'var(--color-text-muted)' }}>
+                      {removePendingCertificate ? 'Certificate will be deleted when you save.' : pendingCertificateFile ? `${pendingCertificateFile.name} — waiting for Save` : doctorProfile?.pmdc_certificate_name || 'No certificate selected'}
+                    </span>
                   </div>
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-2)', marginTop: 'var(--space-2)' }}>
-                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setDoctorForm((prev) => ({ ...prev, ...(doctorProfile || {}) })); setIsEditingDoctor(false); setProfileError(''); setUploadError(''); }}>Cancel</button>
-                  <button type="submit" className="btn btn-primary btn-sm" disabled={updateDoctorMutation.isPending || !isDoctorDirty} style={{ opacity: !isDoctorDirty && !updateDoctorMutation.isPending ? 0.5 : 1 }}>
-                    {updateDoctorMutation.isPending ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />} Save Doctor Profile
+                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setDoctorForm((prev) => ({ ...prev, ...(doctorProfile || {}) })); setPendingCertificateFile(null); setPendingPhotoFile(null); setRemovePendingCertificate(false); setRemovePendingPhoto(false); setIsEditingDoctor(false); setProfileError(''); setUploadError(''); }}>Cancel</button>
+                  <button type="submit" className="btn btn-primary btn-sm" disabled={saveDoctorMutation.isPending || !isDoctorDirty} style={{ opacity: !isDoctorDirty && !saveDoctorMutation.isPending ? 0.5 : 1 }}>
+                    {saveDoctorMutation.isPending ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />} Save Doctor Profile
                   </button>
                 </div>
               </form>

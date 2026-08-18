@@ -37,7 +37,11 @@ export interface DoctorProfileData {
   years_of_experience?: number;
   consultation_fee?: string | number;
   available_days?: string[];
+  available_day_start?: string;
+  available_day_end?: string;
   available_times?: string[];
+  available_time_start?: string;
+  available_time_end?: string;
   languages_spoken?: string[];
   bio?: string;
   consultation_types?: string[];
@@ -80,6 +84,9 @@ export const usersApi = {
 
   removeDoctorCertificate: () =>
     apiClient.delete<void>('/users/me/doctor-profile/pmdc-certificate'),
+
+  removeDoctorPhoto: () =>
+    apiClient.delete<void>('/users/me/doctor-profile/photo'),
 
   // Caretaker Profile
   getCaretakerProfile: () =>

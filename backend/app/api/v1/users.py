@@ -300,6 +300,26 @@ async def update_my_caretaker_profile(data: CaretakerProfileUpdate, current_user
 
 
 @router.delete(
+    "/me/doctor-profile/photo",
+    status_code=status.HTTP_204_NO_CONTENT,
+    tags=["👨‍⚕️ Doctor - Profile & Management"],
+    summary="Remove doctor profile photo",
+)
+async def delete_my_doctor_photo(current_user: CurrentUser, db: DbDep):
+    profile = await doctor_service.get_profile_for_user(db, current_user.id)
+    if not profile or not profile.profile_photo_path:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Profile photo not found")
+    old_key = profile.profile_photo_path
+    profile.profile_photo_path = None
+    profile.profile_photo_mime_type = None
+    await db.commit()
+    storage = get_storage_service()
+    if old_key.startswith("doctor-profile/"):
+        storage.delete(old_key)
+    return None
+
+
+@router.delete(
     "/me/caretaker-profile",
     status_code=status.HTTP_204_NO_CONTENT,
     tags=["🤝 Caretaker - Profile & Management"],
