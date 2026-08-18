@@ -29,6 +29,38 @@ async def dispatch_notification(user: User, subject: str, message: str) -> str:
                     title=subject,
                     body=message,
                 ),
+                android=messaging.AndroidConfig(
+                    priority="high",
+                    notification=messaging.AndroidNotification(
+                        title=subject,
+                        body=message,
+                        icon="icon-192",
+                        color="#2d5a3f",
+                        sound="default",
+                    ),
+                ),
+                apns=messaging.APNSConfig(
+                    payload=messaging.APNSPayload(
+                        aps=messaging.Aps(
+                            alert=messaging.ApsAlert(
+                                title=subject,
+                                body=message,
+                            ),
+                            sound="default",
+                            badge=1,
+                            mutable_content=True,
+                        ),
+                    ),
+                ),
+                webpush=messaging.WebpushConfig(
+                    notification=messaging.WebpushNotification(
+                        title=subject,
+                        body=message,
+                        icon="/icon-192.png",
+                        badge="/favicon.svg",
+                        require_interaction=True,
+                    ),
+                ),
                 token=user.fcm_token,
             )
             response = messaging.send(msg)

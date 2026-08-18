@@ -224,12 +224,51 @@ class FirebaseSOSProvider(BaseSOSProvider):
                         notification=messaging.Notification(
                             title=f"🚨 Seizure Alert: {patient_name}",
                             body="Patient triggered an Emergency SOS. Tap to view live location.",
+                            image=None,
                         ),
                         data={
                             "event_id": str(event.id),
                             "lat": str(event.latitude or ""),
                             "lng": str(event.longitude or ""),
+                            "title": f"🚨 Seizure Alert: {patient_name}",
+                            "body": "Patient triggered an Emergency SOS. Tap to view live location.",
                         },
+                        android=messaging.AndroidConfig(
+                            priority="high",
+                            notification=messaging.AndroidNotification(
+                                title=f"🚨 Seizure Alert: {patient_name}",
+                                body="Patient triggered an Emergency SOS. Tap to view live location.",
+                                icon="icon-192",
+                                color="#e63946",
+                                sound="default",
+                                click_action="FLUTTER_NOTIFICATION_CLICK",
+                                channel_id="epicare-emergency",
+                                tag="epicare-sos",
+                            ),
+                        ),
+                        apns=messaging.APNSConfig(
+                            payload=messaging.APNSPayload(
+                                aps=messaging.Aps(
+                                    alert=messaging.ApsAlert(
+                                        title=f"🚨 Seizure Alert: {patient_name}",
+                                        body="Patient triggered an Emergency SOS. Tap to view live location.",
+                                    ),
+                                    sound="default",
+                                    badge=1,
+                                    mutable_content=True,
+                                ),
+                            ),
+                        ),
+                        webpush=messaging.WebpushConfig(
+                            notification=messaging.WebpushNotification(
+                                title=f"🚨 Seizure Alert: {patient_name}",
+                                body="Patient triggered an Emergency SOS. Tap to view live location.",
+                                icon="/icon-192.png",
+                                badge="/favicon.svg",
+                                vibrate=[200, 100, 200, 100, 400],
+                                require_interaction=True,
+                            ),
+                        ),
                         token=ct.fcm_token,
                     )
                     messaging.send(msg)

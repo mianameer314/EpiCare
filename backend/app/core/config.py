@@ -75,7 +75,7 @@ class Settings(BaseSettings):
     # ==========================================================
     # Emergency SOS
     # ==========================================================
-    SOS_PROVIDER: str = ""  # 'email', 'firebase', 'whatsapp', or 'twilio'
+    SOS_PROVIDER: str = "firebase"  # 'email', 'firebase', 'whatsapp', or 'twilio'
     
     # Firebase Cloud Messaging & Web Push
     FIREBASE_CREDENTIALS_PATH: str = ""
