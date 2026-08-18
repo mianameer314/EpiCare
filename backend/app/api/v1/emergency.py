@@ -1,8 +1,11 @@
+import logging
 from datetime import date, datetime, time, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Header, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import List
+
+logger = logging.getLogger(__name__)
 
 from app.api.deps import DbDep, TargetPatientIdForRead, TargetPatientIdForWrite
 from app.db.session import SessionLocal
@@ -178,8 +181,13 @@ async def process_sos_in_background(event_id: int, user_id: int):
             )
             caretakers = list(ct_query.scalars().all())
 
+        logger.info(f"[SOS] Found {len(caretakers)} active caretakers for patient {patient_name}")
+        for ct in caretakers:
+            logger.info(f"[SOS] Caretaker: {ct.full_name} (id={ct.id}, fcm_token={'YES' if ct.fcm_token else 'NO'})")
+
         # 5. Dispatch alerts via SOS Provider
         provider = get_sos_provider()
+        logger.info(f"[SOS] Using SOS provider: {type(provider).__name}")
         if hasattr(provider, "send_sos_extended"):
             delivery_results = await provider.send_sos_extended(
                 contacts=contacts,
@@ -249,6 +257,65 @@ async def get_sos_events(
     items = result.scalars().all()
     
     return create_paginated_response(items, total, params.skip, params.limit)
+
+
+@router.get(
+    "/fcm-diagnostic",
+    tags=['🤒 Patient - Emergency SOS'],
+    summary="FCM Push Notification Diagnostic",
+    description="Shows FCM token status for the current user and their connected caretakers. Use this to verify push notifications are configured correctly.",
+)
+async def fcm_diagnostic(
+    db: DbDep,
+    target_user_id: TargetPatientIdForRead,
+):
+    from app.core.config import settings
+    from app.services.sos_provider import ensure_firebase_initialized
+    from sqlalchemy.orm import selectinload
+
+    patient_user = await db.get(User, target_user_id)
+    fb_ready = ensure_firebase_initialized()
+
+    # Check connected caretakers' FCM status
+    caretaker_info = []
+    patient_prof_res = await db.execute(
+        select(PatientProfile).where(PatientProfile.user_id == target_user_id)
+    )
+    patient_prof = patient_prof_res.scalar_one_or_none()
+    if patient_prof:
+        ct_query = await db.execute(
+            select(User)
+            .join(CaretakerProfile, CaretakerProfile.user_id == User.id)
+            .join(PatientCaretakerNetwork, PatientCaretakerNetwork.caretaker_id == CaretakerProfile.id)
+            .where(
+                PatientCaretakerNetwork.patient_id == patient_prof.id,
+                PatientCaretakerNetwork.relationship_status == ConnectionStatus.ACTIVE
+            )
+        )
+        for ct in ct_query.scalars().all():
+            caretaker_info.append({
+                "name": ct.full_name,
+                "email": ct.email,
+                "has_fcm_token": bool(ct.fcm_token),
+                "fcm_token_preview": (ct.fcm_token[:20] + "...") if ct.fcm_token else None,
+            })
+
+    return {
+        "firebase_admin_initialized": fb_ready,
+        "sos_provider": settings.SOS_PROVIDER,
+        "firebase_credentials_path": settings.FIREBASE_CREDENTIALS_PATH or "NOT SET",
+        "patient": {
+            "name": patient_user.full_name if patient_user else None,
+            "has_fcm_token": bool(patient_user.fcm_token) if patient_user else False,
+        },
+        "connected_caretakers": caretaker_info,
+        "diagnosis": (
+            "OK — Firebase is configured and SOS_PROVIDER is set to firebase."
+            if fb_ready and settings.SOS_PROVIDER.lower() == "firebase"
+            else f"ISSUE — firebase_initialized={fb_ready}, SOS_PROVIDER={settings.SOS_PROVIDER}. "
+            + ("Check FIREBASE_CREDENTIALS_PATH in .env" if not fb_ready else "Change SOS_PROVIDER to 'firebase' in .env")
+        ),
+    }
 
 
 @router.post(

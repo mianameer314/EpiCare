@@ -27,6 +27,7 @@ import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { Pagination } from '../../components/ui/Pagination';
 import { useAuth } from '../../hooks/useAuth';
+import { NotificationPermissionBanner } from '../../components/shared/NotificationPermissionBanner';
 import './DoctorWorkspace.css';
 
 /* ────────────────────────────────────────────────────
@@ -136,6 +137,9 @@ export function DoctorWorkspace() {
 
   return (
     <div className="doctor-workspace">
+      {/* ── Push Notification Permission Prompt ── */}
+      <NotificationPermissionBanner />
+
       {/* ── Header ── */}
       <div className="doctor-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>

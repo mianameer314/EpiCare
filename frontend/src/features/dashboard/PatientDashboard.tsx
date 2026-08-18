@@ -10,6 +10,7 @@ import { QuickActions } from './components/QuickActions';
 import { SessionsPreview } from './components/SessionsPreview';
 import { useAuth } from '../../hooks/useAuth';
 import { Activity, Sparkles, Moon, BrainCircuit } from 'lucide-react';
+import { NotificationPermissionBanner } from '../../components/shared/NotificationPermissionBanner';
 import './PatientDashboard.css';
 
 /* ────────────────────────────────────────────────────
@@ -72,6 +73,9 @@ export function PatientDashboard() {
 
   return (
     <div className="dashboard-page">
+      {/* ── Push Notification Permission Prompt ── */}
+      <NotificationPermissionBanner />
+
       {/* ── Header ── */}
       <motion.div
         className="dashboard-header"
