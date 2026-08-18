@@ -2,7 +2,7 @@
 User routes — profile management for different user roles (async).
 """
 from pydantic import BaseModel
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, File, HTTPException, UploadFile, Response, status
 
 from app.api.deps import CurrentUser, DbDep
 from app.schemas.profiles import (
@@ -16,6 +16,8 @@ from app.schemas.profiles import (
 from app.services import patient_profile as patient_service
 from app.services import doctor_profile as doctor_service
 from app.services import caretaker_profile as caretaker_service
+from app.services.storage.service import get_storage_service
+from app.services.storage.validator import validate_doctor_upload
 
 # Removed global tags so we can specify them per role
 router = APIRouter(prefix="/users")
@@ -129,7 +131,109 @@ async def update_my_doctor_profile(data: DoctorProfileUpdate, current_user: Curr
     return await doctor_service.upsert_profile(db, current_user.id, data)
 
 
+@router.post(
+    "/me/doctor-profile/pmdc-certificate",
+    response_model=DoctorProfileOut,
+    tags=["👨‍⚕️ Doctor - Profile & Management"],
+    summary="Upload PMDC certificate",
+)
+async def upload_my_pmdc_certificate(
+    current_user: CurrentUser,
+    db: DbDep,
+    file: UploadFile = File(...),
+):
+    """Upload or replace the authenticated doctor's PMDC certificate."""
+    data, filename, mime_type = await validate_doctor_upload(file)
+    return await doctor_service.save_certificate(
+        db, current_user.id, get_storage_service(), data, filename, mime_type
+    )
+
+
+@router.get(
+    "/me/doctor-profile/pmdc-certificate",
+    tags=["👨‍⚕️ Doctor - Profile & Management"],
+    summary="View PMDC certificate",
+)
+async def view_my_pmdc_certificate(current_user: CurrentUser, db: DbDep):
+    """Return the authenticated doctor's certificate inline for preview/download."""
+    profile = await doctor_service.get_profile_for_user(db, current_user.id)
+    if not profile or not profile.pmdc_certificate_path:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="PMDC certificate not found")
+    storage = get_storage_service()
+    if not storage.exists(profile.pmdc_certificate_path):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Stored PMDC certificate not found")
+    content = storage.read(profile.pmdc_certificate_path)
+    filename = profile.pmdc_certificate_name or "pmdc-certificate"
+    return Response(
+        content=content,
+        media_type=profile.pmdc_certificate_mime_type or "application/octet-stream",
+        headers={"Content-Disposition": f'inline; filename="{filename}"'},
+    )
+
+
+@router.post(
+    "/me/doctor-profile/photo",
+    response_model=DoctorProfileOut,
+    tags=["👨‍⚕️ Doctor - Profile & Management"],
+    summary="Upload doctor profile photo",
+)
+async def upload_my_doctor_photo(
+    current_user: CurrentUser,
+    db: DbDep,
+    file: UploadFile = File(...),
+):
+    """Upload or replace the authenticated doctor's profile photo."""
+    data, filename, mime_type = await validate_doctor_upload(file, photo=True)
+    return await doctor_service.save_profile_photo(
+        db, current_user.id, get_storage_service(), data, filename, mime_type
+    )
+
+
+@router.get(
+    "/me/doctor-profile/photo",
+    tags=["👨‍⚕️ Doctor - Profile & Management"],
+    summary="View doctor profile photo",
+)
+async def view_my_doctor_photo(current_user: CurrentUser, db: DbDep):
+    """Return the authenticated doctor's profile photo for an authenticated preview."""
+    profile = await doctor_service.get_profile_for_user(db, current_user.id)
+    if not profile or not profile.profile_photo_path:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Profile photo not found")
+    storage = get_storage_service()
+    if not storage.exists(profile.profile_photo_path):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Stored profile photo not found")
+    return Response(
+        content=storage.read(profile.profile_photo_path),
+        media_type=profile.profile_photo_mime_type or "image/jpeg",
+    )
+
+
 @router.delete(
+    "/me/doctor-profile/pmdc-certificate",
+    status_code=status.HTTP_204_NO_CONTENT,
+    tags=["👨‍⚕️ Doctor - Profile & Management"],
+    summary="Remove PMDC certificate",
+)
+async def delete_my_pmdc_certificate(current_user: CurrentUser, db: DbDep):
+    """Remove the current certificate metadata without deleting the doctor profile."""
+    profile = await doctor_service.get_profile_for_user(db, current_user.id)
+    if not profile or not profile.pmdc_certificate_path:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="PMDC certificate not found")
+    old_key = profile.pmdc_certificate_path
+    profile.pmdc_certificate_path = None
+    profile.pmdc_certificate_name = None
+    profile.pmdc_certificate_mime_type = None
+    profile.pmdc_certificate_size = None
+    profile.license_image_url = None
+    await db.commit()
+    storage = get_storage_service()
+    if old_key.startswith("doctor-profile/"):
+        storage.delete(old_key)
+    return None
+
+
+@router.delete(
+
     "/me/doctor-profile",
     status_code=status.HTTP_204_NO_CONTENT,
     tags=["👨‍⚕️ Doctor - Profile & Management"],

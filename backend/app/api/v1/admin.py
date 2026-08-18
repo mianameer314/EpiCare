@@ -2,7 +2,7 @@
 Admin routes — System metrics, user management, and doctor verification.
 """
 from typing import List
-from fastapi import APIRouter, Depends, Query, status, Header, HTTPException
+from fastapi import APIRouter, Depends, Query, Response, status, Header, HTTPException
 
 from app.api.deps import DbDep, CurrentUser, RoleChecker
 from app.models.enums import UserRole
@@ -11,6 +11,8 @@ from app.schemas.profiles import DoctorProfileOut
 from app.schemas.admin import AdminDashboardMetricsOut, UserStatusUpdate, DoctorVerificationUpdate
 from app.services import admin as admin_service
 from app.core.config import settings
+from app.services import doctor_profile as doctor_service
+from app.services.storage.service import get_storage_service
 
 # Enforce Admin Role for all routes in this router
 RequireAdmin = Depends(RoleChecker([UserRole.ADMIN]))
@@ -113,6 +115,26 @@ async def get_pending_doctors(
     items = result.scalars().all()
     
     return create_paginated_response(items, total, params.skip, params.limit)
+
+
+@router.get(
+    "/doctors/{user_id}/pmdc-certificate",
+    summary="View doctor PMDC certificate",
+    description="Return a doctor's uploaded PMDC certificate for admin review.",
+)
+async def view_doctor_certificate(user_id: int, db: DbDep):
+    profile = await doctor_service.get_profile_for_user(db, user_id)
+    if not profile or not profile.pmdc_certificate_path:
+        raise HTTPException(status_code=404, detail="PMDC certificate not found")
+    storage = get_storage_service()
+    if not storage.exists(profile.pmdc_certificate_path):
+        raise HTTPException(status_code=404, detail="Stored PMDC certificate not found")
+    filename = profile.pmdc_certificate_name or "pmdc-certificate"
+    return Response(
+        content=storage.read(profile.pmdc_certificate_path),
+        media_type=profile.pmdc_certificate_mime_type or "application/octet-stream",
+        headers={"Content-Disposition": f'inline; filename="{filename}"'},
+    )
 
 
 @router.patch(

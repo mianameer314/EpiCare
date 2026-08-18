@@ -6,7 +6,6 @@ transaction-safe rollback tracking (pending uploads are deleted if the
 database transaction fails).
 """
 import logging
-from typing import Any
 
 from fastapi import UploadFile
 
@@ -28,6 +27,14 @@ class StorageService:
     def __init__(self, provider: StorageProvider) -> None:
         self.provider = provider
         self._pending: list[str] = []
+
+    def save_doctor_file(self, data: bytes, filename: str, *, photo: bool = False) -> str:
+        """Save a validated doctor document/photo and return its storage key."""
+        subfolder = "doctor-profile/photos" if photo else "doctor-profile/pmdc-certificates"
+        key = generate_storage_key(subfolder, filename)
+        self.provider.save(data, key)
+        self._pending.append(key)
+        return key
 
     def save_eeg(self, file: UploadFile, data: bytes) -> tuple[str, str]:
         """Save an EEG upload; returns (storage_key, sha256_hash)."""

@@ -17,6 +17,10 @@ import {
   Activity,
   ShieldAlert,
   Edit3,
+  Upload,
+  FileText,
+  X,
+  Camera,
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { apiClient } from '../../api/client';
@@ -95,6 +99,8 @@ interface ValidationErrors {
   specialty?: string;
   hospital_affiliation?: string;
   license_image_url?: string;
+  pmdc_certificate_name?: string;
+
   relationship_to_patient?: string;
   crisis_phone_number?: string;
   current_password?: string;
@@ -220,6 +226,14 @@ export function ProfilePage() {
     specialty: 'Neurologist',
     hospital_affiliation: '',
     license_image_url: '',
+    pmdc_certificate_name: '',
+    years_of_experience: undefined,
+    consultation_fee: '',
+    available_days: [],
+    available_times: [],
+    languages_spoken: [],
+    bio: '',
+    consultation_types: [],
   });
 
   const [caretakerForm, setCaretakerForm] = useState<CaretakerProfileData>({
@@ -231,8 +245,12 @@ export function ProfilePage() {
   const [profileSuccess, setProfileSuccess] = useState('');
   const [profileError, setProfileError] = useState('');
 
-  // Patient Medical Profile editing state
+  // Patient and doctor clinical profile editing state
   const [isEditingPatient, setIsEditingPatient] = useState(false);
+  const [isEditingDoctor, setIsEditingDoctor] = useState(false);
+  const [certificatePreviewUrl, setCertificatePreviewUrl] = useState<string | null>(null);
+  const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState('');
 
   // User Bio editing state
   const [isEditingBio, setIsEditingBio] = useState(false);
@@ -402,10 +420,17 @@ export function ProfilePage() {
   // Check if Doctor form has unsaved modifications
   const isDoctorDirty = useMemo(() => {
     if (!doctorProfile) return false;
+    const sameList = (a?: string[], b?: string[]) => JSON.stringify(a || []) === JSON.stringify(b || []);
     return (
       (doctorProfile.specialty || 'Neurologist') !== (doctorForm.specialty || 'Neurologist') ||
       (doctorProfile.hospital_affiliation || '') !== (doctorForm.hospital_affiliation || '') ||
-      (doctorProfile.license_image_url || '') !== (doctorForm.license_image_url || '')
+      (doctorProfile.years_of_experience ?? '') !== (doctorForm.years_of_experience ?? '') ||
+      String(doctorProfile.consultation_fee ?? '') !== String(doctorForm.consultation_fee ?? '') ||
+      (doctorProfile.bio || '') !== (doctorForm.bio || '') ||
+      !sameList(doctorProfile.available_days, doctorForm.available_days) ||
+      !sameList(doctorProfile.available_times, doctorForm.available_times) ||
+      !sameList(doctorProfile.languages_spoken, doctorForm.languages_spoken) ||
+      !sameList(doctorProfile.consultation_types, doctorForm.consultation_types)
     );
   }, [doctorProfile, doctorForm]);
 
@@ -577,13 +602,60 @@ export function ProfilePage() {
       queryClient.invalidateQueries({ queryKey: ['profile', 'doctor'] });
       setProfileSuccess('Doctor credentials updated successfully.');
       setProfileError('');
+      setUploadError('');
       setErrors({});
+      setIsEditingDoctor(false);
       setTimeout(() => setProfileSuccess(''), 4000);
     },
     onError: (err: any) => parseBackendError(err),
   });
 
+  const uploadCertificateMutation = useMutation({
+    mutationFn: (file: File) => usersApi.uploadDoctorCertificate(file),
+    onSuccess: (profile) => {
+      queryClient.setQueryData(['profile', 'doctor'], profile);
+      setDoctorForm((prev) => ({ ...prev, ...profile }));
+      setUploadError('');
+      setProfileSuccess('PMDC certificate uploaded successfully and is ready for admin review.');
+      setTimeout(() => setProfileSuccess(''), 5000);
+    },
+    onError: (err: any) => setUploadError(err?.message || 'Certificate upload failed.'),
+  });
+
+  const uploadPhotoMutation = useMutation({
+    mutationFn: (file: File) => usersApi.uploadDoctorPhoto(file),
+    onSuccess: (profile) => {
+      queryClient.setQueryData(['profile', 'doctor'], profile);
+      setDoctorForm((prev) => ({ ...prev, ...profile }));
+      setUploadError('');
+      setProfileSuccess('Profile photo uploaded successfully.');
+      setTimeout(() => setProfileSuccess(''), 4000);
+    },
+    onError: (err: any) => setUploadError(err?.message || 'Profile photo upload failed.'),
+  });
+
+  const previewDoctorFile = async (kind: 'certificate' | 'photo') => {
+    setUploadError('');
+    try {
+      const endpoint = kind === 'certificate'
+        ? '/users/me/doctor-profile/pmdc-certificate'
+        : '/users/me/doctor-profile/photo';
+      const blob = await apiClient.getBlob(endpoint);
+      const url = URL.createObjectURL(blob);
+      if (kind === 'certificate') {
+        if (certificatePreviewUrl) URL.revokeObjectURL(certificatePreviewUrl);
+        setCertificatePreviewUrl(url);
+      } else {
+        if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl);
+        setPhotoPreviewUrl(url);
+      }
+    } catch (err: any) {
+      setUploadError(err?.message || 'Unable to preview the uploaded file.');
+    }
+  };
+
   const updateCaretakerMutation = useMutation({
+
     mutationFn: (data: CaretakerProfileData) => usersApi.updateCaretakerProfile(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['profile', 'caretaker'] });
@@ -646,9 +718,12 @@ export function ProfilePage() {
     const formErrors: ValidationErrors = {
       specialty: validateField('specialty', doctorForm.specialty || ''),
       hospital_affiliation: validateField('hospital_affiliation', doctorForm.hospital_affiliation || ''),
-      license_image_url: validateField('license_image_url', doctorForm.license_image_url || ''),
     };
 
+    if (doctorForm.years_of_experience != null && (doctorForm.years_of_experience < 0 || doctorForm.years_of_experience > 80)) {
+      setProfileError('Years of experience must be between 0 and 80.');
+      return;
+    }
     const activeErrors = Object.entries(formErrors).filter(([_, msg]) => !!msg);
     if (activeErrors.length > 0) {
       setErrors(formErrors);
@@ -660,7 +735,13 @@ export function ProfilePage() {
     updateDoctorMutation.mutate({
       specialty: doctorForm.specialty?.trim() || undefined,
       hospital_affiliation: doctorForm.hospital_affiliation?.trim() || undefined,
-      license_image_url: doctorForm.license_image_url?.trim() || undefined,
+      years_of_experience: doctorForm.years_of_experience,
+      consultation_fee: doctorForm.consultation_fee === '' ? undefined : doctorForm.consultation_fee,
+      available_days: doctorForm.available_days || [],
+      available_times: doctorForm.available_times || [],
+      languages_spoken: doctorForm.languages_spoken || [],
+      bio: doctorForm.bio?.trim() || undefined,
+      consultation_types: doctorForm.consultation_types || [],
     });
   };
 
@@ -1445,74 +1526,109 @@ export function ProfilePage() {
               </motion.div>
             )}
 
-            {profileError && (
+            {(profileError || uploadError) && (
               <div className="auth-error-banner" style={{ marginBottom: 'var(--space-4)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <AlertCircle size={16} style={{ flexShrink: 0 }} /> <span>{profileError}</span>
+                <AlertCircle size={16} style={{ flexShrink: 0 }} /> <span>{profileError || uploadError}</span>
               </div>
             )}
 
-            <form onSubmit={handleDoctorSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 'var(--space-4)' }}>
-                <Input
-                  id="doc_pmdc"
-                  label="PMDC License Number"
-                  disabled
-                  value={doctorProfile?.pmdc_number || 'PMDC-PENDING'}
-                />
-                <Input
-                  id="doc_spec"
-                  label="Clinical Specialty"
-                  placeholder="e.g. Neurologist, Epileptologist, Pediatric Neurologist"
-                  value={doctorForm.specialty || ''}
-                  error={errors.specialty}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setDoctorForm(p => ({ ...p, specialty: val }));
-                    setErrors(prev => ({ ...prev, specialty: validateField('specialty', val) }));
-                  }}
-                />
-                <Input
-                  id="doc_hosp"
-                  label="Hospital / Clinic Affiliation"
-                  placeholder="e.g. Shifa International Hospital, Islamabad"
-                  value={doctorForm.hospital_affiliation || ''}
-                  error={errors.hospital_affiliation}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setDoctorForm(p => ({ ...p, hospital_affiliation: val }));
-                    setErrors(prev => ({ ...prev, hospital_affiliation: validateField('hospital_affiliation', val) }));
-                  }}
-                />
-              </div>
+            {!isEditingDoctor ? (
+              <div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(220px, 0.8fr) repeat(auto-fit, minmax(180px, 1fr))', gap: 'var(--space-4)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+                    {photoPreviewUrl ? (
+                      <img src={photoPreviewUrl} alt="Doctor profile" style={{ width: 76, height: 76, borderRadius: '50%', objectFit: 'cover', border: '3px solid rgba(45,90,63,.15)' }} />
+                    ) : (
+                      <div style={{ width: 76, height: 76, borderRadius: '50%', display: 'grid', placeItems: 'center', background: 'var(--color-primary)', color: 'white', fontSize: 24, fontWeight: 700 }}>
+                        {(user?.full_name || 'D').charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    <div>
+                      <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', marginBottom: 4 }}>Profile Photo</div>
+                      {doctorProfile?.profile_photo_path ? (
+                        <button type="button" className="btn btn-ghost btn-sm" onClick={() => previewDoctorFile('photo')}>
+                          <Camera size={13} /> View photo
+                        </button>
+                      ) : <span style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)' }}>Not uploaded</span>}
+                    </div>
+                  </div>
+                  <div><div className="profile-field-label">PMDC License Number</div><div className="profile-field-value">{doctorProfile?.pmdc_number || 'PMDC-PENDING'}</div></div>
+                  <div><div className="profile-field-label">Clinical Specialty</div><div className="profile-field-value">{doctorProfile?.specialty || 'Not provided'}</div></div>
+                  <div><div className="profile-field-label">Hospital / Clinic Affiliation</div><div className="profile-field-value">{doctorProfile?.hospital_affiliation || 'Not provided'}</div></div>
+                  <div><div className="profile-field-label">Years of Experience</div><div className="profile-field-value">{doctorProfile?.years_of_experience ?? 'Not provided'}</div></div>
+                  <div><div className="profile-field-label">Consultation Fee</div><div className="profile-field-value">{doctorProfile?.consultation_fee ? `PKR ${doctorProfile.consultation_fee}` : 'Not provided'}</div></div>
+                </div>
 
-              <Input
-                id="doc_license_doc"
-                label="PMDC Certificate Document / URL"
-                placeholder="e.g. https://storage.epicare.ai/docs/license.pdf"
-                value={doctorForm.license_image_url || ''}
-                error={errors.license_image_url}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setDoctorForm(p => ({ ...p, license_image_url: val }));
-                  setErrors(prev => ({ ...prev, license_image_url: validateField('license_image_url', val) }));
-                }}
-              />
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 'var(--space-4)', marginTop: 'var(--space-5)' }}>
+                  <div><div className="profile-field-label">Languages Spoken</div><div className="profile-field-value">{doctorProfile?.languages_spoken?.join(', ') || 'Not provided'}</div></div>
+                  <div><div className="profile-field-label">Consultation Types</div><div className="profile-field-value">{doctorProfile?.consultation_types?.join(', ') || 'Not provided'}</div></div>
+                  <div><div className="profile-field-label">Available Days</div><div className="profile-field-value">{doctorProfile?.available_days?.join(', ') || 'Not provided'}</div></div>
+                  <div><div className="profile-field-label">Available Times</div><div className="profile-field-value">{doctorProfile?.available_times?.join(', ') || 'Not provided'}</div></div>
+                </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 'var(--space-2)' }}>
-                <button
-                  type="submit"
-                  className="btn btn-primary btn-md"
-                  disabled={updateDoctorMutation.isPending || !isDoctorDirty}
-                  style={{
-                    opacity: !isDoctorDirty && !updateDoctorMutation.isPending ? 0.5 : 1,
-                    cursor: !isDoctorDirty && !updateDoctorMutation.isPending ? 'not-allowed' : 'pointer',
-                  }}
-                >
-                  {updateDoctorMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-                  <span>Save Practitioner Info</span>
-                </button>
+                <div style={{ marginTop: 'var(--space-4)', padding: 'var(--space-3)', background: 'rgba(255,255,255,.46)', borderRadius: 'var(--radius-md)' }}>
+                  <div className="profile-field-label">Professional Bio</div>
+                  <div className="profile-field-value" style={{ whiteSpace: 'pre-wrap' }}>{doctorProfile?.bio || 'No professional bio added yet.'}</div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--space-3)', marginTop: 'var(--space-4)', paddingTop: 'var(--space-4)', borderTop: '1px solid rgba(45,90,63,.08)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', minWidth: 0 }}>
+                    <FileText size={17} style={{ color: 'var(--color-primary)', flexShrink: 0 }} />
+                    <span style={{ fontSize: 'var(--text-sm)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{doctorProfile?.pmdc_certificate_name || 'PMDC certificate not uploaded'}</span>
+                    {doctorProfile?.pmdc_certificate_path && <button type="button" className="btn btn-ghost btn-sm" onClick={() => previewDoctorFile('certificate')}>View / Download</button>}
+                  </div>
+                  <button type="button" className="btn btn-outline btn-sm" onClick={() => { setDoctorForm((prev) => ({ ...prev, ...(doctorProfile || {}) })); setIsEditingDoctor(true); setUploadError(''); }}>
+                    <Edit3 size={13} /> Edit Doctor Profile
+                  </button>
+                </div>
+                {certificatePreviewUrl && (
+                  <div style={{ marginTop: 'var(--space-3)', padding: 'var(--space-3)', border: '1px solid rgba(45,90,63,.12)', borderRadius: 'var(--radius-md)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}><strong style={{ fontSize: 'var(--text-sm)' }}>Certificate preview</strong><button type="button" className="btn btn-ghost btn-sm" onClick={() => { URL.revokeObjectURL(certificatePreviewUrl); setCertificatePreviewUrl(null); }}><X size={13} /> Close</button></div>
+                    <iframe title="PMDC certificate preview" src={certificatePreviewUrl} style={{ width: '100%', height: 380, border: 0, borderRadius: 8 }} />
+                  </div>
+                )}
               </div>
-            </form>
+            ) : (
+              <form onSubmit={handleDoctorSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 'var(--space-4)' }}>
+                  <Input id="doc_pmdc" label="PMDC License Number" disabled value={doctorProfile?.pmdc_number || 'PMDC-PENDING'} />
+                  <Input id="doc_spec" label="Clinical Specialty" placeholder="e.g. Neurologist" value={doctorForm.specialty || ''} error={errors.specialty} onChange={(e) => { const val = e.target.value; setDoctorForm(p => ({ ...p, specialty: val })); setErrors(prev => ({ ...prev, specialty: validateField('specialty', val) })); }} />
+                  <Input id="doc_hosp" label="Hospital / Clinic Affiliation" placeholder="e.g. Shifa International Hospital, Islamabad" value={doctorForm.hospital_affiliation || ''} error={errors.hospital_affiliation} onChange={(e) => { const val = e.target.value; setDoctorForm(p => ({ ...p, hospital_affiliation: val })); setErrors(prev => ({ ...prev, hospital_affiliation: validateField('hospital_affiliation', val) })); }} />
+                  <Input id="doc_exp" label="Years of Experience" type="number" min="0" max="80" value={doctorForm.years_of_experience ?? ''} onChange={(e) => setDoctorForm(p => ({ ...p, years_of_experience: e.target.value === '' ? undefined : Number(e.target.value) }))} />
+                  <Input id="doc_fee" label="Consultation Fee (PKR)" type="number" min="0" step="0.01" placeholder="e.g. 3000" value={doctorForm.consultation_fee ?? ''} onChange={(e) => setDoctorForm(p => ({ ...p, consultation_fee: e.target.value }))} />
+                  <Input id="doc_languages" label="Languages Spoken" placeholder="Urdu, English, Punjabi" value={(doctorForm.languages_spoken || []).join(', ')} onChange={(e) => setDoctorForm(p => ({ ...p, languages_spoken: e.target.value.split(',').map(v => v.trim()).filter(Boolean) }))} />
+                  <Input id="doc_days" label="Available Days" placeholder="Monday, Wednesday, Friday" value={(doctorForm.available_days || []).join(', ')} onChange={(e) => setDoctorForm(p => ({ ...p, available_days: e.target.value.split(',').map(v => v.trim()).filter(Boolean) }))} />
+                  <Input id="doc_times" label="Available Times" placeholder="5:00 PM - 8:00 PM" value={(doctorForm.available_times || []).join(', ')} onChange={(e) => setDoctorForm(p => ({ ...p, available_times: e.target.value.split(',').map(v => v.trim()).filter(Boolean) }))} />
+                  <Input id="doc_types" label="Consultation Types" placeholder="Video, In-person, Chat" value={(doctorForm.consultation_types || []).join(', ')} onChange={(e) => setDoctorForm(p => ({ ...p, consultation_types: e.target.value.split(',').map(v => v.trim()).filter(Boolean) }))} />
+                </div>
+                <Input id="doc_bio" label="Professional Bio" placeholder="Tell patients about your clinical experience and approach." value={doctorForm.bio || ''} onChange={(e) => setDoctorForm(p => ({ ...p, bio: e.target.value }))} />
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 'var(--space-4)' }}>
+                  <div className="profile-upload-box">
+                    <div className="profile-field-label">Profile Photo</div>
+                    <p style={{ margin: '4px 0 10px', fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>JPG, PNG, or WEBP up to 5 MB.</p>
+                    <label className="btn btn-outline btn-sm" htmlFor="doctor-photo-upload"><Camera size={13} /> Choose Photo</label>
+                    <input id="doctor-photo-upload" type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={(e) => { const file = e.target.files?.[0]; if (file) uploadPhotoMutation.mutate(file); e.currentTarget.value = ''; }} />
+                    {uploadPhotoMutation.isPending && <Loader2 size={14} className="animate-spin" />}
+                  </div>
+                  <div className="profile-upload-box">
+                    <div className="profile-field-label">PMDC Certificate</div>
+                    <p style={{ margin: '4px 0 10px', fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>PDF, JPG, PNG, or WEBP up to 10 MB.</p>
+                    <label className="btn btn-outline btn-sm" htmlFor="doctor-certificate-upload"><Upload size={13} /> Choose Certificate</label>
+                    <input id="doctor-certificate-upload" type="file" accept="application/pdf,image/jpeg,image/png,image/webp" hidden onChange={(e) => { const file = e.target.files?.[0]; if (file) uploadCertificateMutation.mutate(file); e.currentTarget.value = ''; }} />
+                    {uploadCertificateMutation.isPending && <Loader2 size={14} className="animate-spin" />}
+                    {doctorForm.pmdc_certificate_name && <span style={{ display: 'block', marginTop: 8, fontSize: 'var(--text-xs)' }}>{doctorForm.pmdc_certificate_name}</span>}
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-2)', marginTop: 'var(--space-2)' }}>
+                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setDoctorForm((prev) => ({ ...prev, ...(doctorProfile || {}) })); setIsEditingDoctor(false); setProfileError(''); setUploadError(''); }}>Cancel</button>
+                  <button type="submit" className="btn btn-primary btn-sm" disabled={updateDoctorMutation.isPending || !isDoctorDirty} style={{ opacity: !isDoctorDirty && !updateDoctorMutation.isPending ? 0.5 : 1 }}>
+                    {updateDoctorMutation.isPending ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />} Save Doctor Profile
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         )}
 

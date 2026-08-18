@@ -14,6 +14,8 @@ import {
   Check,
   Ban,
   Stethoscope,
+  FileText,
+  Loader2,
 } from 'lucide-react';
 import { adminApi, type DoctorProfile } from '../../api/admin';
 import type { User } from '../../types/auth';
@@ -39,6 +41,21 @@ export function AdminDashboard() {
   const [doctorsPage, setDoctorsPage] = useState<number>(1);
   const [statusUserToChange, setStatusUserToChange] = useState<{ id: number; name: string; isActive: boolean } | null>(null);
   const [doctorToReject, setDoctorToReject] = useState<{ id: number; name: string } | null>(null);
+  const [previewingDoctorId, setPreviewingDoctorId] = useState<number | null>(null);
+
+  const previewDoctorCertificate = async (userId: number) => {
+    setPreviewingDoctorId(userId);
+    try {
+      const blob = await adminApi.viewDoctorCertificate(userId);
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank', 'noopener,noreferrer');
+      window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch {
+      // The queue still remains usable when a legacy doctor has no stored file.
+    } finally {
+      setPreviewingDoctorId(null);
+    }
+  };
 
   // Platform Metrics
   const { data: metrics, isLoading: metricsLoading } = useQuery({
@@ -261,7 +278,17 @@ export function AdminDashboard() {
                       </div>
                     </div>
 
-                    <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+                    <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                      {doc.pmdc_certificate_path && (
+                        <button
+                          className="btn btn-outline btn-sm"
+                          onClick={() => previewDoctorCertificate(doc.user_id)}
+                          disabled={previewingDoctorId === doc.user_id}
+                        >
+                          {previewingDoctorId === doc.user_id ? <Loader2 size={14} className="animate-spin" /> : <FileText size={14} />}
+                          <span>Review Certificate</span>
+                        </button>
+                      )}
                       <button
                         className="btn btn-outline btn-sm"
                         onClick={() => setDoctorToReject({ id: doc.user_id, name: `PMDC ${doc.pmdc_number} (${doc.specialty})` })}

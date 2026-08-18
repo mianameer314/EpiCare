@@ -178,6 +178,30 @@ async function request<T>(endpoint: string, options: RequestInit = {}, retryCoun
   return response.json();
 }
 
+async function requestBlob(endpoint: string, options: RequestInit = {}, retryCount = 0): Promise<Blob> {
+  const token = localStorage.getItem('access_token');
+  const headers = new Headers(options.headers);
+  if (token && !headers.has('Authorization')) headers.set('Authorization', `Bearer ${token}`);
+
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}${endpoint}`, { ...options, method: 'GET', headers });
+  } catch (err: any) {
+    throw new ApiError(0, 'Unable to connect to the server. Please ensure the backend is running.', err);
+  }
+
+  if (response.status === 401 && retryCount === 0 && !endpoint.includes('/auth/')) {
+    const newToken = await handleTokenRefresh();
+    if (newToken) return requestBlob(endpoint, options, retryCount + 1);
+  }
+  if (!response.ok) {
+    let errorData = null;
+    try { errorData = await response.json(); } catch { /* non-JSON error */ }
+    throw new ApiError(response.status, extractErrorMessage(errorData, `Request failed with status ${response.status}`), errorData);
+  }
+  return response.blob();
+}
+
 export const apiClient = {
   get: <T>(endpoint: string, options?: RequestInit) => request<T>(endpoint, { ...options, method: 'GET' }),
   post: <T>(endpoint: string, data?: any, options?: RequestInit) =>
@@ -199,4 +223,5 @@ export const apiClient = {
       body: data instanceof FormData ? data : data ? JSON.stringify(data) : undefined,
     }),
   delete: <T>(endpoint: string, options?: RequestInit) => request<T>(endpoint, { ...options, method: 'DELETE' }),
+  getBlob: (endpoint: string, options?: RequestInit) => requestBlob(endpoint, options),
 };

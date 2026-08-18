@@ -25,6 +25,8 @@ export interface DoctorProfile {
   pmdc_number: string;
   specialty: string;
   hospital_affiliation: string | null;
+  pmdc_certificate_path?: string | null;
+  pmdc_certificate_name?: string | null;
   is_pmdc_verified: boolean;
   user?: User;
 }
@@ -69,4 +71,7 @@ export const adminApi = {
 
   verifyDoctor: (userId: number, isVerified: boolean) =>
     apiClient.patch<DoctorProfile>(`/admin/doctors/${userId}/verify`, { is_verified: isVerified }),
+
+  viewDoctorCertificate: (userId: number) =>
+    apiClient.getBlob(`/admin/doctors/${userId}/pmdc-certificate`),
 };
