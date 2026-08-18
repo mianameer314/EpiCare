@@ -31,11 +31,6 @@ export function NotificationPermissionBanner() {
       return;
     }
 
-    // Don't show if permission already granted
-    if (Notification.permission === 'granted') {
-      return;
-    }
-
     // Don't show if user recently dismissed
     const dismissedUntil = localStorage.getItem(DISMISS_KEY);
     if (dismissedUntil && Date.now() < parseInt(dismissedUntil, 10)) {
@@ -53,8 +48,17 @@ export function NotificationPermissionBanner() {
         setDone(true);
         setVisible(false);
       } else {
-        // Permission was denied or token failed
-        setEnabling(false);
+        // Token failed — but permission might be granted already.
+        // Try to get token directly and register it.
+        const { getFcmToken, registerFcmDeviceToken } = await import('../../services/firebase');
+        const directToken = await getFcmToken();
+        if (directToken && localStorage.getItem('access_token')) {
+          await registerFcmDeviceToken(directToken);
+          setDone(true);
+          setVisible(false);
+        } else {
+          setEnabling(false);
+        }
       }
     } catch {
       setEnabling(false);

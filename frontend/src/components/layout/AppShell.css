@@ -1015,11 +1015,20 @@
   }
 
   .topbar-user-pill {
-    padding: 4px;
+    padding: 4px 8px 4px 4px;
   }
 
   .topbar-user-info {
-    display: none;
+    display: flex;
+    max-width: 80px;
+  }
+
+  .topbar-user-name {
+    font-size: 10px;
+  }
+
+  .topbar-user-role {
+    font-size: 9px;
   }
 
   .topbar-chevron {
