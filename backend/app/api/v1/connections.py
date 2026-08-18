@@ -1,7 +1,7 @@
 """
 Connections routes — managing patient-doctor and patient-caretaker relationships (async).
 """
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from typing import List
@@ -14,6 +14,8 @@ from app.models.doctor_profile import DoctorProfile
 from app.models.patient_profile import PatientProfile
 from app.models.caretaker_profile import CaretakerProfile
 from app.models.networks import PatientDoctorNetwork, PatientCaretakerNetwork
+from app.services.storage.service import get_storage_service
+
 from pydantic import BaseModel, EmailStr
 
 from app.schemas.connections import (
@@ -31,7 +33,19 @@ class DoctorSearchResponse(BaseModel):
     full_name: str
     pmdc_number: str
     specialty: str
-    hospital_affiliation: str | None
+    gender: str | None = None
+    hospital_affiliation: str | None = None
+    profile_photo_url: str | None = None
+    years_of_experience: int | None = None
+    consultation_fee: float | None = None
+    available_day_start: str | None = None
+    available_day_end: str | None = None
+    available_time_start: str | None = None
+    available_time_end: str | None = None
+    languages_spoken: list[str] | None = None
+    bio: str | None = None
+    consultation_types: list[str] | None = None
+    is_pmdc_verified: bool = True
 
 
 class DoctorFilterOptionsResponse(BaseModel):
@@ -127,11 +141,57 @@ async def search_doctors(
             full_name=doc.user.full_name,
             pmdc_number=doc.pmdc_number,
             specialty=doc.specialty,
-            hospital_affiliation=doc.hospital_affiliation
+            gender=doc.gender,
+            hospital_affiliation=doc.hospital_affiliation,
+            profile_photo_url=f"/connections/doctors/{doc.id}/photo" if (doc.user.profile_photo_path or doc.profile_photo_path) else None,
+            years_of_experience=doc.years_of_experience,
+            consultation_fee=float(doc.consultation_fee) if doc.consultation_fee is not None else None,
+            available_day_start=doc.available_day_start,
+            available_day_end=doc.available_day_end,
+            available_time_start=doc.available_time_start,
+            available_time_end=doc.available_time_end,
+            languages_spoken=doc.languages_spoken,
+            bio=doc.bio,
+            consultation_types=doc.consultation_types,
+            is_pmdc_verified=doc.is_pmdc_verified,
         )
         for doc in doctors
     ]
     return create_paginated_response(items, total, params.skip, params.limit)
+
+
+@router.get(
+    "/doctors/{doctor_id}/photo",
+    tags=["🤒 Patient - Care Network"],
+    summary="View a verified doctor's public profile photo",
+)
+async def view_public_doctor_photo(
+    doctor_id: int,
+    db: DbDep,
+    current_user: User = Depends(RoleChecker([UserRole.PATIENT])),
+):
+    profile = await db.scalar(
+        select(DoctorProfile)
+        .options(selectinload(DoctorProfile.user))
+        .where(
+            DoctorProfile.id == doctor_id,
+            DoctorProfile.is_pmdc_verified == True,
+        )
+    )
+    if not profile:
+        raise HTTPException(status_code=404, detail="Doctor profile photo not found")
+    photo_path = profile.user.profile_photo_path or profile.profile_photo_path
+    photo_mime_type = profile.user.profile_photo_mime_type or profile.profile_photo_mime_type
+    if not photo_path:
+        raise HTTPException(status_code=404, detail="Doctor profile photo not found")
+    storage = get_storage_service()
+    if not storage.exists(photo_path):
+        raise HTTPException(status_code=404, detail="Doctor profile photo not found")
+    return Response(
+        content=storage.read(photo_path),
+        media_type=photo_mime_type or "image/jpeg",
+        headers={"Cache-Control": "private, max-age=300"},
+    )
 
 
 @router.get(
@@ -436,6 +496,12 @@ async def revoke_doctor_connection(
         
     # The first delete/revoke keeps the connection visible as history. A patient
     # deleting an already-revoked row explicitly removes that historical record.
+    # Pending cancellation removes the request entirely rather than creating history.
+    if current_user.role == UserRole.PATIENT and connection.relationship_status == ConnectionStatus.PENDING:
+        await db.delete(connection)
+        await db.commit()
+        return None
+
     if current_user.role == UserRole.PATIENT and connection.relationship_status == ConnectionStatus.REVOKED:
         await db.delete(connection)
         await db.commit()

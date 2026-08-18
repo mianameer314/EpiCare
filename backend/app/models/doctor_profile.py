@@ -26,6 +26,7 @@ class DoctorProfile(Base):
 
     pmdc_number: Mapped[str] = mapped_column(String(50), unique=True, index=True, nullable=False)
     specialty: Mapped[str] = mapped_column(String(100), default="Neurologist", nullable=False)
+    gender: Mapped[str | None] = mapped_column(String(30), nullable=True)
     hospital_affiliation: Mapped[str | None] = mapped_column(String(200), nullable=True)
 
     # Backwards-compatible legacy field. New uploads are stored in pmdc_certificate_path.

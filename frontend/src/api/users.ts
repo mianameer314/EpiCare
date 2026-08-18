@@ -26,6 +26,7 @@ export interface DoctorProfileData {
   user_id?: number;
   pmdc_number?: string;
   specialty?: string;
+  gender?: 'Male' | 'Female' | 'Other' | 'Prefer not to say';
   hospital_affiliation?: string;
   license_image_url?: string;
   pmdc_certificate_path?: string;

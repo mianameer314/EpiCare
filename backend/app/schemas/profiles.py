@@ -80,6 +80,7 @@ class PatientProfileOut(StrictModel):
 class DoctorProfileCreate(StrictModel):
     pmdc_number: str = Field(..., min_length=1, max_length=50)
     specialty: Optional[str] = Field("Neurologist", max_length=100)
+    gender: Optional[Literal["Male", "Female", "Other", "Prefer not to say"]] = None
     hospital_affiliation: Optional[str] = Field(None, max_length=200)
     license_image_url: Optional[str] = Field(None, max_length=500)
     years_of_experience: Optional[int] = Field(None, ge=0, le=80)
@@ -97,6 +98,7 @@ class DoctorProfileCreate(StrictModel):
 
 class DoctorProfileUpdate(StrictModel):
     specialty: Optional[str] = Field(None, max_length=100)
+    gender: Optional[Literal["Male", "Female", "Other", "Prefer not to say"]] = None
     hospital_affiliation: Optional[str] = Field(None, max_length=200)
     years_of_experience: Optional[int] = Field(None, ge=0, le=80)
     consultation_fee: Optional[Decimal] = Field(None, ge=0, max_digits=10, decimal_places=2)
@@ -117,6 +119,7 @@ class DoctorProfileOut(StrictModel):
     user_id: int
     pmdc_number: str
     specialty: str
+    gender: Optional[str] = None
     hospital_affiliation: Optional[str] = None
     license_image_url: Optional[str] = None
     pmdc_certificate_path: Optional[str] = None

@@ -419,3 +419,370 @@
     align-items: flex-start;
   }
 }
+
+
+/* ── Public Doctor Profile Modal ── */
+.doctor-profile-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(16px, 4vw, 48px);
+  background: rgba(20, 35, 26, 0.42);
+  backdrop-filter: blur(18px) saturate(125%);
+  -webkit-backdrop-filter: blur(18px) saturate(125%);
+  overflow-y: auto;
+}
+
+.doctor-profile-modal-panel {
+  position: relative;
+  width: min(100%, 760px);
+  max-height: min(900px, calc(100vh - 32px));
+  overflow: auto;
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  border-radius: 30px;
+  background: linear-gradient(145deg, rgba(250, 253, 251, 0.98), rgba(231, 240, 234, 0.97));
+  box-shadow: -16px -16px 36px rgba(255, 255, 255, 0.62), 18px 20px 42px rgba(17, 50, 29, 0.27);
+  color: var(--color-text-main);
+}
+
+.doctor-profile-modal-close {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  z-index: 2;
+  width: 38px;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  border-radius: var(--radius-full);
+  background: #edf3ee;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  box-shadow: -3px -3px 7px rgba(255, 255, 255, 0.9), 3px 3px 7px rgba(176, 192, 181, 0.42);
+  transition: transform 160ms ease, color 160ms ease, box-shadow 160ms ease;
+}
+
+.doctor-profile-modal-close:hover {
+  color: var(--color-primary);
+  transform: translateY(-1px);
+}
+
+.doctor-profile-modal-close:active {
+  transform: scale(0.96);
+  box-shadow: inset 2px 2px 5px rgba(176, 192, 181, 0.46), inset -2px -2px 5px #fff;
+}
+
+.doctor-profile-modal-hero {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  padding: 34px 72px 28px 34px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.72), rgba(225, 240, 229, 0.66));
+  border-bottom: 1px solid rgba(45, 90, 63, 0.1);
+}
+
+.doctor-profile-modal-photo-wrap {
+  position: relative;
+  width: 116px;
+  height: 116px;
+  flex: 0 0 116px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+  border-radius: var(--radius-full);
+  background: linear-gradient(145deg, #eef6f0, #dce9df);
+  color: var(--color-primary);
+  border: 4px solid rgba(255, 255, 255, 0.9);
+  box-shadow: -8px -8px 16px rgba(255, 255, 255, 0.82), 8px 8px 16px rgba(168, 186, 173, 0.48), inset 2px 2px 5px rgba(179, 197, 184, 0.28);
+}
+
+.doctor-profile-modal-photo {
+  width: 100%;
+  height: 100%;
+  display: block;
+  border-radius: inherit;
+  object-fit: cover;
+}
+
+.doctor-profile-modal-initial {
+  font-size: 42px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.doctor-profile-modal-verified {
+  position: absolute;
+  right: -4px;
+  bottom: 4px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid #f1f7f2;
+  border-radius: var(--radius-full);
+  background: #16a34a;
+  color: #fff;
+  box-shadow: 0 3px 9px rgba(22, 101, 52, 0.3);
+}
+
+.doctor-profile-modal-heading {
+  min-width: 0;
+}
+
+.doctor-profile-modal-name-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+
+.doctor-profile-modal-name-row h2 {
+  margin: 0;
+  font-size: clamp(22px, 3vw, 30px);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+.doctor-profile-modal-specialty {
+  margin: 8px 0 4px;
+  color: var(--color-primary);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.doctor-profile-modal-pmdc {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.doctor-profile-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding: 28px 34px 26px;
+}
+
+.doctor-profile-modal-facts {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.doctor-profile-fact {
+  min-width: 0;
+  padding: 15px 14px;
+  border-radius: 16px;
+  background: #edf3ee;
+  border: 1px solid rgba(255, 255, 255, 0.82);
+  box-shadow: inset 2px 2px 5px rgba(178, 193, 182, 0.34), inset -2px -2px 5px rgba(255, 255, 255, 0.82);
+}
+
+.doctor-profile-fact-label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.doctor-profile-fact strong {
+  display: block;
+  overflow-wrap: anywhere;
+  color: var(--color-text-main);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.doctor-profile-modal-section {
+  padding-top: 2px;
+}
+
+.doctor-profile-modal-section h3 {
+  margin: 0 0 9px;
+  color: var(--color-text-main);
+  font-size: 14px;
+  font-weight: 750;
+}
+
+.doctor-profile-modal-detail-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.doctor-profile-modal-detail-row svg {
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+.doctor-profile-detail-separator {
+  color: #9aada0;
+  font-weight: 700;
+}
+
+.doctor-profile-modal-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.doctor-profile-modal-chip {
+  padding: 7px 11px;
+  border: 1px solid rgba(45, 90, 63, 0.16);
+  border-radius: var(--radius-full);
+  background: #edf3ee;
+  color: var(--color-primary);
+  font-size: 12px;
+  font-weight: 700;
+  box-shadow: -2px -2px 5px rgba(255, 255, 255, 0.75), 2px 2px 5px rgba(174, 190, 179, 0.34);
+}
+
+.doctor-profile-modal-muted {
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.doctor-profile-modal-bio {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+
+.doctor-profile-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 18px 34px 28px;
+  border-top: 1px solid rgba(45, 90, 63, 0.1);
+}
+
+.doctor-profile-modal-action {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 19px;
+  border: 1px solid rgba(22, 101, 52, 0.22);
+  border-radius: var(--radius-full);
+  background: linear-gradient(135deg, #15803d, #166534);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 750;
+  cursor: pointer;
+  box-shadow: 0 6px 15px rgba(22, 101, 52, 0.22);
+  transition: transform 160ms ease, box-shadow 160ms ease, opacity 160ms ease;
+}
+
+.doctor-profile-modal-action:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 9px 20px rgba(22, 101, 52, 0.3);
+}
+
+.doctor-profile-modal-action:disabled {
+  cursor: default;
+  opacity: 0.9;
+}
+
+.doctor-profile-modal-action.is-connected {
+  background: #e9f7ed;
+  color: #15803d;
+  border-color: #b7e3c2;
+  box-shadow: inset 2px 2px 5px rgba(168, 190, 174, 0.32), inset -2px -2px 5px rgba(255, 255, 255, 0.9);
+}
+
+.doctor-profile-modal-action.is-pending {
+  background: #fff8e7;
+  color: #b45309;
+  border-color: #f5d58a;
+  box-shadow: inset 2px 2px 5px rgba(206, 181, 122, 0.22), inset -2px -2px 5px rgba(255, 255, 255, 0.9);
+}
+
+@media (max-width: 680px) {
+  .doctor-profile-modal-overlay {
+    align-items: flex-start;
+    padding: 12px;
+  }
+
+  .doctor-profile-modal-panel {
+    max-height: calc(100vh - 24px);
+    border-radius: 24px;
+  }
+
+  .doctor-profile-modal-hero {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 34px 50px 24px;
+  }
+
+  .doctor-profile-modal-name-row {
+    justify-content: center;
+  }
+
+  .doctor-profile-modal-body {
+    padding: 22px 20px;
+  }
+
+  .doctor-profile-modal-facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .doctor-profile-modal-footer {
+    padding: 16px 20px 22px;
+  }
+
+  .doctor-profile-modal-action {
+    width: 100%;
+  }
+}
+
+@media (max-width: 390px) {
+  .doctor-profile-modal-facts {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .doctor-profile-modal-overlay,
+  .doctor-profile-modal-panel,
+  .doctor-profile-modal-action,
+  .doctor-profile-modal-close {
+    transition: none;
+  }
+}
+
+/* Directory cards use the actual verified photo when the server exposes one. */
+.doctor-avatar-photo {
+  width: 100%;
+  height: 100%;
+  display: block;
+  border-radius: inherit;
+  object-fit: cover;
+}
+
+.doctor-avatar-circle:has(.doctor-avatar-photo) {
+  overflow: hidden;
+}
+
+.doctor-avatar-circle:has(.doctor-avatar-photo) > div {
+  z-index: 1;
+}
+
+.doctor-avatar-circle:has(.doctor-avatar-photo) > .doctor-avatar-photo + div {
+  display: flex;
+}

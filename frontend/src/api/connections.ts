@@ -17,7 +17,19 @@ export interface DoctorSearchItem {
   full_name: string;
   pmdc_number: string;
   specialty: string;
+  gender?: 'Male' | 'Female' | 'Other' | 'Prefer not to say' | string | null;
   hospital_affiliation?: string | null;
+  profile_photo_url?: string | null;
+  years_of_experience?: number | null;
+  consultation_fee?: number | null;
+  available_day_start?: string | null;
+  available_day_end?: string | null;
+  available_time_start?: string | null;
+  available_time_end?: string | null;
+  languages_spoken?: string[] | null;
+  bio?: string | null;
+  consultation_types?: string[] | null;
+  is_pmdc_verified?: boolean;
 }
 
 export interface PatientDoctorConnection {
@@ -96,6 +108,9 @@ export const connectionsApi = {
 
   disconnectDoctor: (connectionId: number) =>
     apiClient.delete(`/connections/doctors/${connectionId}`),
+
+  getPublicDoctorPhoto: (doctorId: number) =>
+    apiClient.getBlob(`/connections/doctors/${doctorId}/photo`),
 
   inviteCaretaker: (email: string) =>
     apiClient.post('/connections/caretakers/request', { caretaker_email: email }),

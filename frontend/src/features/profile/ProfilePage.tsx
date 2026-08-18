@@ -341,6 +341,7 @@ function computeProfileCompletion(
 
     addDoctorField(Boolean(doctor?.pmdc_number?.trim()), 'doc_pmdc', 'PMDC License Number');
     addDoctorField(Boolean(doctor?.specialty?.trim()), 'doc_spec', 'Clinical Specialty');
+    addDoctorField(Boolean(doctor?.gender?.trim()), 'doc_gender', 'Gender');
     addDoctorField(Boolean(doctor?.hospital_affiliation?.trim()), 'doc_hosp', 'Hospital / Clinic Affiliation');
     addDoctorField(Boolean(doctor?.profile_photo_path?.trim() || user?.profile_photo_path?.trim()), 'acc_photo', 'Profile Photo');
     addDoctorField(Boolean(doctor?.pmdc_certificate_path?.trim() || doctor?.license_image_url?.trim()), 'doc_certificate', 'PMDC Verification Certificate');
@@ -398,6 +399,7 @@ export function ProfilePage() {
   const [doctorForm, setDoctorForm] = useState<DoctorProfileData>({
     pmdc_number: '',
     specialty: 'Neurologist',
+    gender: undefined,
     hospital_affiliation: '',
     license_image_url: '',
     pmdc_certificate_name: '',
@@ -712,6 +714,7 @@ export function ProfilePage() {
     const sameList = (a?: string[], b?: string[]) => JSON.stringify(a || []) === JSON.stringify(b || []);
     return (
       (doctorProfile.specialty || 'Neurologist') !== (doctorForm.specialty || 'Neurologist') ||
+      (doctorProfile.gender || '') !== (doctorForm.gender || '') ||
       (doctorProfile.hospital_affiliation || '') !== (doctorForm.hospital_affiliation || '') ||
       (doctorProfile.years_of_experience ?? '') !== (doctorForm.years_of_experience ?? '') ||
       String(doctorProfile.consultation_fee ?? '') !== String(doctorForm.consultation_fee ?? '') ||
@@ -1048,6 +1051,7 @@ export function ProfilePage() {
     saveDoctorMutation.mutate({
       data: {
         specialty: doctorForm.specialty?.trim() || undefined,
+        gender: doctorForm.gender || undefined,
         hospital_affiliation: doctorForm.hospital_affiliation?.trim() || undefined,
         years_of_experience: doctorForm.years_of_experience,
         consultation_fee: doctorForm.consultation_fee === '' ? undefined : doctorForm.consultation_fee,
@@ -1921,6 +1925,7 @@ export function ProfilePage() {
                                 <div className="doctor-summary-primary">
                   <div><div className="profile-field-label">PMDC License Number</div><div className="profile-field-value">{doctorProfile?.pmdc_number || 'PMDC-PENDING'}</div></div>
                   <div><div className="profile-field-label">Clinical Specialty</div><div className="profile-field-value">{doctorProfile?.specialty || 'Not provided'}</div></div>
+                  <div><div className="profile-field-label">Gender</div><div className="profile-field-value">{doctorProfile?.gender || 'Not provided'}</div></div>
                   <div><div className="profile-field-label">Hospital / Clinic Affiliation</div><div className="profile-field-value">{doctorProfile?.hospital_affiliation || 'Not provided'}</div></div>
                   <div><div className="profile-field-label">Years of Experience</div><div className="profile-field-value">{doctorProfile?.years_of_experience ?? 'Not provided'}</div></div>
                   <div><div className="profile-field-label">Consultation Fee</div><div className="profile-field-value">{doctorProfile?.consultation_fee ? `PKR ${doctorProfile.consultation_fee}` : 'Not provided'}</div></div>
@@ -1966,7 +1971,19 @@ export function ProfilePage() {
               <form onSubmit={handleDoctorSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
                                 <div className="doctor-edit-grid">
                   <Input id="doc_pmdc" label="PMDC License Number" disabled value={doctorProfile?.pmdc_number || 'PMDC-PENDING'} />
-                  <Input id="doc_spec" label="Clinical Specialty" placeholder="e.g. Neurologist" value={doctorForm.specialty || ''} error={errors.specialty} onChange={(e) => { const val = e.target.value; setDoctorForm(p => ({ ...p, specialty: val })); setErrors(prev => ({ ...prev, specialty: validateField('specialty', val) })); }} />
+                                    <Input id="doc_spec" label="Clinical Specialty" placeholder="e.g. Neurologist" value={doctorForm.specialty || ''} error={errors.specialty} onChange={(e) => { const val = e.target.value; setDoctorForm(p => ({ ...p, specialty: val })); setErrors(prev => ({ ...prev, specialty: validateField('specialty', val) })); }} />
+                  <Select
+                    id="doc_gender"
+                    label="Gender"
+                    value={doctorForm.gender || ''}
+                    onChange={(val) => setDoctorForm(p => ({ ...p, gender: val as DoctorProfileData['gender'] }))}
+                    options={[
+                      { value: 'Male', label: 'Male' },
+                      { value: 'Female', label: 'Female' },
+                      { value: 'Other', label: 'Other' },
+                      { value: 'Prefer not to say', label: 'Prefer not to say' },
+                    ]}
+                  />
                   <Input id="doc_hosp" label="Hospital / Clinic Affiliation" placeholder="e.g. Shifa International Hospital, Islamabad" value={doctorForm.hospital_affiliation || ''} error={errors.hospital_affiliation} onChange={(e) => { const val = e.target.value; setDoctorForm(p => ({ ...p, hospital_affiliation: val })); setErrors(prev => ({ ...prev, hospital_affiliation: validateField('hospital_affiliation', val) })); }} />
                   <Input id="doc_exp" label="Years of Experience" type="number" min="0" max="80" value={doctorForm.years_of_experience ?? ''} onChange={(e) => setDoctorForm(p => ({ ...p, years_of_experience: e.target.value === '' ? undefined : Number(e.target.value) }))} />
                   <Input id="doc_fee" label="Consultation Fee (PKR)" type="number" min="0" step="0.01" placeholder="e.g. 3000" value={doctorForm.consultation_fee ?? ''} onChange={(e) => setDoctorForm(p => ({ ...p, consultation_fee: e.target.value }))} />
