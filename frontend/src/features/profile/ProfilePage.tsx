@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
+import { createPortal } from 'react-dom';
 import {
   User,
   ShieldCheck,
@@ -162,36 +163,64 @@ interface NeumorphicRangeSelectProps {
 }
 
 function NeumorphicRangeSelect({ id, label, startValue, endValue, options, startPlaceholder, endPlaceholder, onChange }: NeumorphicRangeSelectProps) {
+  const [openPart, setOpenPart] = useState<'start' | 'end' | null>(null);
   const startIndex = options.findIndex((option) => option.value === startValue);
   const endIndex = options.findIndex((option) => option.value === endValue);
   const invalidRange = startIndex >= 0 && endIndex >= 0 && endIndex < startIndex;
+  const startLabel = options.find((option) => option.value === startValue)?.label || startPlaceholder;
+  const endLabel = options.find((option) => option.value === endValue)?.label || endPlaceholder;
+
+  const renderMenu = (part: 'start' | 'end') => {
+    const currentValue = part === 'start' ? startValue : endValue;
+    return (
+      <div className="profile-neumorphic-menu profile-range-menu" role="listbox" aria-label={`${label} ${part}`}>
+        <button
+          type="button"
+          className="profile-neumorphic-menu-action"
+          onClick={() => { part === 'start' ? onChange(undefined, endValue) : onChange(startValue, undefined); setOpenPart(null); }}
+        >
+          Clear selection
+        </button>
+        {options.map((option) => {
+          const selected = option.value === currentValue;
+          return (
+            <button
+              key={option.value}
+              type="button"
+              className={`profile-neumorphic-option ${selected ? 'selected' : ''}`}
+              onClick={() => { part === 'start' ? onChange(option.value, endValue) : onChange(startValue, option.value); setOpenPart(null); }}
+              role="option"
+              aria-selected={selected}
+            >
+              <span>{option.label}</span>
+              {selected && <Check size={14} />}
+            </button>
+          );
+        })}
+      </div>
+    );
+  };
 
   return (
     <div id={id} className="profile-neumorphic-select-wrap">
       <div className="profile-field-label">{label}</div>
       <div className="profile-range-grid">
-        <label className="profile-range-part">
+        <div className="profile-range-part">
           <span>From</span>
-          <select
-            className="profile-neumorphic-select"
-            value={startValue || ''}
-            onChange={(event) => onChange(event.target.value || undefined, endValue)}
-          >
-            <option value="">{startPlaceholder}</option>
-            {options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-          </select>
-        </label>
-        <label className="profile-range-part">
+          <button type="button" className={`profile-neumorphic-select ${openPart === 'start' ? 'open' : ''}`} onClick={() => setOpenPart(openPart === 'start' ? null : 'start')} aria-expanded={openPart === 'start'}>
+            <span className={startValue ? '' : 'placeholder'}>{startLabel}</span>
+            <ChevronDown size={15} className={openPart === 'start' ? 'rotate-180' : ''} />
+          </button>
+          {openPart === 'start' && renderMenu('start')}
+        </div>
+        <div className="profile-range-part">
           <span>To</span>
-          <select
-            className="profile-neumorphic-select"
-            value={endValue || ''}
-            onChange={(event) => onChange(startValue, event.target.value || undefined)}
-          >
-            <option value="">{endPlaceholder}</option>
-            {options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-          </select>
-        </label>
+          <button type="button" className={`profile-neumorphic-select ${openPart === 'end' ? 'open' : ''}`} onClick={() => setOpenPart(openPart === 'end' ? null : 'end')} aria-expanded={openPart === 'end'}>
+            <span className={endValue ? '' : 'placeholder'}>{endLabel}</span>
+            <ChevronDown size={15} className={openPart === 'end' ? 'rotate-180' : ''} />
+          </button>
+          {openPart === 'end' && renderMenu('end')}
+        </div>
       </div>
       {invalidRange && <div className="profile-range-error">The end of the range must be after the start.</div>}
     </div>
@@ -403,6 +432,15 @@ export function ProfilePage() {
   const [removePendingCertificate, setRemovePendingCertificate] = useState(false);
   const [removePendingPhoto, setRemovePendingPhoto] = useState(false);
   const [uploadError, setUploadError] = useState('');
+
+  useEffect(() => {
+    if (!isPhotoViewerOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isPhotoViewerOpen]);
 
   // User Bio editing state
   const [isEditingBio, setIsEditingBio] = useState(false);
@@ -1056,8 +1094,21 @@ export function ProfilePage() {
     setCustomTriggerInput('');
   };
 
+  const photoViewerPortal = isPhotoViewerOpen && photoPreviewUrl && typeof document !== 'undefined'
+    ? createPortal(
+        <div className="profile-photo-modal" role="dialog" aria-modal="true" aria-label="Full doctor profile photo" onClick={() => setIsPhotoViewerOpen(false)}>
+          <div className="profile-photo-modal-content" onClick={(event) => event.stopPropagation()}>
+            <button type="button" className="profile-photo-modal-close" aria-label="Close photo viewer" onClick={() => setIsPhotoViewerOpen(false)}><X size={20} /></button>
+            <img src={photoPreviewUrl} alt="Full doctor profile" className="profile-full-photo" />
+          </div>
+        </div>,
+        document.body,
+      )
+    : null;
+
   return (
     <div className="profile-page">
+      {photoViewerPortal}
       {/* ── Header ── */}
       <div className="profile-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
@@ -1769,11 +1820,7 @@ export function ProfilePage() {
                     )}
                     <div>
                       <div className="profile-field-label">Profile Photo</div>
-                      {doctorProfile?.profile_photo_path ? (
-                        <button type="button" className="btn btn-ghost btn-sm" onClick={() => previewDoctorFile('photo')}>
-                          <Camera size={13} /> Open full photo
-                        </button>
-                      ) : <span className="profile-muted-value">Not uploaded</span>}
+                      {!doctorProfile?.profile_photo_path && <span className="profile-muted-value">Not uploaded</span>}
                     </div>
                   </div>
                   <div><div className="profile-field-label">PMDC License Number</div><div className="profile-field-value">{doctorProfile?.pmdc_number || 'PMDC-PENDING'}</div></div>
@@ -1817,17 +1864,7 @@ export function ProfilePage() {
                     <iframe title="PMDC certificate preview" src={certificatePreviewUrl} className="profile-certificate-frame" />
                   </div>
                 )}
-                {isPhotoViewerOpen && photoPreviewUrl && (
-                  <div className="profile-photo-modal" role="dialog" aria-modal="true" aria-label="Full doctor profile photo" onClick={() => setIsPhotoViewerOpen(false)}>
-                    <div className="profile-photo-modal-content" onClick={(event) => event.stopPropagation()}>
-                      <div className="profile-media-viewer-header">
-                        <strong>Doctor profile photo</strong>
-                        <button type="button" className="btn btn-ghost btn-sm" onClick={() => setIsPhotoViewerOpen(false)}><X size={13} /> Close</button>
-                      </div>
-                      <img src={photoPreviewUrl} alt="Full doctor profile" className="profile-full-photo" />
-                    </div>
-                  </div>
-                )}
+
               </div>
             ) : (
               <form onSubmit={handleDoctorSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
@@ -1890,17 +1927,7 @@ export function ProfilePage() {
                     <iframe title="PMDC certificate preview" src={certificatePreviewUrl} className="profile-certificate-frame" />
                   </div>
                 )}
-                {isPhotoViewerOpen && photoPreviewUrl && (
-                  <div className="profile-photo-modal" role="dialog" aria-modal="true" aria-label="Full doctor profile photo" onClick={() => setIsPhotoViewerOpen(false)}>
-                    <div className="profile-photo-modal-content" onClick={(event) => event.stopPropagation()}>
-                      <div className="profile-media-viewer-header">
-                        <strong>Doctor profile photo</strong>
-                        <button type="button" className="btn btn-ghost btn-sm" onClick={() => setIsPhotoViewerOpen(false)}><X size={13} /> Close</button>
-                      </div>
-                      <img src={photoPreviewUrl} alt="Full doctor profile" className="profile-full-photo" />
-                    </div>
-                  </div>
-                )}
+
               </form>
             )}
           </div>
