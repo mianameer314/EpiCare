@@ -296,16 +296,6 @@ class FirebaseSOSProvider(BaseSOSProvider):
                                 ),
                             ),
                         ),
-                        webpush=messaging.WebpushConfig(
-                            notification=messaging.WebpushNotification(
-                                title=f"🚨 Seizure Alert: {patient_name}",
-                                body="Patient triggered an Emergency SOS. Tap to view live location.",
-                                icon="/icon-192.png",
-                                badge="/favicon.svg",
-                                vibrate=[200, 100, 200, 100, 400],
-                                require_interaction=True,
-                            ),
-                        ),
                         token=ct.fcm_token,
                     )
                     messaging.send(msg)

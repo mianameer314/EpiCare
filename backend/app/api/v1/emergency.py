@@ -231,16 +231,6 @@ async def process_sos_in_background(event_id: int, user_id: int):
                                         channel_id="epicare-emergency",
                                     ),
                                 ),
-                                webpush=fb_messaging.WebpushConfig(
-                                    notification=fb_messaging.WebpushNotification(
-                                        title=f"🚨 Seizure Alert: {patient_name}",
-                                        body="Patient triggered an Emergency SOS. Tap to view live location.",
-                                        icon="/icon-192.png",
-                                        badge="/favicon.svg",
-                                        vibrate=[300, 100, 300, 100, 500],
-                                        require_interaction=True,
-                                    ),
-                                ),
                                 token=ct.fcm_token,
                             )
                             resp = fb_messaging.send(msg)

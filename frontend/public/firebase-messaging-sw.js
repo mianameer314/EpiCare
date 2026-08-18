@@ -13,14 +13,24 @@ const TAG = 'epicare-emergency';
 let messaging = null;
 
 function showEpicareNotification(title, body, data = {}) {
+  // Aggressive alarm-style vibration pattern: long buzz, short pause, repeat
+  // This creates a distinctive emergency feel even on lock screen
+  const ALARM_VIBRATE = [
+    500, 100, 500, 100, 500, 100,  // 3 long buzzes
+    200, 100, 200, 100, 200, 100,  // 3 short buzzes
+    500, 100, 500, 100, 500, 100,  // 3 long buzzes again
+    200, 100, 200, 100, 200, 100,  // 3 short buzzes again
+    800,                             // long final buzz
+  ];
   return self.registration.showNotification(title, {
     body,
     icon: ICON,
     badge: BADGE,
-    vibrate: [300, 100, 300, 100, 500, 200, 200, 500],
+    vibrate: ALARM_VIBRATE,
     tag: TAG,
     requireInteraction: true,
     renotify: true,
+    silent: false,
     data,
   });
 }
