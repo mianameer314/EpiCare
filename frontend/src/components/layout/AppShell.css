@@ -963,9 +963,7 @@
   .safety-pill-text {
     display: none;
   }
-}
-
-@media (max-width: 768px) {
+}@media (max-width: 768px) {
   .app-shell,
   .app-shell.sidebar-collapsed {
     grid-template-columns: minmax(0, 1fr);
@@ -980,7 +978,7 @@
   }
 
   .app-topbar-floating-dock {
-    padding: 8px var(--space-3) 8px;
+    padding: 6px 10px 6px;
   }
 
   .topbar-context-badge {
@@ -991,55 +989,82 @@
     padding: var(--space-4);
   }
 
-  /* ── Mobile Topbar: icon-only buttons so the dock never overflows ── */
+  /* ── Mobile Topbar: compact, no overflow ── */
   .app-topbar.glass-dock-pipe {
-    padding: 0 10px;
-    gap: 6px;
-    overflow-x: auto;
+    padding: 0 8px;
+    gap: 4px;
+    overflow: hidden;
   }
 
   .topbar-left,
   .topbar-right,
   .topbar-actions-cluster {
-    gap: 6px;
+    gap: 4px;
   }
 
+  /* Hide brand logo text on mobile — page header already shows it */
+  .topbar-brand-logo .brand-logo-text-group {
+    display: none !important;
+  }
+  .topbar-brand-logo .brand-logo-icon-box {
+    width: 30px;
+    height: 30px;
+  }
+
+  /* Safety pill: dot-only on mobile */
+  .topbar-safety-pill {
+    padding: 6px 8px;
+    gap: 0;
+  }
+  .safety-pill-text {
+    display: none;
+  }
+  .live-telemetry-wave {
+    display: none;
+  }
+
+  /* AI and SOS: icon-only */
   .topbar-ai-btn .ai-btn-text,
   .topbar-sos-btn .sos-btn-text {
     display: none;
   }
-
   .topbar-ai-btn,
   .topbar-sos-btn {
-    padding: 7px 10px;
+    padding: 7px 8px;
+    min-width: 0;
   }
 
+  /* User pill: avatar-only, larger tap target */
   .topbar-user-pill {
-    padding: 4px 8px 4px 4px;
+    padding: 4px;
+    min-width: 36px;
+    min-height: 36px;
+    justify-content: center;
   }
-
   .topbar-user-info {
-    display: flex;
-    max-width: 80px;
+    display: none;
   }
-
-  .topbar-user-name {
-    font-size: 10px;
-  }
-
-  .topbar-user-role {
-    font-size: 9px;
-  }
-
   .topbar-chevron {
     display: none;
   }
-
-  .topbar-safety-pill {
-    padding: 6px 10px;
+  .topbar-user-avatar {
+    width: 34px;
+    height: 34px;
+    font-size: 13px;
   }
 
-  .live-telemetry-wave {
-    display: none;
+  /* Fix dropdown positioning on mobile */
+  .topbar-profile-container {
+    position: static;
+  }
+  .user-dropdown-menu {
+    position: fixed !important;
+    top: 60px !important;
+    right: 10px !important;
+    left: 10px !important;
+    width: auto !important;
+    max-width: 280px;
+    margin: 0 auto;
+    z-index: 99999 !important;
   }
 }
