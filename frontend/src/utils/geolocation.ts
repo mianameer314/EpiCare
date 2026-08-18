@@ -1,6 +1,8 @@
 /**
- * Instant Non-Blocking Geolocation Resolver
- * Resolves immediately with cached position or fast 300ms attempt to ensure sub-second SOS triggering.
+ * Geolocation Resolver with multiple fallbacks:
+ * 1. Browser GPS (with 5s timeout)
+ * 2. Cached GPS position (up to 5 min old)
+ * 3. IP-based geolocation (free API)
  */
 
 export interface GeoLocationResult {
@@ -8,31 +10,67 @@ export interface GeoLocationResult {
   longitude: number | null;
   location_available: boolean;
   city?: string;
-  source?: 'browser_gps' | 'fallback';
+  source?: 'browser_gps' | 'ip_geolocation' | 'fallback';
+}
+
+async function tryBrowserGPS(): Promise<GeoLocationResult | null> {
+  if (typeof window === 'undefined' || !('geolocation' in navigator)) return null;
+
+  return new Promise((resolve) => {
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        if (pos?.coords?.latitude && pos?.coords?.longitude) {
+          resolve({
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+            location_available: true,
+            source: 'browser_gps',
+          });
+        } else {
+          resolve(null);
+        }
+      },
+      () => resolve(null),
+      {
+        timeout: 5000,
+        enableHighAccuracy: true,
+        maximumAge: 300000, // Use cached GPS fix up to 5 min old
+      },
+    );
+  });
+}
+
+async function tryIPGeolocation(): Promise<GeoLocationResult | null> {
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
+    const resp = await fetch('https://ipapi.co/json/', { signal: controller.signal });
+    clearTimeout(timeoutId);
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    if (data.latitude && data.longitude) {
+      return {
+        latitude: data.latitude,
+        longitude: data.longitude,
+        location_available: true,
+        city: data.city,
+        source: 'ip_geolocation',
+      };
+    }
+  } catch {
+    // IP geolocation failed
+  }
+  return null;
 }
 
 export async function getAccurateLocation(): Promise<GeoLocationResult> {
-  if (typeof window !== 'undefined' && 'geolocation' in navigator) {
-    try {
-      const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          timeout: 400, // Instant 400ms max wait
-          enableHighAccuracy: false,
-          maximumAge: 300000, // Use recent 5-min cached GPS fix if available for 0ms response
-        });
-      });
-      if (pos?.coords?.latitude && pos?.coords?.longitude) {
-        return {
-          latitude: pos.coords.latitude,
-          longitude: pos.coords.longitude,
-          location_available: true,
-          source: 'browser_gps',
-        };
-      }
-    } catch {
-      // Non-blocking fallback
-    }
-  }
+  // Try browser GPS first
+  const gpsResult = await tryBrowserGPS();
+  if (gpsResult) return gpsResult;
+
+  // Fallback to IP-based geolocation
+  const ipResult = await tryIPGeolocation();
+  if (ipResult) return ipResult;
 
   return {
     latitude: null,
