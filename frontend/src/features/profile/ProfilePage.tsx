@@ -1944,7 +1944,7 @@ export function ProfilePage() {
                     <span style={{ fontSize: 'var(--text-sm)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{doctorProfile?.pmdc_certificate_name || 'PMDC certificate not uploaded'}</span>
                     {doctorProfile?.pmdc_certificate_path && <button type="button" className="btn btn-ghost btn-sm" onClick={() => previewDoctorFile('certificate')}>View / Download</button>}
                   </div>
-                  <button type="button" className="btn btn-outline btn-sm" onClick={() => { setDoctorForm((prev) => ({ ...prev, ...(doctorProfile || {}) })); setPendingCertificateFile(null); setPendingPhotoFile(null); setRemovePendingCertificate(false); setRemovePendingPhoto(false); setIsEditingDoctor(true); setUploadError(''); }}>
+                  <button type="button" className="btn btn-outline btn-sm" onClick={() => { setDoctorForm((prev) => ({ ...prev, ...(doctorProfile || {}) })); setPendingCertificateFile(null); setRemovePendingCertificate(false); setIsEditingDoctor(true); setUploadError(''); }}>
                     <Edit3 size={13} /> Edit Doctor Profile
                   </button>
                 </div>
@@ -1984,7 +1984,7 @@ export function ProfilePage() {
                     <p style={{ margin: '4px 0 10px', fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>Choose a replacement, remove the current certificate, then click Save.</p>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                       <label className="btn btn-outline btn-sm" htmlFor="doctor-certificate-upload"><Upload size={13} /> {pendingCertificateFile ? 'Replace Selected Certificate' : 'Choose Certificate'}</label>
-                      <input id="doctor-certificate-upload" type="file" accept="application/pdf,image/jpeg,image/png,image/webp" hidden onChange={(e) => { const file = e.target.files?.[0]; if (file) stageDoctorFile('certificate', file); e.currentTarget.value = ''; }} />
+                      <input id="doctor-certificate-upload" type="file" accept="application/pdf,image/jpeg,image/png,image/webp" hidden onChange={(e) => { const file = e.target.files?.[0]; if (file) stageDoctorCertificate(file); e.currentTarget.value = ''; }} />
                       {(pendingCertificateFile || doctorProfile?.pmdc_certificate_path) && !removePendingCertificate && <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setPendingCertificateFile(null); setRemovePendingCertificate(Boolean(doctorProfile?.pmdc_certificate_path)); setUploadError(''); }}><X size={13} /> Remove</button>}
                       {removePendingCertificate && <button type="button" className="btn btn-ghost btn-sm" onClick={() => setRemovePendingCertificate(false)}>Undo remove</button>}
                     </div>
@@ -1996,7 +1996,7 @@ export function ProfilePage() {
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-2)', marginTop: 'var(--space-2)' }}>
-                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setDoctorForm((prev) => ({ ...prev, ...(doctorProfile || {}) })); setPendingCertificateFile(null); setPendingPhotoFile(null); setRemovePendingCertificate(false); setRemovePendingPhoto(false); setIsEditingDoctor(false); setProfileError(''); setUploadError(''); }}>Cancel</button>
+                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setDoctorForm((prev) => ({ ...prev, ...(doctorProfile || {}) })); setPendingCertificateFile(null); setRemovePendingCertificate(false); setIsEditingDoctor(false); setProfileError(''); setUploadError(''); }}>Cancel</button>
                   <button type="submit" className="btn btn-primary btn-sm" disabled={saveDoctorMutation.isPending || !isDoctorDirty} style={{ opacity: !isDoctorDirty && !saveDoctorMutation.isPending ? 0.5 : 1 }}>
                     {saveDoctorMutation.isPending ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />} Save Doctor Profile
                   </button>
