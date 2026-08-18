@@ -87,6 +87,8 @@ function detectLocalTimezone(): string {
 
 type SelectorOption = { value: string; label: string };
 
+
+
 interface NeumorphicMultiSelectProps {
   id: string;
   label: string;
@@ -340,7 +342,7 @@ function computeProfileCompletion(
     addDoctorField(Boolean(doctor?.pmdc_number?.trim()), 'doc_pmdc', 'PMDC License Number');
     addDoctorField(Boolean(doctor?.specialty?.trim()), 'doc_spec', 'Clinical Specialty');
     addDoctorField(Boolean(doctor?.hospital_affiliation?.trim()), 'doc_hosp', 'Hospital / Clinic Affiliation');
-    addDoctorField(Boolean(doctor?.profile_photo_path?.trim()), 'doc_photo', 'Profile Photo');
+    addDoctorField(Boolean(doctor?.profile_photo_path?.trim() || user?.profile_photo_path?.trim()), 'acc_photo', 'Profile Photo');
     addDoctorField(Boolean(doctor?.pmdc_certificate_path?.trim() || doctor?.license_image_url?.trim()), 'doc_certificate', 'PMDC Verification Certificate');
     addDoctorField(doctor?.years_of_experience !== undefined && doctor?.years_of_experience !== null, 'doc_exp', 'Years of Experience');
     addDoctorField(doctor?.consultation_fee !== undefined && doctor?.consultation_fee !== null && String(doctor.consultation_fee).trim() !== '', 'doc_fee', 'Consultation Fee');
@@ -364,7 +366,7 @@ function computeProfileCompletion(
 }
 
 export function ProfilePage() {
-  const { user } = useAuth();
+  const { user, setUser } = useAuth();
   const queryClient = useQueryClient();
 
   // Password state
@@ -428,9 +430,7 @@ export function ProfilePage() {
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
   const [isPhotoViewerOpen, setIsPhotoViewerOpen] = useState(false);
   const [pendingCertificateFile, setPendingCertificateFile] = useState<File | null>(null);
-  const [pendingPhotoFile, setPendingPhotoFile] = useState<File | null>(null);
   const [removePendingCertificate, setRemovePendingCertificate] = useState(false);
-  const [removePendingPhoto, setRemovePendingPhoto] = useState(false);
   const [uploadError, setUploadError] = useState('');
 
   useEffect(() => {
@@ -450,6 +450,12 @@ export function ProfilePage() {
   });
   const [bioSuccess, setBioSuccess] = useState('');
   const [bioError, setBioError] = useState('');
+  const [sharedPhotoPreviewUrl, setSharedPhotoPreviewUrl] = useState<string | null>(null);
+  const [doctorAccountPhotoPreviewUrl, setDoctorAccountPhotoPreviewUrl] = useState<string | null>(null);
+  const [pendingSharedPhotoPreviewUrl, setPendingSharedPhotoPreviewUrl] = useState<string | null>(null);
+  const [pendingSharedPhotoFile, setPendingSharedPhotoFile] = useState<File | null>(null);
+  const [removePendingSharedPhoto, setRemovePendingSharedPhoto] = useState(false);
+  const [sharedPhotoError, setSharedPhotoError] = useState('');
 
   useEffect(() => {
     if (user) {
@@ -460,16 +466,95 @@ export function ProfilePage() {
     }
   }, [user]);
 
+  useEffect(() => {
+    let active = true;
+    let objectUrl: string | null = null;
+    if (!user?.profile_photo_path) {
+      setSharedPhotoPreviewUrl(null);
+      return;
+    }
+    apiClient.getBlob('/users/me/profile-photo').then((blob) => {
+      if (!active) return;
+      objectUrl = URL.createObjectURL(blob);
+      setSharedPhotoPreviewUrl(objectUrl);
+    }).catch(() => {
+      if (active) setSharedPhotoPreviewUrl(null);
+    });
+    return () => {
+      active = false;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [user?.profile_photo_path]);
+
+  useEffect(() => {
+    let active = true;
+    let objectUrl: string | null = null;
+    if (user?.role !== 'DOCTOR') {
+      setDoctorAccountPhotoPreviewUrl(null);
+      return;
+    }
+    apiClient.getBlob('/users/me/doctor-profile/photo').then((blob) => {
+      if (!active) return;
+      objectUrl = URL.createObjectURL(blob);
+      setDoctorAccountPhotoPreviewUrl(objectUrl);
+    }).catch(() => {
+      if (active) setDoctorAccountPhotoPreviewUrl(null);
+    });
+    return () => {
+      active = false;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [user?.role]);
+
+  const stageSharedProfilePhoto = (file: File) => {
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      setSharedPhotoError('Profile photo must be JPG, PNG, or WEBP.');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setSharedPhotoError('Profile photo must be smaller than 5 MB.');
+      return;
+    }
+    setSharedPhotoError('');
+    if (pendingSharedPhotoPreviewUrl) URL.revokeObjectURL(pendingSharedPhotoPreviewUrl);
+    setPendingSharedPhotoPreviewUrl(URL.createObjectURL(file));
+    setPendingSharedPhotoFile(file);
+    setRemovePendingSharedPhoto(false);
+  };
+
   const updateBioMutation = useMutation({
-    mutationFn: (data: { full_name?: string; phone_number?: string }) => authApi.updateProfile(data),
-    onSuccess: () => {
+    mutationFn: async (payload: {
+      data: { full_name?: string; phone_number?: string };
+      photo?: File | null;
+      removePhoto?: boolean;
+      removeLegacyDoctorPhoto?: boolean;
+    }) => {
+      let nextUser = await authApi.updateProfile(payload.data);
+      if (payload.removePhoto) {
+        await authApi.removeProfilePhoto();
+        nextUser = await authApi.getMe();
+      }
+      if (payload.photo) nextUser = await authApi.uploadProfilePhoto(payload.photo);
+      if (payload.removeLegacyDoctorPhoto) await usersApi.removeDoctorPhoto();
+      return nextUser;
+    },
+    onSuccess: (nextUser) => {
+      setUser(nextUser);
       queryClient.invalidateQueries({ queryKey: ['auth', 'me'] });
-      setBioSuccess('Account profile updated successfully!');
+      queryClient.invalidateQueries({ queryKey: ['profile', 'doctor'] });
+      if (pendingSharedPhotoPreviewUrl) URL.revokeObjectURL(pendingSharedPhotoPreviewUrl);
+      setPendingSharedPhotoPreviewUrl(null);
+      setPendingSharedPhotoFile(null);
+      setRemovePendingSharedPhoto(false);
+      setSharedPhotoError('');
+      setBioSuccess('Account profile and photo updated successfully!');
       setIsEditingBio(false);
       setTimeout(() => setBioSuccess(''), 4000);
     },
     onError: (err: any) => {
       setBioError(err?.response?.data?.detail || 'Failed to update account information');
+      setSharedPhotoError(err?.message || 'Failed to save profile photo.');
     },
   });
 
@@ -477,9 +562,11 @@ export function ProfilePage() {
     if (!user) return false;
     return (
       bioForm.full_name.trim() !== (user.full_name || '') ||
-      bioForm.phone_number.trim() !== (user.phone_number || '')
+      bioForm.phone_number.trim() !== (user.phone_number || '') ||
+      Boolean(pendingSharedPhotoFile) ||
+      removePendingSharedPhoto
     );
-  }, [user, bioForm]);
+  }, [user, bioForm, pendingSharedPhotoFile, removePendingSharedPhoto]);
 
   const handleBioSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -489,8 +576,13 @@ export function ProfilePage() {
       return;
     }
     updateBioMutation.mutate({
-      full_name: bioForm.full_name.trim(),
-      phone_number: bioForm.phone_number.trim(),
+      data: {
+        full_name: bioForm.full_name.trim(),
+        phone_number: bioForm.phone_number.trim(),
+      },
+      photo: pendingSharedPhotoFile,
+      removePhoto: removePendingSharedPhoto && !pendingSharedPhotoFile && Boolean(user?.profile_photo_path),
+      removeLegacyDoctorPhoto: removePendingSharedPhoto && !pendingSharedPhotoFile && user?.role === 'DOCTOR' && !user?.profile_photo_path && Boolean(doctorAccountPhotoPreviewUrl),
     });
   };
 
@@ -633,11 +725,9 @@ export function ProfilePage() {
       !sameList(doctorProfile.languages_spoken, doctorForm.languages_spoken) ||
       !sameList(doctorProfile.consultation_types, doctorForm.consultation_types) ||
       Boolean(pendingCertificateFile) ||
-      Boolean(pendingPhotoFile) ||
-      removePendingCertificate ||
-      removePendingPhoto
+      removePendingCertificate
     );
-  }, [doctorProfile, doctorForm, pendingCertificateFile, pendingPhotoFile, removePendingCertificate, removePendingPhoto]);
+  }, [doctorProfile, doctorForm, pendingCertificateFile, removePendingCertificate]);
 
   // Check if Caretaker form has unsaved modifications
   const isCaretakerDirty = useMemo(() => {
@@ -805,37 +895,20 @@ export function ProfilePage() {
     mutationFn: async (payload: {
       data: Partial<DoctorProfileData>;
       certificate?: File | null;
-      photo?: File | null;
       removeCertificate?: boolean;
-      removePhoto?: boolean;
     }) => {
       let profile = await usersApi.updateDoctorProfile(payload.data);
       if (payload.removeCertificate) await usersApi.removeDoctorCertificate();
-      if (payload.removePhoto) await usersApi.removeDoctorPhoto();
-      if (payload.removeCertificate || payload.removePhoto) profile = await usersApi.getDoctorProfile();
+      if (payload.removeCertificate) profile = await usersApi.getDoctorProfile();
       if (payload.certificate) profile = await usersApi.uploadDoctorCertificate(payload.certificate);
-      if (payload.photo) profile = await usersApi.uploadDoctorPhoto(payload.photo);
       return profile;
     },
     onSuccess: (profile) => {
       queryClient.setQueryData(['profile', 'doctor'], profile);
       queryClient.invalidateQueries({ queryKey: ['profile', 'doctor'] });
       setDoctorForm((prev) => ({ ...prev, ...profile }));
-      if (profile.profile_photo_path) {
-        apiClient.getBlob('/users/me/doctor-profile/photo').then((blob) => {
-          if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl);
-          setPhotoPreviewUrl(URL.createObjectURL(blob));
-          setIsPhotoViewerOpen(false);
-        }).catch(() => undefined);
-      } else if (photoPreviewUrl) {
-        URL.revokeObjectURL(photoPreviewUrl);
-        setPhotoPreviewUrl(null);
-        setIsPhotoViewerOpen(false);
-      }
       setPendingCertificateFile(null);
-      setPendingPhotoFile(null);
       setRemovePendingCertificate(false);
-      setRemovePendingPhoto(false);
       setProfileSuccess('Doctor profile and uploaded files saved successfully.');
       setProfileError('');
       setUploadError('');
@@ -846,28 +919,19 @@ export function ProfilePage() {
     onError: (err: any) => setUploadError(err?.message || 'Unable to save the doctor profile and files.'),
   });
 
-  const stageDoctorFile = (kind: 'certificate' | 'photo', file: File) => {
-    const isPhoto = kind === 'photo';
-    const allowedTypes = isPhoto
-      ? ['image/jpeg', 'image/png', 'image/webp']
-      : ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
-    const maxBytes = (isPhoto ? 5 : 10) * 1024 * 1024;
+  const stageDoctorCertificate = (file: File) => {
+    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
     if (!allowedTypes.includes(file.type)) {
-      setUploadError(isPhoto ? 'Profile photo must be JPG, PNG, or WEBP.' : 'Certificate must be PDF, JPG, PNG, or WEBP.');
+      setUploadError('Certificate must be PDF, JPG, PNG, or WEBP.');
       return;
     }
-    if (file.size > maxBytes) {
-      setUploadError(`${isPhoto ? 'Profile photo' : 'Certificate'} must be smaller than ${isPhoto ? 5 : 10} MB.`);
+    if (file.size > 10 * 1024 * 1024) {
+      setUploadError('Certificate must be smaller than 10 MB.');
       return;
     }
     setUploadError('');
-    if (isPhoto) {
-      setPendingPhotoFile(file);
-      setRemovePendingPhoto(false);
-    } else {
-      setPendingCertificateFile(file);
-      setRemovePendingCertificate(false);
-    }
+    setPendingCertificateFile(file);
+    setRemovePendingCertificate(false);
   };
 
   const previewDoctorFile = async (kind: 'certificate' | 'photo') => {
@@ -998,9 +1062,7 @@ export function ProfilePage() {
         consultation_types: doctorForm.consultation_types || [],
       },
       certificate: pendingCertificateFile,
-      photo: pendingPhotoFile,
       removeCertificate: removePendingCertificate && !pendingCertificateFile,
-      removePhoto: removePendingPhoto && !pendingPhotoFile,
     });
   };
 
@@ -1093,6 +1155,8 @@ export function ProfilePage() {
     }
     setCustomTriggerInput('');
   };
+
+  const accountPhotoUrl = pendingSharedPhotoPreviewUrl || sharedPhotoPreviewUrl || doctorAccountPhotoPreviewUrl;
 
   const photoViewerPortal = isPhotoViewerOpen && photoPreviewUrl && typeof document !== 'undefined'
     ? createPortal(
@@ -1297,6 +1361,17 @@ export function ProfilePage() {
                 </div>
               </div>
 
+              <div id="acc_photo" className="account-photo-summary-row">
+                <button type="button" className="account-photo-summary-avatar" aria-label="Open or change account photo" onClick={() => { if (accountPhotoUrl) { setPhotoPreviewUrl(accountPhotoUrl); setIsPhotoViewerOpen(true); } else { setBioForm({ full_name: user?.full_name || '', phone_number: user?.phone_number || '' }); setIsEditingBio(true); } }}>
+                  {accountPhotoUrl ? <img src={accountPhotoUrl} alt="Account profile" /> : (user?.full_name || 'U').charAt(0).toUpperCase()}
+                </button>
+                <div className="account-photo-summary-copy">
+                  <div className="profile-field-label">Account photo</div>
+                  <div className="profile-muted-value">{accountPhotoUrl ? 'Click the image to view it full screen.' : 'No photo uploaded yet.'}</div>
+                </div>
+                <button type="button" className="btn btn-outline btn-sm" onClick={() => { setBioForm({ full_name: user?.full_name || '', phone_number: user?.phone_number || '' }); setIsEditingBio(true); }}><Camera size={13} /> {accountPhotoUrl ? 'Change photo' : 'Upload photo'}</button>
+              </div>
+
               <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 'var(--space-4)', borderTop: '1px solid rgba(45, 90, 63, 0.08)', paddingTop: 'var(--space-3)' }}>
                 <button
                   type="button"
@@ -1346,6 +1421,35 @@ export function ProfilePage() {
                 />
               </div>
 
+              <div id="acc_photo" className="shared-profile-photo-editor">
+                <div className="shared-profile-photo-preview-column">
+                  <div className="shared-profile-photo-preview">
+                    {removePendingSharedPhoto ? (
+                      <div className="shared-profile-photo-placeholder">{(user?.full_name || 'U').charAt(0).toUpperCase()}</div>
+                    ) : accountPhotoUrl ? (
+                      <img
+                        src={accountPhotoUrl || ''}
+                        alt="Profile preview"
+                      />
+                    ) : (
+                      <div className="shared-profile-photo-placeholder">{(user?.full_name || 'U').charAt(0).toUpperCase()}</div>
+                    )}
+                  </div>
+
+                </div>
+                <div className="shared-profile-photo-actions">
+                  <div className="profile-field-label">Account photo</div>
+                  <div className="profile-muted-value">JPG, PNG, or WEBP up to 5 MB. Changes save with this account form.</div>
+                  <div className="shared-profile-photo-buttons">
+                    <label className="btn btn-outline btn-sm" htmlFor="shared-profile-photo-upload"><Camera size={13} /> Choose photo</label>
+                    <input id="shared-profile-photo-upload" type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={(event) => { const file = event.target.files?.[0]; if (file) stageSharedProfilePhoto(file); event.currentTarget.value = ''; }} />
+                    {(pendingSharedPhotoFile || user?.profile_photo_path || (user?.role === 'DOCTOR' && doctorAccountPhotoPreviewUrl)) && !removePendingSharedPhoto && <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setPendingSharedPhotoFile(null); if (pendingSharedPhotoPreviewUrl) URL.revokeObjectURL(pendingSharedPhotoPreviewUrl); setPendingSharedPhotoPreviewUrl(null); setRemovePendingSharedPhoto(Boolean(user?.profile_photo_path || doctorAccountPhotoPreviewUrl)); setSharedPhotoError(''); }}><X size={13} /> Remove</button>}
+                    {removePendingSharedPhoto && <button type="button" className="btn btn-ghost btn-sm" onClick={() => setRemovePendingSharedPhoto(false)}>Undo remove</button>}
+                  </div>
+                  {sharedPhotoError && <div className="profile-range-error">{sharedPhotoError}</div>}
+                </div>
+              </div>
+
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-2)', marginTop: 'var(--space-2)' }}>
                 <button
                   type="button"
@@ -1355,8 +1459,13 @@ export function ProfilePage() {
                       full_name: user?.full_name || '',
                       phone_number: user?.phone_number || '',
                     });
+                    setPendingSharedPhotoFile(null);
+                    if (pendingSharedPhotoPreviewUrl) URL.revokeObjectURL(pendingSharedPhotoPreviewUrl);
+                    setPendingSharedPhotoPreviewUrl(null);
+                    setRemovePendingSharedPhoto(false);
                     setIsEditingBio(false);
                     setBioError('');
+                    setSharedPhotoError('');
                   }}
                 >
                   Cancel
@@ -1809,20 +1918,7 @@ export function ProfilePage() {
 
             {!isEditingDoctor ? (
               <div>
-                <div className="doctor-summary-primary">
-                  <div className="doctor-photo-summary">
-                    {doctorProfile?.profile_photo_path ? (
-                      <button type="button" className="doctor-photo-trigger" onClick={() => previewDoctorFile('photo')} aria-label="Open full profile photo">
-                        {photoPreviewUrl ? <img src={photoPreviewUrl} alt="Doctor profile" /> : <div className="doctor-photo-placeholder">{(user?.full_name || 'D').charAt(0).toUpperCase()}</div>}
-                      </button>
-                    ) : (
-                      <div className="doctor-photo-placeholder">{(user?.full_name || 'D').charAt(0).toUpperCase()}</div>
-                    )}
-                    <div>
-                      <div className="profile-field-label">Profile Photo</div>
-                      {!doctorProfile?.profile_photo_path && <span className="profile-muted-value">Not uploaded</span>}
-                    </div>
-                  </div>
+                                <div className="doctor-summary-primary">
                   <div><div className="profile-field-label">PMDC License Number</div><div className="profile-field-value">{doctorProfile?.pmdc_number || 'PMDC-PENDING'}</div></div>
                   <div><div className="profile-field-label">Clinical Specialty</div><div className="profile-field-value">{doctorProfile?.specialty || 'Not provided'}</div></div>
                   <div><div className="profile-field-label">Hospital / Clinic Affiliation</div><div className="profile-field-value">{doctorProfile?.hospital_affiliation || 'Not provided'}</div></div>
@@ -1882,20 +1978,7 @@ export function ProfilePage() {
                 <Input id="doc_bio" label="Professional Bio" placeholder="Tell patients about your clinical experience and approach." value={doctorForm.bio || ''} onChange={(e) => setDoctorForm(p => ({ ...p, bio: e.target.value }))} />
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 'var(--space-4)' }}>
-                  <div id="doc_photo" className="profile-upload-box">
-                    <div className="profile-field-label">Profile Photo</div>
-                    <p style={{ margin: '4px 0 10px', fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>Choose a replacement, remove the current photo, then click Save.</p>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                      <label className="btn btn-outline btn-sm" htmlFor="doctor-photo-upload"><Camera size={13} /> {pendingPhotoFile ? 'Replace Selected Photo' : 'Choose Photo'}</label>
-                      <input id="doctor-photo-upload" type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={(e) => { const file = e.target.files?.[0]; if (file) stageDoctorFile('photo', file); e.currentTarget.value = ''; }} />
-                      {(pendingPhotoFile || doctorProfile?.profile_photo_path) && !removePendingPhoto && <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setPendingPhotoFile(null); setRemovePendingPhoto(Boolean(doctorProfile?.profile_photo_path)); setUploadError(''); }}><X size={13} /> Remove</button>}
-                      {removePendingPhoto && <button type="button" className="btn btn-ghost btn-sm" onClick={() => setRemovePendingPhoto(false)}>Undo remove</button>}
-                    </div>
-                    <span style={{ display: 'block', marginTop: 8, fontSize: 'var(--text-xs)', color: removePendingPhoto ? 'var(--color-error)' : 'var(--color-text-muted)' }}>
-                      {removePendingPhoto ? 'Photo will be deleted when you save.' : pendingPhotoFile ? `${pendingPhotoFile.name} — waiting for Save` : doctorProfile?.profile_photo_path ? 'Current photo uploaded' : 'No photo selected'}
-                    </span>
-                    {doctorProfile?.profile_photo_path && !removePendingPhoto && <button type="button" className="btn btn-ghost btn-sm" onClick={() => previewDoctorFile('photo')}><Camera size={13} /> View current photo</button>}
-                  </div>
+                  
                   <div id="doc_certificate" className="profile-upload-box">
                     <div className="profile-field-label">PMDC Certificate</div>
                     <p style={{ margin: '4px 0 10px', fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>Choose a replacement, remove the current certificate, then click Save.</p>

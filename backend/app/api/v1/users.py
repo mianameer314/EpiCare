@@ -5,7 +5,9 @@ from pydantic import BaseModel
 from fastapi import APIRouter, File, HTTPException, UploadFile, Response, status
 
 from app.api.deps import CurrentUser, DbDep
+from app.schemas.user import UserOut
 from app.schemas.profiles import (
+
     PatientProfileOut,
     PatientProfileUpdate,
     DoctorProfileOut,
@@ -21,6 +23,65 @@ from app.services.storage.validator import validate_doctor_upload
 
 # Removed global tags so we can specify them per role
 router = APIRouter(prefix="/users")
+
+
+@router.post(
+    "/me/profile-photo",
+    response_model=UserOut,
+    tags=["👤 Shared - Profile Photo"],
+    summary="Upload shared profile photo",
+)
+async def upload_my_profile_photo(current_user: CurrentUser, db: DbDep, file: UploadFile = File(...)):
+    data, filename, content_type = await validate_doctor_upload(file, photo=True)
+    storage = get_storage_service()
+    old_key = current_user.profile_photo_path
+    new_key = storage.save_user_photo(data, filename)
+    current_user.profile_photo_path = new_key
+    current_user.profile_photo_mime_type = content_type
+    try:
+        await db.commit()
+        await db.refresh(current_user)
+        storage.clear_pending()
+    except Exception:
+        await db.rollback()
+        storage.rollback_uploads()
+        raise
+    if old_key and old_key.startswith("user-profile/"):
+        storage.delete(old_key)
+    return current_user
+
+
+@router.get(
+    "/me/profile-photo",
+    tags=["👤 Shared - Profile Photo"],
+    summary="View shared profile photo",
+)
+async def view_my_profile_photo(current_user: CurrentUser):
+    if not current_user.profile_photo_path:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Profile photo not found")
+    storage = get_storage_service()
+    if not storage.exists(current_user.profile_photo_path):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Stored profile photo not found")
+    return Response(content=storage.read(current_user.profile_photo_path), media_type=current_user.profile_photo_mime_type or "image/jpeg")
+
+
+@router.delete(
+    "/me/profile-photo",
+    status_code=status.HTTP_204_NO_CONTENT,
+    tags=["👤 Shared - Profile Photo"],
+    summary="Delete shared profile photo",
+)
+async def delete_my_profile_photo(current_user: CurrentUser, db: DbDep):
+    if not current_user.profile_photo_path:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Profile photo not found")
+    old_key = current_user.profile_photo_path
+    current_user.profile_photo_path = None
+    current_user.profile_photo_mime_type = None
+    await db.commit()
+    storage = get_storage_service()
+    if old_key.startswith("user-profile/"):
+        storage.delete(old_key)
+    return None
 
 
 # ------------------------------------------------------------------

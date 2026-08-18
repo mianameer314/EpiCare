@@ -3,6 +3,8 @@ export interface User {
   email: string;
   phone_number: string | null;
   full_name: string;
+  profile_photo_path?: string | null;
+  profile_photo_mime_type?: string | null;
   role: 'PATIENT' | 'DOCTOR' | 'CARETAKER' | 'ADMIN';
   is_active: boolean;
   is_email_verified: boolean;

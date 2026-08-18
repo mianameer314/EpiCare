@@ -36,6 +36,13 @@ class StorageService:
         self._pending.append(key)
         return key
 
+    def save_user_photo(self, data: bytes, filename: str) -> str:
+        """Save a shared profile photo for any authenticated role."""
+        key = generate_storage_key("user-profile/photos", filename)
+        self.provider.save(data, key)
+        self._pending.append(key)
+        return key
+
     def save_eeg(self, file: UploadFile, data: bytes) -> tuple[str, str]:
         """Save an EEG upload; returns (storage_key, sha256_hash)."""
         filename = sanitize_filename(file.filename or "eeg")
