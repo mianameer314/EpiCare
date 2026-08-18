@@ -55,7 +55,7 @@ export function PatientCareNetwork() {
   const [carePage, setCarePage] = useState(1);
   const [caretakerEmail, setCaretakerEmail] = useState('');
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
-  const [docToDisconnect, setDocToDisconnect] = useState<{ id: number; name: string; isRevoking?: boolean } | null>(null);
+  const [docToDisconnect, setDocToDisconnect] = useState<{ id: number; name: string; action: 'revoke' | 'cancel' | 'remove' } | null>(null);
   const [careToDisconnect, setCareToDisconnect] = useState<{ id: number; name: string } | null>(null);
   const [actionSuccess, setActionSuccess] = useState('');
   const [actionError, setActionError] = useState('');
@@ -131,10 +131,10 @@ export function PatientCareNetwork() {
   });
 
   const disconnectDoctorMutation = useMutation({
-    mutationFn: (connectionId: number) => connectionsApi.disconnectDoctor(connectionId),
-    onSuccess: () => {
+    mutationFn: ({ connectionId }: { connectionId: number; action: 'revoke' | 'cancel' | 'remove' }) => connectionsApi.disconnectDoctor(connectionId),
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['connections', 'patient-doctors'] });
-      showSuccess('Doctor disconnected.');
+      showSuccess(variables.action === 'remove' ? 'Doctor removed from connection history.' : variables.action === 'cancel' ? 'Pending doctor request cancelled.' : 'Doctor clinical access revoked.');
     },
   });
 
@@ -588,7 +588,7 @@ export function PatientCareNetwork() {
                           </span>
                           <button
                             className="btn btn-outline btn-sm"
-                            onClick={() => setDocToDisconnect({ id: doc.connection_id, name: formatDoctorName(doc.doctor?.full_name), isRevoking: true })}
+                            onClick={() => setDocToDisconnect({ id: doc.connection_id, name: formatDoctorName(doc.doctor?.full_name), action: 'revoke' })}
                             style={{ color: '#dc2626', borderColor: '#fecaca', fontSize: '11px', padding: '4px 8px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                             title="Revoke doctor clinical access"
                           >
@@ -617,7 +617,7 @@ export function PatientCareNetwork() {
                           </span>
                           <button
                             className="btn btn-outline btn-sm"
-                            onClick={() => setDocToDisconnect({ id: doc.connection_id, name: formatDoctorName(doc.doctor?.full_name), isRevoking: false })}
+                            onClick={() => setDocToDisconnect({ id: doc.connection_id, name: formatDoctorName(doc.doctor?.full_name), action: doc.relationship_status === 'REVOKED' ? 'remove' : 'cancel' })}
                             style={{ color: '#64748b', borderColor: '#e2e8f0', fontSize: '11px', padding: '4px 8px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                             title="Cancel pending request"
                           >
@@ -657,7 +657,7 @@ export function PatientCareNetwork() {
                           </button>
                           <button
                             className="btn-delete-hover"
-                            onClick={() => setDocToDisconnect({ id: doc.connection_id, name: formatDoctorName(doc.doctor?.full_name), isRevoking: false })}
+                            onClick={() => setDocToDisconnect({ id: doc.connection_id, name: formatDoctorName(doc.doctor?.full_name), action: doc.relationship_status === 'REVOKED' ? 'remove' : 'cancel' })}
                             title="Remove from history"
                           >
                             <Trash2 size={15} />
@@ -886,19 +886,21 @@ export function PatientCareNetwork() {
       {/* ── Disconnect Doctor Confirmation Dialog ── */}
       <ConfirmDialog
         isOpen={docToDisconnect !== null}
-        title={docToDisconnect?.isRevoking ? "Revoke Physician Clinical Access?" : "Remove Physician Connection?"}
+        title={docToDisconnect?.action === 'revoke' ? "Revoke Physician Clinical Access?" : docToDisconnect?.action === 'remove' ? "Remove Revoked Physician From History?" : "Cancel Connection Request?"}
         description={
-          docToDisconnect?.isRevoking
-            ? `Are you sure you want to revoke clinical access for ${docToDisconnect?.name}? They will no longer be able to review your EEG spectrograms or prescribe antiepileptic regimens.`
-            : `Are you sure you want to remove ${docToDisconnect?.name} from your care network records?`
+          docToDisconnect?.action === 'revoke'
+            ? `Are you sure you want to revoke clinical access for ${docToDisconnect?.name}? The connection will remain visible as revoked history.`
+            : docToDisconnect?.action === 'remove'
+            ? `This physician is already revoked. Remove ${docToDisconnect?.name} permanently from your connection history? This cannot be undone.`
+            : `Cancel the pending connection request for ${docToDisconnect?.name}?`
         }
-        confirmText={docToDisconnect?.isRevoking ? "Yes, Revoke Access" : "Yes, Remove"}
+        confirmText={docToDisconnect?.action === 'revoke' ? "Yes, Revoke Access" : docToDisconnect?.action === 'remove' ? "Yes, Remove From History" : "Yes, Cancel Request"}
         cancelText="Cancel"
         variant="warning"
         isLoading={disconnectDoctorMutation.isPending}
         onConfirm={() => {
           if (docToDisconnect) {
-            disconnectDoctorMutation.mutate(docToDisconnect.id);
+            disconnectDoctorMutation.mutate({ connectionId: docToDisconnect.id, action: docToDisconnect.action });
             setDocToDisconnect(null);
           }
         }}

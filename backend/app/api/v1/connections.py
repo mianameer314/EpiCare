@@ -434,6 +434,12 @@ async def revoke_doctor_connection(
     if not connection:
         raise HTTPException(status_code=404, detail="Connection not found")
         
+    # The first delete/revoke keeps the connection visible as history. A patient
+    # deleting an already-revoked row explicitly removes that historical record.
+    if current_user.role == UserRole.PATIENT and connection.relationship_status == ConnectionStatus.REVOKED:
+        await db.delete(connection)
+        await db.commit()
+        return None
     connection.relationship_status = ConnectionStatus.REVOKED
     await db.commit()
     return None
