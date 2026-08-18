@@ -28,6 +28,7 @@ import { Select } from '../../components/ui/Select';
 import { useAuth } from '../../hooks/useAuth';
 import { getAccurateLocation } from '../../utils/geolocation';
 import { NotificationPermissionBanner } from '../../components/shared/NotificationPermissionBanner';
+import { TestPushButton } from '../../components/shared/TestPushButton';
 import './CaretakerWorkspace.css';
 
 /* ────────────────────────────────────────────────────
@@ -324,6 +325,9 @@ export function CaretakerWorkspace() {
 
       {/* ── Push Notification Permission Prompt ── */}
       <NotificationPermissionBanner />
+
+      {/* ── Test Push Button ── */}
+      <TestPushButton />
 
       {/* ── Real-Time Live Emergency SOS Banner ── */}
       {activeEmergencyAlert && (

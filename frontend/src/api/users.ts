@@ -59,4 +59,8 @@ export const usersApi = {
 
   updateCaretakerProfile: (data: CaretakerProfileData) =>
     apiClient.put<CaretakerProfileData>('/users/me/caretaker-profile', data),
+
+  // Test Push Notification
+  testPush: () =>
+    apiClient.post<{ success: boolean; message: string }>('/users/me/test-push'),
 };
