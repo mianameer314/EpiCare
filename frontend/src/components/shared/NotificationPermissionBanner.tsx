@@ -19,15 +19,26 @@ import './NotificationPermissionBanner.css';
  *  4. Can be dismissed; won't show again for 24 hours.
  */
 const DISMISS_KEY = 'epicare_push_dismissed_until';
+const ENABLED_KEY = 'epicare_push_enabled';
 
 export function NotificationPermissionBanner() {
   const [visible, setVisible] = useState(false);
   const [enabling, setEnabling] = useState(false);
-  const [done, setDone] = useState(false);
 
   useEffect(() => {
     // Don't show if browser doesn't support push
     if (typeof window === 'undefined' || !('Notification' in window) || !('serviceWorker' in navigator)) {
+      return;
+    }
+
+    // Don't show if push was already enabled on this device
+    if (localStorage.getItem(ENABLED_KEY) === 'true') {
+      return;
+    }
+
+    // If permission is already granted, mark as enabled and skip
+    if (Notification.permission === 'granted') {
+      localStorage.setItem(ENABLED_KEY, 'true');
       return;
     }
 
@@ -40,13 +51,17 @@ export function NotificationPermissionBanner() {
     setVisible(true);
   }, []);
 
+  const markEnabled = () => {
+    localStorage.setItem(ENABLED_KEY, 'true');
+    setVisible(false);
+  };
+
   const handleEnable = async () => {
     setEnabling(true);
     try {
       const token = await requestPushNotificationPermission();
       if (token) {
-        setDone(true);
-        setVisible(false);
+        markEnabled();
       } else {
         // Token failed — but permission might be granted already.
         // Try to get token directly and register it.
@@ -54,8 +69,7 @@ export function NotificationPermissionBanner() {
         const directToken = await getFcmToken();
         if (directToken && localStorage.getItem('access_token')) {
           await registerFcmDeviceToken(directToken);
-          setDone(true);
-          setVisible(false);
+          markEnabled();
         } else {
           setEnabling(false);
         }
@@ -71,7 +85,7 @@ export function NotificationPermissionBanner() {
     setVisible(false);
   };
 
-  if (!visible || done) return null;
+  if (!visible) return null;
 
   return (
     <div className="notif-banner" role="alert">
