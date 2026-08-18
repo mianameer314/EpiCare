@@ -189,7 +189,7 @@ async def process_sos_in_background(event_id: int, user_id: int):
 
             # 5. Dispatch alerts via SOS Provider
             provider = get_sos_provider()
-            logger.info(f"[SOS] Using provider: {type(provider).__name}")
+            logger.info(f"[SOS] Using provider: {type(provider).__name__}")
             if hasattr(provider, "send_sos_extended"):
                 delivery_results = await provider.send_sos_extended(
                     contacts=contacts,
