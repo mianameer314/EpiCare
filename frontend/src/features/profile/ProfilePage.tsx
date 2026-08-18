@@ -397,6 +397,7 @@ export function ProfilePage() {
   const [isEditingDoctor, setIsEditingDoctor] = useState(false);
   const [certificatePreviewUrl, setCertificatePreviewUrl] = useState<string | null>(null);
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
+  const [isPhotoViewerOpen, setIsPhotoViewerOpen] = useState(false);
   const [pendingCertificateFile, setPendingCertificateFile] = useState<File | null>(null);
   const [pendingPhotoFile, setPendingPhotoFile] = useState<File | null>(null);
   const [removePendingCertificate, setRemovePendingCertificate] = useState(false);
@@ -782,6 +783,17 @@ export function ProfilePage() {
       queryClient.setQueryData(['profile', 'doctor'], profile);
       queryClient.invalidateQueries({ queryKey: ['profile', 'doctor'] });
       setDoctorForm((prev) => ({ ...prev, ...profile }));
+      if (profile.profile_photo_path) {
+        apiClient.getBlob('/users/me/doctor-profile/photo').then((blob) => {
+          if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl);
+          setPhotoPreviewUrl(URL.createObjectURL(blob));
+          setIsPhotoViewerOpen(false);
+        }).catch(() => undefined);
+      } else if (photoPreviewUrl) {
+        URL.revokeObjectURL(photoPreviewUrl);
+        setPhotoPreviewUrl(null);
+        setIsPhotoViewerOpen(false);
+      }
       setPendingCertificateFile(null);
       setPendingPhotoFile(null);
       setRemovePendingCertificate(false);
@@ -834,6 +846,7 @@ export function ProfilePage() {
       } else {
         if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl);
         setPhotoPreviewUrl(url);
+        setIsPhotoViewerOpen(true);
       }
     } catch (err: any) {
       setUploadError(err?.message || 'Unable to preview the uploaded file.');
@@ -1745,22 +1758,22 @@ export function ProfilePage() {
 
             {!isEditingDoctor ? (
               <div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(220px, 0.8fr) repeat(auto-fit, minmax(180px, 1fr))', gap: 'var(--space-4)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
-                    {photoPreviewUrl ? (
-                      <img src={photoPreviewUrl} alt="Doctor profile" style={{ width: 76, height: 76, borderRadius: '50%', objectFit: 'cover', border: '3px solid rgba(45,90,63,.15)' }} />
+                <div className="doctor-summary-primary">
+                  <div className="doctor-photo-summary">
+                    {doctorProfile?.profile_photo_path ? (
+                      <button type="button" className="doctor-photo-trigger" onClick={() => previewDoctorFile('photo')} aria-label="Open full profile photo">
+                        {photoPreviewUrl ? <img src={photoPreviewUrl} alt="Doctor profile" /> : <div className="doctor-photo-placeholder">{(user?.full_name || 'D').charAt(0).toUpperCase()}</div>}
+                      </button>
                     ) : (
-                      <div style={{ width: 76, height: 76, borderRadius: '50%', display: 'grid', placeItems: 'center', background: 'var(--color-primary)', color: 'white', fontSize: 24, fontWeight: 700 }}>
-                        {(user?.full_name || 'D').charAt(0).toUpperCase()}
-                      </div>
+                      <div className="doctor-photo-placeholder">{(user?.full_name || 'D').charAt(0).toUpperCase()}</div>
                     )}
                     <div>
-                      <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', marginBottom: 4 }}>Profile Photo</div>
+                      <div className="profile-field-label">Profile Photo</div>
                       {doctorProfile?.profile_photo_path ? (
                         <button type="button" className="btn btn-ghost btn-sm" onClick={() => previewDoctorFile('photo')}>
-                          <Camera size={13} /> View photo
+                          <Camera size={13} /> Open full photo
                         </button>
-                      ) : <span style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)' }}>Not uploaded</span>}
+                      ) : <span className="profile-muted-value">Not uploaded</span>}
                     </div>
                   </div>
                   <div><div className="profile-field-label">PMDC License Number</div><div className="profile-field-value">{doctorProfile?.pmdc_number || 'PMDC-PENDING'}</div></div>
@@ -1770,7 +1783,7 @@ export function ProfilePage() {
                   <div><div className="profile-field-label">Consultation Fee</div><div className="profile-field-value">{doctorProfile?.consultation_fee ? `PKR ${doctorProfile.consultation_fee}` : 'Not provided'}</div></div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 'var(--space-4)', marginTop: 'var(--space-5)' }}>
+                <div className="doctor-summary-secondary">
                   <div><div className="profile-field-label">Languages Spoken</div><div className="profile-field-value">{doctorProfile?.languages_spoken?.join(', ') || 'Not provided'}</div></div>
                   <div><div className="profile-field-label">Consultation Types</div><div className="profile-field-value">{doctorProfile?.consultation_types?.join(', ') || 'Not provided'}</div></div>
                   <div><div className="profile-field-label">Available Days</div><div className="profile-field-value">{doctorProfile?.available_day_start && doctorProfile?.available_day_end ? `${doctorProfile.available_day_start} – ${doctorProfile.available_day_end}` : doctorProfile?.available_days?.join(' – ') || 'Not provided'}</div></div>
@@ -1793,15 +1806,32 @@ export function ProfilePage() {
                   </button>
                 </div>
                 {certificatePreviewUrl && (
-                  <div style={{ marginTop: 'var(--space-3)', padding: 'var(--space-3)', border: '1px solid rgba(45,90,63,.12)', borderRadius: 'var(--radius-md)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}><strong style={{ fontSize: 'var(--text-sm)' }}>Certificate preview</strong><button type="button" className="btn btn-ghost btn-sm" onClick={() => { URL.revokeObjectURL(certificatePreviewUrl); setCertificatePreviewUrl(null); }}><X size={13} /> Close</button></div>
-                    <iframe title="PMDC certificate preview" src={certificatePreviewUrl} style={{ width: '100%', height: 380, border: 0, borderRadius: 8 }} />
+                  <div className="profile-document-viewer">
+                    <div className="profile-media-viewer-header">
+                      <strong>PMDC certificate viewer</strong>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <a className="btn btn-ghost btn-sm" href={certificatePreviewUrl} target="_blank" rel="noreferrer">Open full viewer</a>
+                        <button type="button" className="btn btn-ghost btn-sm" onClick={() => { URL.revokeObjectURL(certificatePreviewUrl); setCertificatePreviewUrl(null); }}><X size={13} /> Close</button>
+                      </div>
+                    </div>
+                    <iframe title="PMDC certificate preview" src={certificatePreviewUrl} className="profile-certificate-frame" />
+                  </div>
+                )}
+                {isPhotoViewerOpen && photoPreviewUrl && (
+                  <div className="profile-photo-modal" role="dialog" aria-modal="true" aria-label="Full doctor profile photo" onClick={() => setIsPhotoViewerOpen(false)}>
+                    <div className="profile-photo-modal-content" onClick={(event) => event.stopPropagation()}>
+                      <div className="profile-media-viewer-header">
+                        <strong>Doctor profile photo</strong>
+                        <button type="button" className="btn btn-ghost btn-sm" onClick={() => setIsPhotoViewerOpen(false)}><X size={13} /> Close</button>
+                      </div>
+                      <img src={photoPreviewUrl} alt="Full doctor profile" className="profile-full-photo" />
+                    </div>
                   </div>
                 )}
               </div>
             ) : (
               <form onSubmit={handleDoctorSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 'var(--space-4)' }}>
+                                <div className="doctor-edit-grid">
                   <Input id="doc_pmdc" label="PMDC License Number" disabled value={doctorProfile?.pmdc_number || 'PMDC-PENDING'} />
                   <Input id="doc_spec" label="Clinical Specialty" placeholder="e.g. Neurologist" value={doctorForm.specialty || ''} error={errors.specialty} onChange={(e) => { const val = e.target.value; setDoctorForm(p => ({ ...p, specialty: val })); setErrors(prev => ({ ...prev, specialty: validateField('specialty', val) })); }} />
                   <Input id="doc_hosp" label="Hospital / Clinic Affiliation" placeholder="e.g. Shifa International Hospital, Islamabad" value={doctorForm.hospital_affiliation || ''} error={errors.hospital_affiliation} onChange={(e) => { const val = e.target.value; setDoctorForm(p => ({ ...p, hospital_affiliation: val })); setErrors(prev => ({ ...prev, hospital_affiliation: validateField('hospital_affiliation', val) })); }} />
@@ -1827,6 +1857,7 @@ export function ProfilePage() {
                     <span style={{ display: 'block', marginTop: 8, fontSize: 'var(--text-xs)', color: removePendingPhoto ? 'var(--color-error)' : 'var(--color-text-muted)' }}>
                       {removePendingPhoto ? 'Photo will be deleted when you save.' : pendingPhotoFile ? `${pendingPhotoFile.name} — waiting for Save` : doctorProfile?.profile_photo_path ? 'Current photo uploaded' : 'No photo selected'}
                     </span>
+                    {doctorProfile?.profile_photo_path && !removePendingPhoto && <button type="button" className="btn btn-ghost btn-sm" onClick={() => previewDoctorFile('photo')}><Camera size={13} /> View current photo</button>}
                   </div>
                   <div id="doc_certificate" className="profile-upload-box">
                     <div className="profile-field-label">PMDC Certificate</div>
@@ -1840,6 +1871,7 @@ export function ProfilePage() {
                     <span style={{ display: 'block', marginTop: 8, fontSize: 'var(--text-xs)', color: removePendingCertificate ? 'var(--color-error)' : 'var(--color-text-muted)' }}>
                       {removePendingCertificate ? 'Certificate will be deleted when you save.' : pendingCertificateFile ? `${pendingCertificateFile.name} — waiting for Save` : doctorProfile?.pmdc_certificate_name || 'No certificate selected'}
                     </span>
+                    {doctorProfile?.pmdc_certificate_path && !removePendingCertificate && <button type="button" className="btn btn-ghost btn-sm" onClick={() => previewDoctorFile('certificate')}><FileText size={13} /> View current certificate</button>}
                   </div>
                 </div>
 
@@ -1849,6 +1881,26 @@ export function ProfilePage() {
                     {saveDoctorMutation.isPending ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />} Save Doctor Profile
                   </button>
                 </div>
+                {certificatePreviewUrl && (
+                  <div className="profile-document-viewer">
+                    <div className="profile-media-viewer-header">
+                      <strong>PMDC certificate viewer</strong>
+                      <button type="button" className="btn btn-ghost btn-sm" onClick={() => { URL.revokeObjectURL(certificatePreviewUrl); setCertificatePreviewUrl(null); }}><X size={13} /> Close</button>
+                    </div>
+                    <iframe title="PMDC certificate preview" src={certificatePreviewUrl} className="profile-certificate-frame" />
+                  </div>
+                )}
+                {isPhotoViewerOpen && photoPreviewUrl && (
+                  <div className="profile-photo-modal" role="dialog" aria-modal="true" aria-label="Full doctor profile photo" onClick={() => setIsPhotoViewerOpen(false)}>
+                    <div className="profile-photo-modal-content" onClick={(event) => event.stopPropagation()}>
+                      <div className="profile-media-viewer-header">
+                        <strong>Doctor profile photo</strong>
+                        <button type="button" className="btn btn-ghost btn-sm" onClick={() => setIsPhotoViewerOpen(false)}><X size={13} /> Close</button>
+                      </div>
+                      <img src={photoPreviewUrl} alt="Full doctor profile" className="profile-full-photo" />
+                    </div>
+                  </div>
+                )}
               </form>
             )}
           </div>
