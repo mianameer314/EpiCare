@@ -44,11 +44,11 @@ async function tryIPGeolocation(): Promise<GeoLocationResult | null> {
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 3000);
-    const resp = await fetch('https://ipapi.co/json/', { signal: controller.signal });
+    const resp = await fetch('https://ipwho.is/', { signal: controller.signal });
     clearTimeout(timeoutId);
     if (!resp.ok) return null;
     const data = await resp.json();
-    if (data.latitude && data.longitude) {
+    if (data.success && data.latitude && data.longitude) {
       return {
         latitude: data.latitude,
         longitude: data.longitude,
