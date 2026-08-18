@@ -1,4 +1,7 @@
 import logging
+import json
+import os
+import base64
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 import httpx
@@ -15,31 +18,66 @@ logger = logging.getLogger(__name__)
 
 
 def ensure_firebase_initialized() -> bool:
-    """Initializes Firebase Admin SDK if credentials JSON exists."""
+    """Initializes Firebase Admin SDK.
+    
+    Tries three methods in order:
+    1. FIREBASE_CREDENTIALS_JSON env var (raw JSON string or base64-encoded)
+    2. FIREBASE_CREDENTIALS_PATH file (local dev)
+    3. Firebase default credentials (GCP / Railway IAM)
+    """
     if firebase_admin._apps:
         return True
-    if not settings.FIREBASE_CREDENTIALS_PATH:
-        return False
 
-    cred_path = Path(settings.FIREBASE_CREDENTIALS_PATH)
-    if not cred_path.is_absolute():
-        backend_dir = Path(__file__).resolve().parents[2]
-        if (backend_dir / cred_path).exists():
-            cred_path = backend_dir / cred_path
-        elif (backend_dir.parent / cred_path).exists():
-            cred_path = backend_dir.parent / cred_path
-
-    if cred_path.exists():
+    # Method 1: FIREBASE_CREDENTIALS_JSON env var (for Railway / production)
+    creds_json = os.environ.get('FIREBASE_CREDENTIALS_JSON', '')
+    if creds_json:
         try:
-            cred = credentials.Certificate(str(cred_path))
+            # Try parsing as raw JSON first
+            cred_dict = json.loads(creds_json)
+            cred = credentials.Certificate(cred_dict)
             firebase_admin.initialize_app(cred)
-            logger.info(f"Firebase Admin SDK initialized successfully with {cred_path}")
+            logger.info("Firebase Admin SDK initialized from FIREBASE_CREDENTIALS_JSON env var")
             return True
-        except Exception as e:
-            logger.error(f"Failed to initialize Firebase Admin SDK: {e}")
-            return False
+        except json.JSONDecodeError:
+            # Might be base64-encoded
+            try:
+                decoded = base64.b64decode(creds_json).decode('utf-8')
+                cred_dict = json.loads(decoded)
+                cred = credentials.Certificate(cred_dict)
+                firebase_admin.initialize_app(cred)
+                logger.info("Firebase Admin SDK initialized from base64 FIREBASE_CREDENTIALS_JSON env var")
+                return True
+            except Exception:
+                logger.warning("FIREBASE_CREDENTIALS_JSON is set but invalid (not JSON or base64)")
 
-    logger.warning(f"Firebase credentials file not found at {cred_path}")
+    # Method 2: FIREBASE_CREDENTIALS_PATH file (local dev)
+    if settings.FIREBASE_CREDENTIALS_PATH:
+        cred_path = Path(settings.FIREBASE_CREDENTIALS_PATH)
+        if not cred_path.is_absolute():
+            backend_dir = Path(__file__).resolve().parents[2]
+            if (backend_dir / cred_path).exists():
+                cred_path = backend_dir / cred_path
+            elif (backend_dir.parent / cred_path).exists():
+                cred_path = backend_dir.parent / cred_path
+
+        if cred_path.exists():
+            try:
+                cred = credentials.Certificate(str(cred_path))
+                firebase_admin.initialize_app(cred)
+                logger.info(f"Firebase Admin SDK initialized successfully with {cred_path}")
+                return True
+            except Exception as e:
+                logger.error(f"Failed to initialize Firebase Admin SDK from file: {e}")
+
+    # Method 3: Try default credentials (GCP / cloud environments)
+    try:
+        firebase_admin.initialize_app()
+        logger.info("Firebase Admin SDK initialized with default credentials")
+        return True
+    except Exception:
+        pass
+
+    logger.warning("Firebase credentials not found. Set FIREBASE_CREDENTIALS_JSON env var or FIREBASE_CREDENTIALS_PATH.")
     return False
 
 
