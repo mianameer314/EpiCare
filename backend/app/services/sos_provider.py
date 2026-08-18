@@ -258,12 +258,11 @@ class FirebaseSOSProvider(BaseSOSProvider):
 
             if ct.fcm_token:
                 try:
+                    # DATA-ONLY message (no top-level notification field).
+                    # This ensures the service worker's push event handler fires
+                    # even when the app is closed / screen is off, giving us
+                    # full control over sound, vibration, and notification display.
                     msg = messaging.Message(
-                        notification=messaging.Notification(
-                            title=f"🚨 Seizure Alert: {patient_name}",
-                            body="Patient triggered an Emergency SOS. Tap to view live location.",
-                            image=None,
-                        ),
                         data={
                             "event_id": str(event.id),
                             "lat": str(event.latitude or ""),
