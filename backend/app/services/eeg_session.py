@@ -11,6 +11,7 @@ import logging
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
+import numpy as np
 from fastapi import UploadFile
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
