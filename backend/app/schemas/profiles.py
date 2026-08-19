@@ -1,5 +1,7 @@
 from datetime import date
+from decimal import Decimal
 from typing import Optional, Literal
+
 from zoneinfo import available_timezones
 
 from pydantic import Field, field_validator
@@ -76,17 +78,40 @@ class PatientProfileOut(StrictModel):
 # ------------------------------------------------------------------
 
 class DoctorProfileCreate(StrictModel):
-    pmdc_number: str = Field(..., max_length=50)
+    pmdc_number: str = Field(..., min_length=1, max_length=50)
     specialty: Optional[str] = Field("Neurologist", max_length=100)
+    gender: Optional[Literal["Male", "Female", "Other", "Prefer not to say"]] = None
     hospital_affiliation: Optional[str] = Field(None, max_length=200)
     license_image_url: Optional[str] = Field(None, max_length=500)
+    years_of_experience: Optional[int] = Field(None, ge=0, le=80)
+    consultation_fee: Optional[Decimal] = Field(None, ge=0, max_digits=10, decimal_places=2)
+    available_days: Optional[list[str]] = None
+    available_day_start: Optional[str] = Field(None, max_length=20)
+    available_day_end: Optional[str] = Field(None, max_length=20)
+    available_times: Optional[list[str]] = None
+    available_time_start: Optional[str] = Field(None, max_length=20)
+    available_time_end: Optional[str] = Field(None, max_length=20)
+    languages_spoken: Optional[list[str]] = None
+    bio: Optional[str] = Field(None, max_length=2000)
+    consultation_types: Optional[list[str]] = None
 
 
 class DoctorProfileUpdate(StrictModel):
     specialty: Optional[str] = Field(None, max_length=100)
+    gender: Optional[Literal["Male", "Female", "Other", "Prefer not to say"]] = None
     hospital_affiliation: Optional[str] = Field(None, max_length=200)
-    license_image_url: Optional[str] = Field(None, max_length=500)
-    # Note: pmdc_number is typically not updated directly after creation, and is_pmdc_verified is managed by admins.
+    years_of_experience: Optional[int] = Field(None, ge=0, le=80)
+    consultation_fee: Optional[Decimal] = Field(None, ge=0, max_digits=10, decimal_places=2)
+    available_days: Optional[list[str]] = None
+    available_day_start: Optional[str] = Field(None, max_length=20)
+    available_day_end: Optional[str] = Field(None, max_length=20)
+    available_times: Optional[list[str]] = None
+    available_time_start: Optional[str] = Field(None, max_length=20)
+    available_time_end: Optional[str] = Field(None, max_length=20)
+    languages_spoken: Optional[list[str]] = None
+    bio: Optional[str] = Field(None, max_length=2000)
+    consultation_types: Optional[list[str]] = None
+    # pmdc_number and is_pmdc_verified are intentionally managed by registration/admin review.
 
 
 class DoctorProfileOut(StrictModel):
@@ -94,8 +119,25 @@ class DoctorProfileOut(StrictModel):
     user_id: int
     pmdc_number: str
     specialty: str
+    gender: Optional[str] = None
     hospital_affiliation: Optional[str] = None
     license_image_url: Optional[str] = None
+    pmdc_certificate_path: Optional[str] = None
+    pmdc_certificate_name: Optional[str] = None
+    pmdc_certificate_mime_type: Optional[str] = None
+    pmdc_certificate_size: Optional[int] = None
+    profile_photo_path: Optional[str] = None
+    years_of_experience: Optional[int] = None
+    consultation_fee: Optional[Decimal] = None
+    available_days: Optional[list[str]] = None
+    available_day_start: Optional[str] = None
+    available_day_end: Optional[str] = None
+    available_times: Optional[list[str]] = None
+    available_time_start: Optional[str] = None
+    available_time_end: Optional[str] = None
+    languages_spoken: Optional[list[str]] = None
+    bio: Optional[str] = None
+    consultation_types: Optional[list[str]] = None
     is_pmdc_verified: bool
     created_at: StrictDatetime
     updated_at: StrictDatetime

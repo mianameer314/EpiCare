@@ -23,6 +23,7 @@ import {
 import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { useUnsavedChangesContext } from '../../providers/UnsavedChangesProvider';
 import { BrandLogo } from '../shared/BrandLogo';
+import { apiClient } from '../../api/client';
 import './AppShell.css';
 
 /* ────────────────────────────────────────────────────
@@ -56,6 +57,7 @@ export function AppShell() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
+  const [profilePhotoUrl, setProfilePhotoUrl] = useState<string | null>(null);
 
   const dropdownRef = useRef<HTMLDivElement | null>(null);
 
@@ -71,6 +73,31 @@ export function AppShell() {
       setSidebarCollapsed(false);
     }
   }, [location.pathname]);
+
+  useEffect(() => {
+    let active = true;
+    let objectUrl: string | null = null;
+    const photoEndpoint = user?.profile_photo_path
+      ? '/users/me/profile-photo'
+      : user?.role === 'DOCTOR'
+      ? '/users/me/doctor-profile/photo'
+      : null;
+    if (!photoEndpoint) {
+      setProfilePhotoUrl(null);
+      return;
+    }
+    apiClient.getBlob(photoEndpoint).then((blob) => {
+      if (!active) return;
+      objectUrl = URL.createObjectURL(blob);
+      setProfilePhotoUrl(objectUrl);
+    }).catch(() => {
+      if (active) setProfilePhotoUrl(null);
+    });
+    return () => {
+      active = false;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [user?.profile_photo_path, user?.role]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -370,7 +397,7 @@ export function AppShell() {
                   title="Account & Profile Menu"
                 >
                   <div className="topbar-user-avatar">
-                    {user.full_name?.charAt(0).toUpperCase() || 'U'}
+                    {profilePhotoUrl ? <img src={profilePhotoUrl} alt="" /> : (user.full_name?.charAt(0).toUpperCase() || 'U')}
                   </div>
                   <div className="topbar-user-info">
                     <span className="topbar-user-name">{user.full_name}</span>
@@ -391,7 +418,7 @@ export function AppShell() {
                     >
                       <div className="dropdown-user-header">
                         <div className="dropdown-avatar-circle">
-                          {user.full_name?.charAt(0).toUpperCase() || 'U'}
+                          {profilePhotoUrl ? <img src={profilePhotoUrl} alt="" /> : (user.full_name?.charAt(0).toUpperCase() || 'U')}
                         </div>
                         <div className="dropdown-user-meta">
                           <div className="dropdown-name">{user.full_name}</div>

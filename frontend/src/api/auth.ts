@@ -29,6 +29,15 @@ export const authApi = {
   updateProfile: (data: { full_name?: string; phone_number?: string }) =>
     apiClient.patch<User>('/auth/me', data),
 
+  uploadProfilePhoto: (file: File) => {
+    const form = new FormData();
+    form.append('file', file);
+    return apiClient.post<User>('/users/me/profile-photo', form);
+  },
+
+  removeProfilePhoto: () =>
+    apiClient.delete<void>('/users/me/profile-photo'),
+
   forgotPassword: (data: { email: string }) =>
     apiClient.post<{ message: string }>('/auth/forgot-password', data),
 

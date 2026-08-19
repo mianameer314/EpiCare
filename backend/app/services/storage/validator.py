@@ -16,6 +16,10 @@ from app.services.storage.constants import (
     ALLOWED_EEG_MIMES,
     BLOCKED_EXTENSIONS,
     MAX_EEG_SIZE_BYTES,
+    ALLOWED_DOCTOR_DOCUMENT_EXTENSIONS,
+    ALLOWED_DOCTOR_DOCUMENT_MIMES,
+    MAX_DOCTOR_DOCUMENT_SIZE_BYTES,
+    MAX_DOCTOR_PHOTO_SIZE_BYTES,
 )
 
 logger = logging.getLogger(__name__)
@@ -49,6 +53,46 @@ def generate_storage_key(subfolder: str, original_filename: str, extension: str 
 def sha256_bytes(data: bytes) -> str:
     """Return the hex SHA-256 digest of raw bytes (duplicate detection)."""
     return hashlib.sha256(data).hexdigest()
+
+
+async def validate_doctor_upload(file: UploadFile, *, photo: bool = False) -> tuple[bytes, str, str]:
+    """Validate a PMDC certificate or profile photo and return bytes, name, and MIME type."""
+    filename = sanitize_filename(file.filename or "")
+    if not filename:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No file provided")
+
+    ext = get_extension(filename)
+    if ext in BLOCKED_EXTENSIONS or ext not in ALLOWED_DOCTOR_DOCUMENT_EXTENSIONS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only PDF, JPG, JPEG, PNG, and WEBP files are allowed.",
+        )
+
+    content_type = (file.content_type or "").lower()
+    if content_type not in ALLOWED_DOCTOR_DOCUMENT_MIMES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="The uploaded file has an unsupported MIME type.",
+        )
+    if photo and not content_type.startswith("image/"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Profile photo must be an image file.",
+        )
+
+    data = await file.read()
+    if not data:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Empty file rejected")
+
+    max_size = MAX_DOCTOR_PHOTO_SIZE_BYTES if photo else MAX_DOCTOR_DOCUMENT_SIZE_BYTES
+    if len(data) > max_size:
+        limit_mb = max_size // (1024 * 1024)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"File size exceeds the {limit_mb} MB limit.",
+        )
+
+    return data, filename, content_type
 
 
 async def validate_eeg_upload(file: UploadFile) -> bytes:

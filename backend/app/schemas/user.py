@@ -127,6 +127,8 @@ class UserOut(StrictModel):
     email: EmailStr
     phone_number: str | None
     full_name: str
+    profile_photo_path: str | None = None
+    profile_photo_mime_type: str | None = None
     role: StrictUserRole
     is_active: bool
     is_email_verified: bool

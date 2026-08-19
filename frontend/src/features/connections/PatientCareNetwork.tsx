@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -55,10 +56,13 @@ export function PatientCareNetwork() {
   const [carePage, setCarePage] = useState(1);
   const [caretakerEmail, setCaretakerEmail] = useState('');
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
-  const [docToDisconnect, setDocToDisconnect] = useState<{ id: number; name: string; isRevoking?: boolean } | null>(null);
+  const [docToDisconnect, setDocToDisconnect] = useState<{ id: number; name: string; action: 'revoke' | 'cancel' | 'remove' } | null>(null);
   const [careToDisconnect, setCareToDisconnect] = useState<{ id: number; name: string } | null>(null);
   const [actionSuccess, setActionSuccess] = useState('');
   const [actionError, setActionError] = useState('');
+  const [selectedDoctor, setSelectedDoctor] = useState<DoctorSearchItem | null>(null);
+  const [selectedDoctorPhotoUrl, setSelectedDoctorPhotoUrl] = useState<string | null>(null);
+  const [selectedDoctorPhotoLoading, setSelectedDoctorPhotoLoading] = useState(false);
 
   // Dynamic filter options aggregated from verified doctors in database
   const { data: filterOptions } = useQuery({
@@ -113,6 +117,52 @@ export function PatientCareNetwork() {
   const verifiedDoctors = directoryResult?.items || [];
   const totalVerifiedDoctors = directoryResult?.total || 0;
 
+  useEffect(() => {
+    let active = true;
+    let objectUrl: string | null = null;
+    setSelectedDoctorPhotoUrl(null);
+    if (!selectedDoctor?.profile_photo_url) {
+      setSelectedDoctorPhotoLoading(false);
+      return;
+    }
+    setSelectedDoctorPhotoLoading(true);
+    connectionsApi.getPublicDoctorPhoto(selectedDoctor.doctor_id)
+      .then((blob) => {
+        if (!active) return;
+        objectUrl = URL.createObjectURL(blob);
+        setSelectedDoctorPhotoUrl(objectUrl);
+      })
+      .catch(() => {
+        if (active) setSelectedDoctorPhotoUrl(null);
+      })
+      .finally(() => {
+        if (active) setSelectedDoctorPhotoLoading(false);
+      });
+    return () => {
+      active = false;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [selectedDoctor]);
+
+  useEffect(() => {
+    if (!selectedDoctor) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [selectedDoctor]);
+
+  const openDoctorProfile = (doctor: DoctorSearchItem) => {
+    setActionError('');
+    setSelectedDoctor(doctor);
+  };
+
+  const closeDoctorProfile = () => {
+    setSelectedDoctor(null);
+    setSelectedDoctorPhotoUrl(null);
+  };
+
   const handleResetFilters = () => {
     setSearchDoctorQuery('');
     setSelectedSpecialty('ALL');
@@ -125,16 +175,17 @@ export function PatientCareNetwork() {
     mutationFn: (doctorId: number) => connectionsApi.requestDoctorConnection(doctorId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['connections', 'patient-doctors'] });
+      closeDoctorProfile();
       showSuccess('Connection request sent to doctor.');
     },
     onError: (err: any) => showErr(err.message || 'Failed to send connection request.'),
   });
 
   const disconnectDoctorMutation = useMutation({
-    mutationFn: (connectionId: number) => connectionsApi.disconnectDoctor(connectionId),
-    onSuccess: () => {
+    mutationFn: ({ connectionId }: { connectionId: number; action: 'revoke' | 'cancel' | 'remove' }) => connectionsApi.disconnectDoctor(connectionId),
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['connections', 'patient-doctors'] });
-      showSuccess('Doctor disconnected.');
+      showSuccess(variables.action === 'remove' ? 'Doctor removed from connection history.' : variables.action === 'cancel' ? 'Pending doctor request cancelled.' : 'Doctor clinical access revoked.');
     },
   });
 
@@ -477,15 +528,11 @@ export function PatientCareNetwork() {
                         ) : (
                           <button
                             className="btn-connect-doctor"
-                            onClick={() => requestDocMutation.mutate(doc.doctor_id)}
+                            onClick={() => openDoctorProfile(doc)}
                             disabled={requestDocMutation.isPending}
                           >
-                            {requestDocMutation.isPending ? (
-                              <Loader2 size={13} className="animate-spin" />
-                            ) : (
-                              <UserPlus size={13} />
-                            )}
-                            <span>Connect</span>
+                            <UserPlus size={13} />
+                            <span>View Profile</span>
                           </button>
                         )}
                       </div>
@@ -588,7 +635,7 @@ export function PatientCareNetwork() {
                           </span>
                           <button
                             className="btn btn-outline btn-sm"
-                            onClick={() => setDocToDisconnect({ id: doc.connection_id, name: formatDoctorName(doc.doctor?.full_name), isRevoking: true })}
+                            onClick={() => setDocToDisconnect({ id: doc.connection_id, name: formatDoctorName(doc.doctor?.full_name), action: 'revoke' })}
                             style={{ color: '#dc2626', borderColor: '#fecaca', fontSize: '11px', padding: '4px 8px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                             title="Revoke doctor clinical access"
                           >
@@ -617,7 +664,7 @@ export function PatientCareNetwork() {
                           </span>
                           <button
                             className="btn btn-outline btn-sm"
-                            onClick={() => setDocToDisconnect({ id: doc.connection_id, name: formatDoctorName(doc.doctor?.full_name), isRevoking: false })}
+                            onClick={() => setDocToDisconnect({ id: doc.connection_id, name: formatDoctorName(doc.doctor?.full_name), action: doc.relationship_status === 'REVOKED' ? 'remove' : 'cancel' })}
                             style={{ color: '#64748b', borderColor: '#e2e8f0', fontSize: '11px', padding: '4px 8px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                             title="Cancel pending request"
                           >
@@ -657,7 +704,7 @@ export function PatientCareNetwork() {
                           </button>
                           <button
                             className="btn-delete-hover"
-                            onClick={() => setDocToDisconnect({ id: doc.connection_id, name: formatDoctorName(doc.doctor?.full_name), isRevoking: false })}
+                            onClick={() => setDocToDisconnect({ id: doc.connection_id, name: formatDoctorName(doc.doctor?.full_name), action: doc.relationship_status === 'REVOKED' ? 'remove' : 'cancel' })}
                             title="Remove from history"
                           >
                             <Trash2 size={15} />
@@ -886,19 +933,21 @@ export function PatientCareNetwork() {
       {/* ── Disconnect Doctor Confirmation Dialog ── */}
       <ConfirmDialog
         isOpen={docToDisconnect !== null}
-        title={docToDisconnect?.isRevoking ? "Revoke Physician Clinical Access?" : "Remove Physician Connection?"}
+        title={docToDisconnect?.action === 'revoke' ? "Revoke Physician Clinical Access?" : docToDisconnect?.action === 'remove' ? "Remove Revoked Physician From History?" : "Cancel Connection Request?"}
         description={
-          docToDisconnect?.isRevoking
-            ? `Are you sure you want to revoke clinical access for ${docToDisconnect?.name}? They will no longer be able to review your EEG spectrograms or prescribe antiepileptic regimens.`
-            : `Are you sure you want to remove ${docToDisconnect?.name} from your care network records?`
+          docToDisconnect?.action === 'revoke'
+            ? `Are you sure you want to revoke clinical access for ${docToDisconnect?.name}? The connection will remain visible as revoked history.`
+            : docToDisconnect?.action === 'remove'
+            ? `This physician is already revoked. Remove ${docToDisconnect?.name} permanently from your connection history? This cannot be undone.`
+            : `Cancel the pending connection request for ${docToDisconnect?.name}?`
         }
-        confirmText={docToDisconnect?.isRevoking ? "Yes, Revoke Access" : "Yes, Remove"}
+        confirmText={docToDisconnect?.action === 'revoke' ? "Yes, Revoke Access" : docToDisconnect?.action === 'remove' ? "Yes, Remove From History" : "Yes, Cancel Request"}
         cancelText="Cancel"
         variant="warning"
         isLoading={disconnectDoctorMutation.isPending}
         onConfirm={() => {
           if (docToDisconnect) {
-            disconnectDoctorMutation.mutate(docToDisconnect.id);
+            disconnectDoctorMutation.mutate({ connectionId: docToDisconnect.id, action: docToDisconnect.action });
             setDocToDisconnect(null);
           }
         }}
@@ -922,6 +971,138 @@ export function PatientCareNetwork() {
         }}
         onClose={() => setCareToDisconnect(null)}
       />
+
+      {selectedDoctor && createPortal(
+        <AnimatePresence>
+          <motion.div
+            className="doctor-profile-modal-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onMouseDown={(event) => {
+              if (event.target === event.currentTarget) closeDoctorProfile();
+            }}
+          >
+            <motion.div
+              className="doctor-profile-modal-panel"
+              initial={{ opacity: 0, y: 18, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 18, scale: 0.97 }}
+              transition={{ duration: 0.2 }}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="doctor-profile-modal-title"
+              onMouseDown={(event) => event.stopPropagation()}
+            >
+              <button
+                type="button"
+                className="doctor-profile-modal-close"
+                onClick={closeDoctorProfile}
+                aria-label="Close doctor profile"
+              >
+                <X size={20} />
+              </button>
+
+              <div className="doctor-profile-modal-hero">
+                <div className="doctor-profile-modal-photo-wrap">
+                  {selectedDoctorPhotoUrl ? (
+                    <img src={selectedDoctorPhotoUrl} alt={formatDoctorName(selectedDoctor.full_name)} className="doctor-profile-modal-photo" />
+                  ) : selectedDoctorPhotoLoading ? (
+                    <Loader2 size={32} className="animate-spin" />
+                  ) : (
+                    <span className="doctor-profile-modal-initial">
+                      {selectedDoctor.full_name?.trim().charAt(0).toUpperCase() || 'D'}
+                    </span>
+                  )}
+                  <span className="doctor-profile-modal-verified" title="PMDC verified">
+                    <CheckCircle2 size={15} />
+                  </span>
+                </div>
+                <div className="doctor-profile-modal-heading">
+                  <div className="doctor-profile-modal-name-row">
+                    <h2 id="doctor-profile-modal-title">{formatDoctorName(selectedDoctor.full_name)}</h2>
+                    <span className="pmdc-badge-pill">
+                      <ShieldCheck size={12} />
+                      <span>PMDC Verified</span>
+                    </span>
+                  </div>
+                  <p className="doctor-profile-modal-specialty">{selectedDoctor.specialty || 'Specialist Physician'}</p>
+                  <p className="doctor-profile-modal-pmdc">PMDC License: {selectedDoctor.pmdc_number}</p>
+                </div>
+              </div>
+
+              <div className="doctor-profile-modal-body">
+                <div className="doctor-profile-modal-facts">
+                  <div className="doctor-profile-fact">
+                    <span className="doctor-profile-fact-label">Practice affiliation</span>
+                    <strong>{selectedDoctor.hospital_affiliation?.trim() || 'Not provided'}</strong>
+                  </div>
+                  <div className="doctor-profile-fact">
+                    <span className="doctor-profile-fact-label">Gender</span>
+                    <strong>{selectedDoctor.gender?.trim() || 'Not provided'}</strong>
+                  </div>
+                  <div className="doctor-profile-fact">
+                    <span className="doctor-profile-fact-label">Experience</span>
+                    <strong>{selectedDoctor.years_of_experience != null ? `${selectedDoctor.years_of_experience} years` : 'Not provided'}</strong>
+                  </div>
+                  <div className="doctor-profile-fact">
+                    <span className="doctor-profile-fact-label">Consultation fee</span>
+                    <strong>{selectedDoctor.consultation_fee != null ? `PKR ${selectedDoctor.consultation_fee.toLocaleString()}` : 'Not provided'}</strong>
+                  </div>
+                  <div className="doctor-profile-fact">
+                    <span className="doctor-profile-fact-label">Languages</span>
+                    <strong>{selectedDoctor.languages_spoken?.length ? selectedDoctor.languages_spoken.join(', ') : 'Not provided'}</strong>
+                  </div>
+                </div>
+
+                <div className="doctor-profile-modal-section">
+                  <h3>Availability</h3>
+                  <div className="doctor-profile-modal-detail-row">
+                    <Clock size={16} />
+                    <span>{selectedDoctor.available_day_start && selectedDoctor.available_day_end ? `${selectedDoctor.available_day_start} to ${selectedDoctor.available_day_end}` : 'Availability not provided'}</span>
+                    <span className="doctor-profile-detail-separator">·</span>
+                    <span>{selectedDoctor.available_time_start && selectedDoctor.available_time_end ? `${selectedDoctor.available_time_start} to ${selectedDoctor.available_time_end}` : 'Time not provided'}</span>
+                  </div>
+                </div>
+
+                <div className="doctor-profile-modal-section">
+                  <h3>Consultation options</h3>
+                  <div className="doctor-profile-modal-chips">
+                    {selectedDoctor.consultation_types?.length ? selectedDoctor.consultation_types.map((type) => (
+                      <span key={type} className="doctor-profile-modal-chip">{type}</span>
+                    )) : <span className="doctor-profile-modal-muted">Not provided</span>}
+                  </div>
+                </div>
+
+                <div className="doctor-profile-modal-section">
+                  <h3>About the doctor</h3>
+                  <p className="doctor-profile-modal-bio">{selectedDoctor.bio?.trim() || 'This physician has not added a public biography yet.'}</p>
+                </div>
+              </div>
+
+              <div className="doctor-profile-modal-footer">
+                {(() => {
+                  const connection = connectedDoctors.find((item) => item.doctor_id === selectedDoctor.doctor_id || item.doctor?.id === selectedDoctor.doctor_id);
+                  const isActive = connection?.relationship_status === 'ACTIVE';
+                  const isPending = connection?.relationship_status === 'PENDING';
+                  return (
+                    <button
+                      type="button"
+                      className={`doctor-profile-modal-action ${isActive ? 'is-connected' : isPending ? 'is-pending' : ''}`}
+                      disabled={isActive || isPending || requestDocMutation.isPending}
+                      onClick={() => requestDocMutation.mutate(selectedDoctor.doctor_id)}
+                    >
+                      {requestDocMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : isActive ? <CheckCircle2 size={16} /> : isPending ? <Clock size={16} /> : <UserPlus size={16} />}
+                      <span>{isActive ? 'Connected' : isPending ? 'Request Sent' : 'Send Connection Request'}</span>
+                    </button>
+                  );
+                })()}
+              </div>
+            </motion.div>
+          </motion.div>
+        </AnimatePresence>,
+        document.body,
+      )}
     </div>
   );
 }

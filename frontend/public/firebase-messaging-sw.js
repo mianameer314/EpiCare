@@ -8,25 +8,45 @@ importScripts('https://www.gstatic.com/firebasejs/10.9.0/firebase-messaging-comp
 
 const ICON = '/icon-192.png';
 const BADGE = '/favicon.svg';
+const TAG = 'epicare-emergency';
 
 let messaging = null;
+
+function showEpicareNotification(title, body, data = {}) {
+  // Aggressive alarm-style vibration pattern: long buzz, short pause, repeat
+  // This creates a distinctive emergency feel even on lock screen
+  const ALARM_VIBRATE = [
+    500, 100, 500, 100, 500, 100,  // 3 long buzzes
+    200, 100, 200, 100, 200, 100,  // 3 short buzzes
+    500, 100, 500, 100, 500, 100,  // 3 long buzzes again
+    200, 100, 200, 100, 200, 100,  // 3 short buzzes again
+    800,                             // long final buzz
+  ];
+  return self.registration.showNotification(title, {
+    body,
+    icon: ICON,
+    badge: BADGE,
+    vibrate: ALARM_VIBRATE,
+    tag: TAG,
+    requireInteraction: true,
+    renotify: true,
+    silent: false,
+    data,
+  });
+}
 
 function setupBackgroundMessaging() {
   if (!messaging) return;
   messaging.onBackgroundMessage((payload) => {
-    console.log('[firebase-messaging-sw.js] Received background message:', payload);
-    const notificationTitle = payload.notification?.title || '🚨 EpiCare Seizure Emergency Alert';
-    const notificationOptions = {
-      body: payload.notification?.body || 'A patient has triggered an emergency alert. Tap to view live location.',
-      icon: ICON,
-      badge: BADGE,
-      vibrate: [200, 100, 200, 100, 400],
-      tag: 'epicare-emergency',
-      requireInteraction: true,
-      data: payload.data || {},
-    };
-
-    self.registration.showNotification(notificationTitle, notificationOptions);
+    console.log('[firebase-messaging-sw.js] onBackgroundMessage:', payload);
+    const title = payload.notification?.title
+      || payload.data?.title
+      || '🚨 EpiCare Seizure Emergency Alert';
+    const body = payload.notification?.body
+      || payload.data?.body
+      || 'A patient has triggered an emergency alert. Tap to view live location.';
+    const data = payload.data || {};
+    showEpicareNotification(title, body, data);
   });
 }
 
@@ -40,38 +60,40 @@ self.addEventListener('message', (event) => {
   }
 });
 
-// Standard Push Event fallback — this is the path that fires when the app is
-// closed / screen off, so it must not depend on the page ever being open.
+// ── Push Event — THE critical path for background / screen-off delivery ──
+// This fires regardless of whether the page is open or Firebase is initialized
+// in the service worker.  For data-only FCM messages (no top-level notification
+// field), this is the ONLY handler that will run.
 self.addEventListener('push', (event) => {
   if (!event.data) return;
 
   event.waitUntil((async () => {
     let title = '🚨 EpiCare Emergency SOS Alert';
-    let options = {
-      body: 'Immediate caregiver attention requested.',
-      icon: ICON,
-      badge: BADGE,
-      vibrate: [300, 100, 300, 100, 500],
-      requireInteraction: true,
-      data: {},
-    };
+    let body = 'Immediate caregiver attention requested.';
+    let data = {};
 
     try {
       const payload = event.data.json();
-      title = payload.notification?.title || payload.title || title;
-      options.body = payload.notification?.body || payload.body || options.body;
-      options.data = payload.data || {};
-
-      // FCM data-only messages: payload.data carries the fields.
-      if (payload.data && (payload.data.title || payload.data.body)) {
+      // Data-only messages: title/body are in payload.data
+      if (payload.data) {
         title = payload.data.title || title;
-        options.body = payload.data.body || options.body;
+        body = payload.data.body || body;
+        data = payload.data;
       }
+      // Notification messages: title/body are in payload.notification
+      if (payload.notification) {
+        title = payload.notification.title || title;
+        body = payload.notification.body || body;
+      }
+      // Flat payload fallback
+      if (payload.title) title = payload.title;
+      if (payload.body) body = payload.body;
     } catch {
-      options.body = event.data.text() || options.body;
+      body = event.data.text() || body;
     }
 
-    return self.registration.showNotification(title, options);
+    console.log('[firebase-messaging-sw.js] push event:', title);
+    return showEpicareNotification(title, body, data);
   })());
 });
 

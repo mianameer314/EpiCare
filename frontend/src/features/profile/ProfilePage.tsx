@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
+import { createPortal } from 'react-dom';
 import {
   User,
   ShieldCheck,
@@ -17,6 +18,12 @@ import {
   Activity,
   ShieldAlert,
   Edit3,
+  Upload,
+  FileText,
+  X,
+  Camera,
+  ChevronDown,
+  Check,
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { apiClient } from '../../api/client';
@@ -78,6 +85,175 @@ function detectLocalTimezone(): string {
   }
 }
 
+type SelectorOption = { value: string; label: string };
+
+
+
+interface NeumorphicMultiSelectProps {
+  id: string;
+  label: string;
+  values: string[];
+  options: SelectorOption[];
+  placeholder: string;
+  onChange: (values: string[]) => void;
+}
+
+function NeumorphicMultiSelect({ id, label, values, options, placeholder, onChange }: NeumorphicMultiSelectProps) {
+  const [open, setOpen] = useState(false);
+  const allSelected = options.length > 0 && values.length === options.length;
+  const selectedLabels = values
+    .map((value) => options.find((option) => option.value === value)?.label || value)
+    .join(', ');
+
+  const toggleValue = (value: string) => {
+    onChange(values.includes(value) ? values.filter((item) => item !== value) : [...values, value]);
+  };
+
+  return (
+    <div id={id} className="profile-neumorphic-select-wrap">
+      <div className="profile-field-label">{label}</div>
+      <button
+        type="button"
+        className={`profile-neumorphic-select ${open ? 'open' : ''}`}
+        onClick={() => setOpen((current) => !current)}
+        aria-expanded={open}
+        aria-haspopup="listbox"
+      >
+        <span className={values.length ? '' : 'placeholder'}>{selectedLabels || placeholder}</span>
+        <ChevronDown size={15} className={open ? 'rotate-180' : ''} />
+      </button>
+      {open && (
+        <div className="profile-neumorphic-menu" role="listbox" aria-label={label}>
+          <button
+            type="button"
+            className="profile-neumorphic-menu-action"
+            onClick={() => onChange(allSelected ? [] : options.map((option) => option.value))}
+          >
+            {allSelected ? 'Clear all' : 'Select all'}
+          </button>
+          {options.map((option) => {
+            const selected = values.includes(option.value);
+            return (
+              <button
+                key={option.value}
+                type="button"
+                className={`profile-neumorphic-option ${selected ? 'selected' : ''}`}
+                onClick={() => toggleValue(option.value)}
+                role="option"
+                aria-selected={selected}
+              >
+                <span>{option.label}</span>
+                {selected && <Check size={14} />}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface NeumorphicRangeSelectProps {
+  id: string;
+  label: string;
+  startValue?: string;
+  endValue?: string;
+  options: SelectorOption[];
+  startPlaceholder: string;
+  endPlaceholder: string;
+  onChange: (startValue: string | undefined, endValue: string | undefined) => void;
+}
+
+function NeumorphicRangeSelect({ id, label, startValue, endValue, options, startPlaceholder, endPlaceholder, onChange }: NeumorphicRangeSelectProps) {
+  const [openPart, setOpenPart] = useState<'start' | 'end' | null>(null);
+  const startIndex = options.findIndex((option) => option.value === startValue);
+  const endIndex = options.findIndex((option) => option.value === endValue);
+  const invalidRange = startIndex >= 0 && endIndex >= 0 && endIndex < startIndex;
+  const startLabel = options.find((option) => option.value === startValue)?.label || startPlaceholder;
+  const endLabel = options.find((option) => option.value === endValue)?.label || endPlaceholder;
+
+  const renderMenu = (part: 'start' | 'end') => {
+    const currentValue = part === 'start' ? startValue : endValue;
+    return (
+      <div className="profile-neumorphic-menu profile-range-menu" role="listbox" aria-label={`${label} ${part}`}>
+        <button
+          type="button"
+          className="profile-neumorphic-menu-action"
+          onClick={() => { part === 'start' ? onChange(undefined, endValue) : onChange(startValue, undefined); setOpenPart(null); }}
+        >
+          Clear selection
+        </button>
+        {options.map((option) => {
+          const selected = option.value === currentValue;
+          return (
+            <button
+              key={option.value}
+              type="button"
+              className={`profile-neumorphic-option ${selected ? 'selected' : ''}`}
+              onClick={() => { part === 'start' ? onChange(option.value, endValue) : onChange(startValue, option.value); setOpenPart(null); }}
+              role="option"
+              aria-selected={selected}
+            >
+              <span>{option.label}</span>
+              {selected && <Check size={14} />}
+            </button>
+          );
+        })}
+      </div>
+    );
+  };
+
+  return (
+    <div id={id} className="profile-neumorphic-select-wrap">
+      <div className="profile-field-label">{label}</div>
+      <div className="profile-range-grid">
+        <div className="profile-range-part">
+          <span>From</span>
+          <button type="button" className={`profile-neumorphic-select ${openPart === 'start' ? 'open' : ''}`} onClick={() => setOpenPart(openPart === 'start' ? null : 'start')} aria-expanded={openPart === 'start'}>
+            <span className={startValue ? '' : 'placeholder'}>{startLabel}</span>
+            <ChevronDown size={15} className={openPart === 'start' ? 'rotate-180' : ''} />
+          </button>
+          {openPart === 'start' && renderMenu('start')}
+        </div>
+        <div className="profile-range-part">
+          <span>To</span>
+          <button type="button" className={`profile-neumorphic-select ${openPart === 'end' ? 'open' : ''}`} onClick={() => setOpenPart(openPart === 'end' ? null : 'end')} aria-expanded={openPart === 'end'}>
+            <span className={endValue ? '' : 'placeholder'}>{endLabel}</span>
+            <ChevronDown size={15} className={openPart === 'end' ? 'rotate-180' : ''} />
+          </button>
+          {openPart === 'end' && renderMenu('end')}
+        </div>
+      </div>
+      {invalidRange && <div className="profile-range-error">The end of the range must be after the start.</div>}
+    </div>
+  );
+}
+
+const DOCTOR_DAY_OPTIONS: SelectorOption[] = [
+  { value: 'Monday', label: 'Monday' },
+  { value: 'Tuesday', label: 'Tuesday' },
+  { value: 'Wednesday', label: 'Wednesday' },
+  { value: 'Thursday', label: 'Thursday' },
+  { value: 'Friday', label: 'Friday' },
+  { value: 'Saturday', label: 'Saturday' },
+  { value: 'Sunday', label: 'Sunday' },
+];
+
+const DOCTOR_TIME_OPTIONS: SelectorOption[] = [
+  '6:00 AM', '6:30 AM', '7:00 AM', '7:30 AM','08:00 AM', '08:30 AM', '09:00 AM', '09:30 AM', '10:00 AM', '10:30 AM',
+  '11:00 AM', '11:30 AM', '12:00 PM', '12:30 PM', '01:00 PM', '01:30 PM',
+  '02:00 PM', '02:30 PM', '03:00 PM', '03:30 PM', '04:00 PM', '04:30 PM',
+  '05:00 PM', '05:30 PM', '06:00 PM', '06:30 PM', '07:00 PM', '07:30 PM',
+  '08:00 PM','08:30 PM','09:00 PM','09:30 PM','10:00 PM','10:30 PM',
+  '11:00 PM', '11:30 PM', '11:59 PM',
+].map((time) => ({ value: time, label: time }));
+
+const DOCTOR_CONSULTATION_OPTIONS: SelectorOption[] = [
+  { value: 'Video', label: 'Video consultation' },
+  { value: 'In-person', label: 'In-person consultation' },
+  { value: 'Chat', label: 'Chat consultation' },
+];
+
 interface MissingFieldItem {
   id: string;
   label: string;
@@ -95,6 +271,8 @@ interface ValidationErrors {
   specialty?: string;
   hospital_affiliation?: string;
   license_image_url?: string;
+  pmdc_certificate_name?: string;
+
   relationship_to_patient?: string;
   crisis_phone_number?: string;
   current_password?: string;
@@ -156,21 +334,24 @@ function computeProfileCompletion(
     total++;
     if (patient?.known_triggers && patient.known_triggers.length > 0) filled++; else missing.push({ id: 'p_triggers', label: 'Known Seizure Triggers', category: 'clinical' });
   } else if (role === 'DOCTOR') {
-    // 1. PMDC Number
-    total++;
-    if (doctor?.pmdc_number?.trim()) filled++; else missing.push({ id: 'doc_pmdc', label: 'PMDC License Number', category: 'clinical' });
+    const addDoctorField = (condition: boolean, id: string, label: string) => {
+      total++;
+      if (condition) filled++; else missing.push({ id, label, category: 'clinical' });
+    };
 
-    // 2. Specialty
-    total++;
-    if (doctor?.specialty?.trim()) filled++; else missing.push({ id: 'doc_spec', label: 'Clinical Specialty', category: 'clinical' });
-
-    // 3. Hospital Affiliation
-    total++;
-    if (doctor?.hospital_affiliation?.trim()) filled++; else missing.push({ id: 'doc_hosp', label: 'Hospital / Clinic Affiliation', category: 'clinical' });
-
-    // 4. License Image / Document URL
-    total++;
-    if (doctor?.license_image_url?.trim()) filled++; else missing.push({ id: 'doc_license_doc', label: 'PMDC Verification Certificate', category: 'clinical' });
+    addDoctorField(Boolean(doctor?.pmdc_number?.trim()), 'doc_pmdc', 'PMDC License Number');
+    addDoctorField(Boolean(doctor?.specialty?.trim()), 'doc_spec', 'Clinical Specialty');
+    addDoctorField(Boolean(doctor?.gender?.trim()), 'doc_gender', 'Gender');
+    addDoctorField(Boolean(doctor?.hospital_affiliation?.trim()), 'doc_hosp', 'Hospital / Clinic Affiliation');
+    addDoctorField(Boolean(doctor?.profile_photo_path?.trim() || user?.profile_photo_path?.trim()), 'acc_photo', 'Profile Photo');
+    addDoctorField(Boolean(doctor?.pmdc_certificate_path?.trim() || doctor?.license_image_url?.trim()), 'doc_certificate', 'PMDC Verification Certificate');
+    addDoctorField(doctor?.years_of_experience !== undefined && doctor?.years_of_experience !== null, 'doc_exp', 'Years of Experience');
+    addDoctorField(doctor?.consultation_fee !== undefined && doctor?.consultation_fee !== null && String(doctor.consultation_fee).trim() !== '', 'doc_fee', 'Consultation Fee');
+    addDoctorField(Boolean(doctor?.languages_spoken?.length), 'doc_languages', 'Languages Spoken');
+    addDoctorField(Boolean((doctor?.available_day_start && doctor?.available_day_end) || doctor?.available_days?.length), 'doc_days', 'Available Days');
+    addDoctorField(Boolean((doctor?.available_time_start && doctor?.available_time_end) || doctor?.available_times?.length), 'doc_times', 'Available Times');
+    addDoctorField(Boolean(doctor?.consultation_types?.length), 'doc_types', 'Consultation Types');
+    addDoctorField(Boolean(doctor?.bio?.trim()), 'doc_bio', 'Professional Bio');
   } else if (role === 'CARETAKER') {
     // 1. Relationship to Patient
     total++;
@@ -186,7 +367,7 @@ function computeProfileCompletion(
 }
 
 export function ProfilePage() {
-  const { user } = useAuth();
+  const { user, setUser } = useAuth();
   const queryClient = useQueryClient();
 
   // Password state
@@ -218,8 +399,21 @@ export function ProfilePage() {
   const [doctorForm, setDoctorForm] = useState<DoctorProfileData>({
     pmdc_number: '',
     specialty: 'Neurologist',
+    gender: undefined,
     hospital_affiliation: '',
     license_image_url: '',
+    pmdc_certificate_name: '',
+    years_of_experience: undefined,
+    consultation_fee: '',
+    available_days: [],
+    available_day_start: '',
+    available_day_end: '',
+    available_times: [],
+    available_time_start: '',
+    available_time_end: '',
+    languages_spoken: [],
+    bio: '',
+    consultation_types: [],
   });
 
   const [caretakerForm, setCaretakerForm] = useState<CaretakerProfileData>({
@@ -231,8 +425,24 @@ export function ProfilePage() {
   const [profileSuccess, setProfileSuccess] = useState('');
   const [profileError, setProfileError] = useState('');
 
-  // Patient Medical Profile editing state
+  // Patient and doctor clinical profile editing state
   const [isEditingPatient, setIsEditingPatient] = useState(false);
+  const [isEditingDoctor, setIsEditingDoctor] = useState(false);
+  const [certificatePreviewUrl, setCertificatePreviewUrl] = useState<string | null>(null);
+  const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
+  const [isPhotoViewerOpen, setIsPhotoViewerOpen] = useState(false);
+  const [pendingCertificateFile, setPendingCertificateFile] = useState<File | null>(null);
+  const [removePendingCertificate, setRemovePendingCertificate] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+
+  useEffect(() => {
+    if (!isPhotoViewerOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isPhotoViewerOpen]);
 
   // User Bio editing state
   const [isEditingBio, setIsEditingBio] = useState(false);
@@ -242,6 +452,12 @@ export function ProfilePage() {
   });
   const [bioSuccess, setBioSuccess] = useState('');
   const [bioError, setBioError] = useState('');
+  const [sharedPhotoPreviewUrl, setSharedPhotoPreviewUrl] = useState<string | null>(null);
+  const [doctorAccountPhotoPreviewUrl, setDoctorAccountPhotoPreviewUrl] = useState<string | null>(null);
+  const [pendingSharedPhotoPreviewUrl, setPendingSharedPhotoPreviewUrl] = useState<string | null>(null);
+  const [pendingSharedPhotoFile, setPendingSharedPhotoFile] = useState<File | null>(null);
+  const [removePendingSharedPhoto, setRemovePendingSharedPhoto] = useState(false);
+  const [sharedPhotoError, setSharedPhotoError] = useState('');
 
   useEffect(() => {
     if (user) {
@@ -252,16 +468,95 @@ export function ProfilePage() {
     }
   }, [user]);
 
+  useEffect(() => {
+    let active = true;
+    let objectUrl: string | null = null;
+    if (!user?.profile_photo_path) {
+      setSharedPhotoPreviewUrl(null);
+      return;
+    }
+    apiClient.getBlob('/users/me/profile-photo').then((blob) => {
+      if (!active) return;
+      objectUrl = URL.createObjectURL(blob);
+      setSharedPhotoPreviewUrl(objectUrl);
+    }).catch(() => {
+      if (active) setSharedPhotoPreviewUrl(null);
+    });
+    return () => {
+      active = false;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [user?.profile_photo_path]);
+
+  useEffect(() => {
+    let active = true;
+    let objectUrl: string | null = null;
+    if (user?.role !== 'DOCTOR') {
+      setDoctorAccountPhotoPreviewUrl(null);
+      return;
+    }
+    apiClient.getBlob('/users/me/doctor-profile/photo').then((blob) => {
+      if (!active) return;
+      objectUrl = URL.createObjectURL(blob);
+      setDoctorAccountPhotoPreviewUrl(objectUrl);
+    }).catch(() => {
+      if (active) setDoctorAccountPhotoPreviewUrl(null);
+    });
+    return () => {
+      active = false;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [user?.role]);
+
+  const stageSharedProfilePhoto = (file: File) => {
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      setSharedPhotoError('Profile photo must be JPG, PNG, or WEBP.');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setSharedPhotoError('Profile photo must be smaller than 5 MB.');
+      return;
+    }
+    setSharedPhotoError('');
+    if (pendingSharedPhotoPreviewUrl) URL.revokeObjectURL(pendingSharedPhotoPreviewUrl);
+    setPendingSharedPhotoPreviewUrl(URL.createObjectURL(file));
+    setPendingSharedPhotoFile(file);
+    setRemovePendingSharedPhoto(false);
+  };
+
   const updateBioMutation = useMutation({
-    mutationFn: (data: { full_name?: string; phone_number?: string }) => authApi.updateProfile(data),
-    onSuccess: () => {
+    mutationFn: async (payload: {
+      data: { full_name?: string; phone_number?: string };
+      photo?: File | null;
+      removePhoto?: boolean;
+      removeLegacyDoctorPhoto?: boolean;
+    }) => {
+      let nextUser = await authApi.updateProfile(payload.data);
+      if (payload.removePhoto) {
+        await authApi.removeProfilePhoto();
+        nextUser = await authApi.getMe();
+      }
+      if (payload.photo) nextUser = await authApi.uploadProfilePhoto(payload.photo);
+      if (payload.removeLegacyDoctorPhoto) await usersApi.removeDoctorPhoto();
+      return nextUser;
+    },
+    onSuccess: (nextUser) => {
+      setUser(nextUser);
       queryClient.invalidateQueries({ queryKey: ['auth', 'me'] });
-      setBioSuccess('Account profile updated successfully!');
+      queryClient.invalidateQueries({ queryKey: ['profile', 'doctor'] });
+      if (pendingSharedPhotoPreviewUrl) URL.revokeObjectURL(pendingSharedPhotoPreviewUrl);
+      setPendingSharedPhotoPreviewUrl(null);
+      setPendingSharedPhotoFile(null);
+      setRemovePendingSharedPhoto(false);
+      setSharedPhotoError('');
+      setBioSuccess('Account profile and photo updated successfully!');
       setIsEditingBio(false);
       setTimeout(() => setBioSuccess(''), 4000);
     },
     onError: (err: any) => {
       setBioError(err?.response?.data?.detail || 'Failed to update account information');
+      setSharedPhotoError(err?.message || 'Failed to save profile photo.');
     },
   });
 
@@ -269,9 +564,11 @@ export function ProfilePage() {
     if (!user) return false;
     return (
       bioForm.full_name.trim() !== (user.full_name || '') ||
-      bioForm.phone_number.trim() !== (user.phone_number || '')
+      bioForm.phone_number.trim() !== (user.phone_number || '') ||
+      Boolean(pendingSharedPhotoFile) ||
+      removePendingSharedPhoto
     );
-  }, [user, bioForm]);
+  }, [user, bioForm, pendingSharedPhotoFile, removePendingSharedPhoto]);
 
   const handleBioSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -281,8 +578,13 @@ export function ProfilePage() {
       return;
     }
     updateBioMutation.mutate({
-      full_name: bioForm.full_name.trim(),
-      phone_number: bioForm.phone_number.trim(),
+      data: {
+        full_name: bioForm.full_name.trim(),
+        phone_number: bioForm.phone_number.trim(),
+      },
+      photo: pendingSharedPhotoFile,
+      removePhoto: removePendingSharedPhoto && !pendingSharedPhotoFile && Boolean(user?.profile_photo_path),
+      removeLegacyDoctorPhoto: removePendingSharedPhoto && !pendingSharedPhotoFile && user?.role === 'DOCTOR' && !user?.profile_photo_path && Boolean(doctorAccountPhotoPreviewUrl),
     });
   };
 
@@ -324,7 +626,14 @@ export function ProfilePage() {
 
   useEffect(() => {
     if (doctorProfile) {
-      setDoctorForm((prev) => ({ ...prev, ...doctorProfile }));
+      setDoctorForm((prev) => ({
+        ...prev,
+        ...doctorProfile,
+        available_day_start: doctorProfile.available_day_start || doctorProfile.available_days?.[0] || '',
+        available_day_end: doctorProfile.available_day_end || doctorProfile.available_days?.[doctorProfile.available_days.length - 1] || '',
+        available_time_start: doctorProfile.available_time_start || doctorProfile.available_times?.[0] || '',
+        available_time_end: doctorProfile.available_time_end || doctorProfile.available_times?.[doctorProfile.available_times.length - 1] || '',
+      }));
     }
   }, [doctorProfile]);
 
@@ -402,12 +711,26 @@ export function ProfilePage() {
   // Check if Doctor form has unsaved modifications
   const isDoctorDirty = useMemo(() => {
     if (!doctorProfile) return false;
+    const sameList = (a?: string[], b?: string[]) => JSON.stringify(a || []) === JSON.stringify(b || []);
     return (
       (doctorProfile.specialty || 'Neurologist') !== (doctorForm.specialty || 'Neurologist') ||
+      (doctorProfile.gender || '') !== (doctorForm.gender || '') ||
       (doctorProfile.hospital_affiliation || '') !== (doctorForm.hospital_affiliation || '') ||
-      (doctorProfile.license_image_url || '') !== (doctorForm.license_image_url || '')
+      (doctorProfile.years_of_experience ?? '') !== (doctorForm.years_of_experience ?? '') ||
+      String(doctorProfile.consultation_fee ?? '') !== String(doctorForm.consultation_fee ?? '') ||
+      (doctorProfile.bio || '') !== (doctorForm.bio || '') ||
+      (doctorProfile.available_day_start || '') !== (doctorForm.available_day_start || '') ||
+      (doctorProfile.available_day_end || '') !== (doctorForm.available_day_end || '') ||
+      (doctorProfile.available_time_start || '') !== (doctorForm.available_time_start || '') ||
+      (doctorProfile.available_time_end || '') !== (doctorForm.available_time_end || '') ||
+      !sameList(doctorProfile.available_days, doctorForm.available_days) ||
+      !sameList(doctorProfile.available_times, doctorForm.available_times) ||
+      !sameList(doctorProfile.languages_spoken, doctorForm.languages_spoken) ||
+      !sameList(doctorProfile.consultation_types, doctorForm.consultation_types) ||
+      Boolean(pendingCertificateFile) ||
+      removePendingCertificate
     );
-  }, [doctorProfile, doctorForm]);
+  }, [doctorProfile, doctorForm, pendingCertificateFile, removePendingCertificate]);
 
   // Check if Caretaker form has unsaved modifications
   const isCaretakerDirty = useMemo(() => {
@@ -571,19 +894,72 @@ export function ProfilePage() {
     onError: (err: any) => parseBackendError(err),
   });
 
-  const updateDoctorMutation = useMutation({
-    mutationFn: (data: Partial<DoctorProfileData>) => usersApi.updateDoctorProfile(data),
-    onSuccess: () => {
+  const saveDoctorMutation = useMutation({
+    mutationFn: async (payload: {
+      data: Partial<DoctorProfileData>;
+      certificate?: File | null;
+      removeCertificate?: boolean;
+    }) => {
+      let profile = await usersApi.updateDoctorProfile(payload.data);
+      if (payload.removeCertificate) await usersApi.removeDoctorCertificate();
+      if (payload.removeCertificate) profile = await usersApi.getDoctorProfile();
+      if (payload.certificate) profile = await usersApi.uploadDoctorCertificate(payload.certificate);
+      return profile;
+    },
+    onSuccess: (profile) => {
+      queryClient.setQueryData(['profile', 'doctor'], profile);
       queryClient.invalidateQueries({ queryKey: ['profile', 'doctor'] });
-      setProfileSuccess('Doctor credentials updated successfully.');
+      setDoctorForm((prev) => ({ ...prev, ...profile }));
+      setPendingCertificateFile(null);
+      setRemovePendingCertificate(false);
+      setProfileSuccess('Doctor profile and uploaded files saved successfully.');
       setProfileError('');
+      setUploadError('');
       setErrors({});
+      setIsEditingDoctor(false);
       setTimeout(() => setProfileSuccess(''), 4000);
     },
-    onError: (err: any) => parseBackendError(err),
+    onError: (err: any) => setUploadError(err?.message || 'Unable to save the doctor profile and files.'),
   });
 
+  const stageDoctorCertificate = (file: File) => {
+    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      setUploadError('Certificate must be PDF, JPG, PNG, or WEBP.');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setUploadError('Certificate must be smaller than 10 MB.');
+      return;
+    }
+    setUploadError('');
+    setPendingCertificateFile(file);
+    setRemovePendingCertificate(false);
+  };
+
+  const previewDoctorFile = async (kind: 'certificate' | 'photo') => {
+    setUploadError('');
+    try {
+      const endpoint = kind === 'certificate'
+        ? '/users/me/doctor-profile/pmdc-certificate'
+        : '/users/me/doctor-profile/photo';
+      const blob = await apiClient.getBlob(endpoint);
+      const url = URL.createObjectURL(blob);
+      if (kind === 'certificate') {
+        if (certificatePreviewUrl) URL.revokeObjectURL(certificatePreviewUrl);
+        setCertificatePreviewUrl(url);
+      } else {
+        if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl);
+        setPhotoPreviewUrl(url);
+        setIsPhotoViewerOpen(true);
+      }
+    } catch (err: any) {
+      setUploadError(err?.message || 'Unable to preview the uploaded file.');
+    }
+  };
+
   const updateCaretakerMutation = useMutation({
+
     mutationFn: (data: CaretakerProfileData) => usersApi.updateCaretakerProfile(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['profile', 'caretaker'] });
@@ -646,9 +1022,24 @@ export function ProfilePage() {
     const formErrors: ValidationErrors = {
       specialty: validateField('specialty', doctorForm.specialty || ''),
       hospital_affiliation: validateField('hospital_affiliation', doctorForm.hospital_affiliation || ''),
-      license_image_url: validateField('license_image_url', doctorForm.license_image_url || ''),
     };
 
+    if (doctorForm.years_of_experience != null && (doctorForm.years_of_experience < 0 || doctorForm.years_of_experience > 80)) {
+      setProfileError('Years of experience must be between 0 and 80.');
+      return;
+    }
+    const dayStartIndex = DOCTOR_DAY_OPTIONS.findIndex((option) => option.value === doctorForm.available_day_start);
+    const dayEndIndex = DOCTOR_DAY_OPTIONS.findIndex((option) => option.value === doctorForm.available_day_end);
+    if ((doctorForm.available_day_start && !doctorForm.available_day_end) || (!doctorForm.available_day_start && doctorForm.available_day_end) || (dayStartIndex >= 0 && dayEndIndex >= 0 && dayEndIndex < dayStartIndex)) {
+      setProfileError('Choose a valid available day range with the end day on or after the start day.');
+      return;
+    }
+    const timeStartIndex = DOCTOR_TIME_OPTIONS.findIndex((option) => option.value === doctorForm.available_time_start);
+    const timeEndIndex = DOCTOR_TIME_OPTIONS.findIndex((option) => option.value === doctorForm.available_time_end);
+    if ((doctorForm.available_time_start && !doctorForm.available_time_end) || (!doctorForm.available_time_start && doctorForm.available_time_end) || (timeStartIndex >= 0 && timeEndIndex >= 0 && timeEndIndex < timeStartIndex)) {
+      setProfileError('Choose a valid available time range with the end time after the start time.');
+      return;
+    }
     const activeErrors = Object.entries(formErrors).filter(([_, msg]) => !!msg);
     if (activeErrors.length > 0) {
       setErrors(formErrors);
@@ -657,10 +1048,25 @@ export function ProfilePage() {
     }
 
     setErrors({});
-    updateDoctorMutation.mutate({
-      specialty: doctorForm.specialty?.trim() || undefined,
-      hospital_affiliation: doctorForm.hospital_affiliation?.trim() || undefined,
-      license_image_url: doctorForm.license_image_url?.trim() || undefined,
+    saveDoctorMutation.mutate({
+      data: {
+        specialty: doctorForm.specialty?.trim() || undefined,
+        gender: doctorForm.gender || undefined,
+        hospital_affiliation: doctorForm.hospital_affiliation?.trim() || undefined,
+        years_of_experience: doctorForm.years_of_experience,
+        consultation_fee: doctorForm.consultation_fee === '' ? undefined : doctorForm.consultation_fee,
+        available_days: doctorForm.available_day_start && doctorForm.available_day_end ? [doctorForm.available_day_start, doctorForm.available_day_end] : [],
+        available_day_start: doctorForm.available_day_start || undefined,
+        available_day_end: doctorForm.available_day_end || undefined,
+        available_times: doctorForm.available_time_start && doctorForm.available_time_end ? [doctorForm.available_time_start, doctorForm.available_time_end] : [],
+        available_time_start: doctorForm.available_time_start || undefined,
+        available_time_end: doctorForm.available_time_end || undefined,
+        languages_spoken: doctorForm.languages_spoken || [],
+        bio: doctorForm.bio?.trim() || undefined,
+        consultation_types: doctorForm.consultation_types || [],
+      },
+      certificate: pendingCertificateFile,
+      removeCertificate: removePendingCertificate && !pendingCertificateFile,
     });
   };
 
@@ -754,8 +1160,23 @@ export function ProfilePage() {
     setCustomTriggerInput('');
   };
 
+  const accountPhotoUrl = pendingSharedPhotoPreviewUrl || sharedPhotoPreviewUrl || doctorAccountPhotoPreviewUrl;
+
+  const photoViewerPortal = isPhotoViewerOpen && photoPreviewUrl && typeof document !== 'undefined'
+    ? createPortal(
+        <div className="profile-photo-modal" role="dialog" aria-modal="true" aria-label="Full doctor profile photo" onClick={() => setIsPhotoViewerOpen(false)}>
+          <div className="profile-photo-modal-content" onClick={(event) => event.stopPropagation()}>
+            <button type="button" className="profile-photo-modal-close" aria-label="Close photo viewer" onClick={() => setIsPhotoViewerOpen(false)}><X size={20} /></button>
+            <img src={photoPreviewUrl} alt="Full doctor profile" className="profile-full-photo" />
+          </div>
+        </div>,
+        document.body,
+      )
+    : null;
+
   return (
     <div className="profile-page">
+      {photoViewerPortal}
       {/* ── Header ── */}
       <div className="profile-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
@@ -834,16 +1255,19 @@ export function ProfilePage() {
                           onClick={() => {
                             if (field.category === 'account') {
                               setIsEditingBio(true);
-                            } else if (field.category === 'clinical' || field.category === 'emergency') {
-                              if (user?.role === 'PATIENT') setIsEditingPatient(true);
+                            } else if (user?.role === 'PATIENT') {
+                              setIsEditingPatient(true);
+                            } else if (user?.role === 'DOCTOR') {
+                              setIsEditingDoctor(true);
                             }
-                            setTimeout(() => {
+                            window.setTimeout(() => {
                               const el = document.getElementById(field.id);
                               if (el) {
                                 el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                el.focus();
+                                const focusTarget = el.querySelector<HTMLElement>('input, textarea, button, select');
+                                focusTarget?.focus({ preventScroll: true });
                               }
-                            }, 100);
+                            }, 180);
                           }}
                           title={`Click to jump to ${field.label}`}
                         >
@@ -941,6 +1365,17 @@ export function ProfilePage() {
                 </div>
               </div>
 
+              <div id="acc_photo" className="account-photo-summary-row">
+                <button type="button" className="account-photo-summary-avatar" aria-label="Open or change account photo" onClick={() => { if (accountPhotoUrl) { setPhotoPreviewUrl(accountPhotoUrl); setIsPhotoViewerOpen(true); } else { setBioForm({ full_name: user?.full_name || '', phone_number: user?.phone_number || '' }); setIsEditingBio(true); } }}>
+                  {accountPhotoUrl ? <img src={accountPhotoUrl} alt="Account profile" /> : (user?.full_name || 'U').charAt(0).toUpperCase()}
+                </button>
+                <div className="account-photo-summary-copy">
+                  <div className="profile-field-label">Account photo</div>
+                  <div className="profile-muted-value">{accountPhotoUrl ? 'Click the image to view it full screen.' : 'No photo uploaded yet.'}</div>
+                </div>
+                <button type="button" className="btn btn-outline btn-sm" onClick={() => { setBioForm({ full_name: user?.full_name || '', phone_number: user?.phone_number || '' }); setIsEditingBio(true); }}><Camera size={13} /> {accountPhotoUrl ? 'Change photo' : 'Upload photo'}</button>
+              </div>
+
               <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 'var(--space-4)', borderTop: '1px solid rgba(45, 90, 63, 0.08)', paddingTop: 'var(--space-3)' }}>
                 <button
                   type="button"
@@ -990,6 +1425,35 @@ export function ProfilePage() {
                 />
               </div>
 
+              <div id="acc_photo" className="shared-profile-photo-editor">
+                <div className="shared-profile-photo-preview-column">
+                  <div className="shared-profile-photo-preview">
+                    {removePendingSharedPhoto ? (
+                      <div className="shared-profile-photo-placeholder">{(user?.full_name || 'U').charAt(0).toUpperCase()}</div>
+                    ) : accountPhotoUrl ? (
+                      <img
+                        src={accountPhotoUrl || ''}
+                        alt="Profile preview"
+                      />
+                    ) : (
+                      <div className="shared-profile-photo-placeholder">{(user?.full_name || 'U').charAt(0).toUpperCase()}</div>
+                    )}
+                  </div>
+
+                </div>
+                <div className="shared-profile-photo-actions">
+                  <div className="profile-field-label">Account photo</div>
+                  <div className="profile-muted-value">JPG, PNG, or WEBP up to 5 MB. Changes save with this account form.</div>
+                  <div className="shared-profile-photo-buttons">
+                    <label className="btn btn-outline btn-sm" htmlFor="shared-profile-photo-upload"><Camera size={13} /> Choose photo</label>
+                    <input id="shared-profile-photo-upload" type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={(event) => { const file = event.target.files?.[0]; if (file) stageSharedProfilePhoto(file); event.currentTarget.value = ''; }} />
+                    {(pendingSharedPhotoFile || user?.profile_photo_path || (user?.role === 'DOCTOR' && doctorAccountPhotoPreviewUrl)) && !removePendingSharedPhoto && <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setPendingSharedPhotoFile(null); if (pendingSharedPhotoPreviewUrl) URL.revokeObjectURL(pendingSharedPhotoPreviewUrl); setPendingSharedPhotoPreviewUrl(null); setRemovePendingSharedPhoto(Boolean(user?.profile_photo_path || doctorAccountPhotoPreviewUrl)); setSharedPhotoError(''); }}><X size={13} /> Remove</button>}
+                    {removePendingSharedPhoto && <button type="button" className="btn btn-ghost btn-sm" onClick={() => setRemovePendingSharedPhoto(false)}>Undo remove</button>}
+                  </div>
+                  {sharedPhotoError && <div className="profile-range-error">{sharedPhotoError}</div>}
+                </div>
+              </div>
+
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-2)', marginTop: 'var(--space-2)' }}>
                 <button
                   type="button"
@@ -999,8 +1463,13 @@ export function ProfilePage() {
                       full_name: user?.full_name || '',
                       phone_number: user?.phone_number || '',
                     });
+                    setPendingSharedPhotoFile(null);
+                    if (pendingSharedPhotoPreviewUrl) URL.revokeObjectURL(pendingSharedPhotoPreviewUrl);
+                    setPendingSharedPhotoPreviewUrl(null);
+                    setRemovePendingSharedPhoto(false);
                     setIsEditingBio(false);
                     setBioError('');
+                    setSharedPhotoError('');
                   }}
                 >
                   Cancel
@@ -1445,74 +1914,122 @@ export function ProfilePage() {
               </motion.div>
             )}
 
-            {profileError && (
+            {(profileError || uploadError) && (
               <div className="auth-error-banner" style={{ marginBottom: 'var(--space-4)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <AlertCircle size={16} style={{ flexShrink: 0 }} /> <span>{profileError}</span>
+                <AlertCircle size={16} style={{ flexShrink: 0 }} /> <span>{profileError || uploadError}</span>
               </div>
             )}
 
-            <form onSubmit={handleDoctorSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 'var(--space-4)' }}>
-                <Input
-                  id="doc_pmdc"
-                  label="PMDC License Number"
-                  disabled
-                  value={doctorProfile?.pmdc_number || 'PMDC-PENDING'}
-                />
-                <Input
-                  id="doc_spec"
-                  label="Clinical Specialty"
-                  placeholder="e.g. Neurologist, Epileptologist, Pediatric Neurologist"
-                  value={doctorForm.specialty || ''}
-                  error={errors.specialty}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setDoctorForm(p => ({ ...p, specialty: val }));
-                    setErrors(prev => ({ ...prev, specialty: validateField('specialty', val) }));
-                  }}
-                />
-                <Input
-                  id="doc_hosp"
-                  label="Hospital / Clinic Affiliation"
-                  placeholder="e.g. Shifa International Hospital, Islamabad"
-                  value={doctorForm.hospital_affiliation || ''}
-                  error={errors.hospital_affiliation}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setDoctorForm(p => ({ ...p, hospital_affiliation: val }));
-                    setErrors(prev => ({ ...prev, hospital_affiliation: validateField('hospital_affiliation', val) }));
-                  }}
-                />
-              </div>
+            {!isEditingDoctor ? (
+              <div>
+                                <div className="doctor-summary-primary">
+                  <div><div className="profile-field-label">PMDC License Number</div><div className="profile-field-value">{doctorProfile?.pmdc_number || 'PMDC-PENDING'}</div></div>
+                  <div><div className="profile-field-label">Clinical Specialty</div><div className="profile-field-value">{doctorProfile?.specialty || 'Not provided'}</div></div>
+                  <div><div className="profile-field-label">Gender</div><div className="profile-field-value">{doctorProfile?.gender || 'Not provided'}</div></div>
+                  <div><div className="profile-field-label">Hospital / Clinic Affiliation</div><div className="profile-field-value">{doctorProfile?.hospital_affiliation || 'Not provided'}</div></div>
+                  <div><div className="profile-field-label">Years of Experience</div><div className="profile-field-value">{doctorProfile?.years_of_experience ?? 'Not provided'}</div></div>
+                  <div><div className="profile-field-label">Consultation Fee</div><div className="profile-field-value">{doctorProfile?.consultation_fee ? `PKR ${doctorProfile.consultation_fee}` : 'Not provided'}</div></div>
+                </div>
 
-              <Input
-                id="doc_license_doc"
-                label="PMDC Certificate Document / URL"
-                placeholder="e.g. https://storage.epicare.ai/docs/license.pdf"
-                value={doctorForm.license_image_url || ''}
-                error={errors.license_image_url}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setDoctorForm(p => ({ ...p, license_image_url: val }));
-                  setErrors(prev => ({ ...prev, license_image_url: validateField('license_image_url', val) }));
-                }}
-              />
+                <div className="doctor-summary-secondary">
+                  <div><div className="profile-field-label">Languages Spoken</div><div className="profile-field-value">{doctorProfile?.languages_spoken?.join(', ') || 'Not provided'}</div></div>
+                  <div><div className="profile-field-label">Consultation Types</div><div className="profile-field-value">{doctorProfile?.consultation_types?.join(', ') || 'Not provided'}</div></div>
+                  <div><div className="profile-field-label">Available Days</div><div className="profile-field-value">{doctorProfile?.available_day_start && doctorProfile?.available_day_end ? `${doctorProfile.available_day_start} – ${doctorProfile.available_day_end}` : doctorProfile?.available_days?.join(' – ') || 'Not provided'}</div></div>
+                  <div><div className="profile-field-label">Available Times</div><div className="profile-field-value">{doctorProfile?.available_time_start && doctorProfile?.available_time_end ? `${doctorProfile.available_time_start} – ${doctorProfile.available_time_end}` : doctorProfile?.available_times?.join(' – ') || 'Not provided'}</div></div>
+                </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 'var(--space-2)' }}>
-                <button
-                  type="submit"
-                  className="btn btn-primary btn-md"
-                  disabled={updateDoctorMutation.isPending || !isDoctorDirty}
-                  style={{
-                    opacity: !isDoctorDirty && !updateDoctorMutation.isPending ? 0.5 : 1,
-                    cursor: !isDoctorDirty && !updateDoctorMutation.isPending ? 'not-allowed' : 'pointer',
-                  }}
-                >
-                  {updateDoctorMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-                  <span>Save Practitioner Info</span>
-                </button>
+                <div style={{ marginTop: 'var(--space-4)', padding: 'var(--space-3)', background: 'rgba(255,255,255,.46)', borderRadius: 'var(--radius-md)' }}>
+                  <div className="profile-field-label">Professional Bio</div>
+                  <div className="profile-field-value" style={{ whiteSpace: 'pre-wrap' }}>{doctorProfile?.bio || 'No professional bio added yet.'}</div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--space-3)', marginTop: 'var(--space-4)', paddingTop: 'var(--space-4)', borderTop: '1px solid rgba(45,90,63,.08)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', minWidth: 0 }}>
+                    <FileText size={17} style={{ color: 'var(--color-primary)', flexShrink: 0 }} />
+                    <span style={{ fontSize: 'var(--text-sm)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{doctorProfile?.pmdc_certificate_name || 'PMDC certificate not uploaded'}</span>
+                    {doctorProfile?.pmdc_certificate_path && <button type="button" className="btn btn-ghost btn-sm" onClick={() => previewDoctorFile('certificate')}>View / Download</button>}
+                  </div>
+                  <button type="button" className="btn btn-outline btn-sm" onClick={() => { setDoctorForm((prev) => ({ ...prev, ...(doctorProfile || {}) })); setPendingCertificateFile(null); setRemovePendingCertificate(false); setIsEditingDoctor(true); setUploadError(''); }}>
+                    <Edit3 size={13} /> Edit Doctor Profile
+                  </button>
+                </div>
+                {certificatePreviewUrl && (
+                  <div className="profile-document-viewer">
+                    <div className="profile-media-viewer-header">
+                      <strong>PMDC certificate viewer</strong>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <a className="btn btn-ghost btn-sm" href={certificatePreviewUrl} target="_blank" rel="noreferrer">Open full viewer</a>
+                        <button type="button" className="btn btn-ghost btn-sm" onClick={() => { URL.revokeObjectURL(certificatePreviewUrl); setCertificatePreviewUrl(null); }}><X size={13} /> Close</button>
+                      </div>
+                    </div>
+                    <iframe title="PMDC certificate preview" src={certificatePreviewUrl} className="profile-certificate-frame" />
+                  </div>
+                )}
+
               </div>
-            </form>
+            ) : (
+              <form onSubmit={handleDoctorSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+                                <div className="doctor-edit-grid">
+                  <Input id="doc_pmdc" label="PMDC License Number" disabled value={doctorProfile?.pmdc_number || 'PMDC-PENDING'} />
+                                    <Input id="doc_spec" label="Clinical Specialty" placeholder="e.g. Neurologist" value={doctorForm.specialty || ''} error={errors.specialty} onChange={(e) => { const val = e.target.value; setDoctorForm(p => ({ ...p, specialty: val })); setErrors(prev => ({ ...prev, specialty: validateField('specialty', val) })); }} />
+                  <Select
+                    id="doc_gender"
+                    label="Gender"
+                    value={doctorForm.gender || ''}
+                    onChange={(val) => setDoctorForm(p => ({ ...p, gender: val as DoctorProfileData['gender'] }))}
+                    options={[
+                      { value: 'Male', label: 'Male' },
+                      { value: 'Female', label: 'Female' },
+                      { value: 'Other', label: 'Other' },
+                      { value: 'Prefer not to say', label: 'Prefer not to say' },
+                    ]}
+                  />
+                  <Input id="doc_hosp" label="Hospital / Clinic Affiliation" placeholder="e.g. Shifa International Hospital, Islamabad" value={doctorForm.hospital_affiliation || ''} error={errors.hospital_affiliation} onChange={(e) => { const val = e.target.value; setDoctorForm(p => ({ ...p, hospital_affiliation: val })); setErrors(prev => ({ ...prev, hospital_affiliation: validateField('hospital_affiliation', val) })); }} />
+                  <Input id="doc_exp" label="Years of Experience" type="number" min="0" max="80" value={doctorForm.years_of_experience ?? ''} onChange={(e) => setDoctorForm(p => ({ ...p, years_of_experience: e.target.value === '' ? undefined : Number(e.target.value) }))} />
+                  <Input id="doc_fee" label="Consultation Fee (PKR)" type="number" min="0" step="0.01" placeholder="e.g. 3000" value={doctorForm.consultation_fee ?? ''} onChange={(e) => setDoctorForm(p => ({ ...p, consultation_fee: e.target.value }))} />
+                  <Input id="doc_languages" label="Languages Spoken" placeholder="Urdu, English, Punjabi" value={(doctorForm.languages_spoken || []).join(', ')} onChange={(e) => setDoctorForm(p => ({ ...p, languages_spoken: e.target.value.split(',').map(v => v.trim()).filter(Boolean) }))} />
+                  <NeumorphicRangeSelect id="doc_days" label="Available Days" startValue={doctorForm.available_day_start} endValue={doctorForm.available_day_end} options={DOCTOR_DAY_OPTIONS} startPlaceholder="Start day" endPlaceholder="End day" onChange={(startValue, endValue) => setDoctorForm(p => ({ ...p, available_day_start: startValue, available_day_end: endValue, available_days: startValue && endValue ? [startValue, endValue] : [] }))} />
+                  <NeumorphicRangeSelect id="doc_times" label="Available Times" startValue={doctorForm.available_time_start} endValue={doctorForm.available_time_end} options={DOCTOR_TIME_OPTIONS} startPlaceholder="Start time" endPlaceholder="End time" onChange={(startValue, endValue) => setDoctorForm(p => ({ ...p, available_time_start: startValue, available_time_end: endValue, available_times: startValue && endValue ? [startValue, endValue] : [] }))} />
+                  <NeumorphicMultiSelect id="doc_types" label="Consultation Types" placeholder="Select consultation types" values={doctorForm.consultation_types || []} options={DOCTOR_CONSULTATION_OPTIONS} onChange={(values) => setDoctorForm(p => ({ ...p, consultation_types: values }))} />
+                </div>
+                <Input id="doc_bio" label="Professional Bio" placeholder="Tell patients about your clinical experience and approach." value={doctorForm.bio || ''} onChange={(e) => setDoctorForm(p => ({ ...p, bio: e.target.value }))} />
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 'var(--space-4)' }}>
+                  
+                  <div id="doc_certificate" className="profile-upload-box">
+                    <div className="profile-field-label">PMDC Certificate</div>
+                    <p style={{ margin: '4px 0 10px', fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>Choose a replacement, remove the current certificate, then click Save.</p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      <label className="btn btn-outline btn-sm" htmlFor="doctor-certificate-upload"><Upload size={13} /> {pendingCertificateFile ? 'Replace Selected Certificate' : 'Choose Certificate'}</label>
+                      <input id="doctor-certificate-upload" type="file" accept="application/pdf,image/jpeg,image/png,image/webp" hidden onChange={(e) => { const file = e.target.files?.[0]; if (file) stageDoctorCertificate(file); e.currentTarget.value = ''; }} />
+                      {(pendingCertificateFile || doctorProfile?.pmdc_certificate_path) && !removePendingCertificate && <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setPendingCertificateFile(null); setRemovePendingCertificate(Boolean(doctorProfile?.pmdc_certificate_path)); setUploadError(''); }}><X size={13} /> Remove</button>}
+                      {removePendingCertificate && <button type="button" className="btn btn-ghost btn-sm" onClick={() => setRemovePendingCertificate(false)}>Undo remove</button>}
+                    </div>
+                    <span style={{ display: 'block', marginTop: 8, fontSize: 'var(--text-xs)', color: removePendingCertificate ? 'var(--color-error)' : 'var(--color-text-muted)' }}>
+                      {removePendingCertificate ? 'Certificate will be deleted when you save.' : pendingCertificateFile ? `${pendingCertificateFile.name} — waiting for Save` : doctorProfile?.pmdc_certificate_name || 'No certificate selected'}
+                    </span>
+                    {doctorProfile?.pmdc_certificate_path && !removePendingCertificate && <button type="button" className="btn btn-ghost btn-sm" onClick={() => previewDoctorFile('certificate')}><FileText size={13} /> View current certificate</button>}
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-2)', marginTop: 'var(--space-2)' }}>
+                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setDoctorForm((prev) => ({ ...prev, ...(doctorProfile || {}) })); setPendingCertificateFile(null); setRemovePendingCertificate(false); setIsEditingDoctor(false); setProfileError(''); setUploadError(''); }}>Cancel</button>
+                  <button type="submit" className="btn btn-primary btn-sm" disabled={saveDoctorMutation.isPending || !isDoctorDirty} style={{ opacity: !isDoctorDirty && !saveDoctorMutation.isPending ? 0.5 : 1 }}>
+                    {saveDoctorMutation.isPending ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />} Save Doctor Profile
+                  </button>
+                </div>
+                {certificatePreviewUrl && (
+                  <div className="profile-document-viewer">
+                    <div className="profile-media-viewer-header">
+                      <strong>PMDC certificate viewer</strong>
+                      <button type="button" className="btn btn-ghost btn-sm" onClick={() => { URL.revokeObjectURL(certificatePreviewUrl); setCertificatePreviewUrl(null); }}><X size={13} /> Close</button>
+                    </div>
+                    <iframe title="PMDC certificate preview" src={certificatePreviewUrl} className="profile-certificate-frame" />
+                  </div>
+                )}
+
+              </form>
+            )}
           </div>
         )}
 

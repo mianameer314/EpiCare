@@ -26,8 +26,26 @@ export interface DoctorProfileData {
   user_id?: number;
   pmdc_number?: string;
   specialty?: string;
+  gender?: 'Male' | 'Female' | 'Other' | 'Prefer not to say';
   hospital_affiliation?: string;
   license_image_url?: string;
+  pmdc_certificate_path?: string;
+  pmdc_certificate_name?: string;
+  pmdc_certificate_mime_type?: string;
+  pmdc_certificate_size?: number;
+  profile_photo_path?: string;
+  profile_photo_mime_type?: string;
+  years_of_experience?: number;
+  consultation_fee?: string | number;
+  available_days?: string[];
+  available_day_start?: string;
+  available_day_end?: string;
+  available_times?: string[];
+  available_time_start?: string;
+  available_time_end?: string;
+  languages_spoken?: string[];
+  bio?: string;
+  consultation_types?: string[];
   is_pmdc_verified?: boolean;
 }
 
@@ -52,6 +70,24 @@ export const usersApi = {
 
   updateDoctorProfile: (data: Partial<DoctorProfileData>) =>
     apiClient.put<DoctorProfileData>('/users/me/doctor-profile', data),
+
+  uploadDoctorCertificate: (file: File) => {
+    const form = new FormData();
+    form.append('file', file);
+    return apiClient.post<DoctorProfileData>('/users/me/doctor-profile/pmdc-certificate', form);
+  },
+
+  uploadDoctorPhoto: (file: File) => {
+    const form = new FormData();
+    form.append('file', file);
+    return apiClient.post<DoctorProfileData>('/users/me/doctor-profile/photo', form);
+  },
+
+  removeDoctorCertificate: () =>
+    apiClient.delete<void>('/users/me/doctor-profile/pmdc-certificate'),
+
+  removeDoctorPhoto: () =>
+    apiClient.delete<void>('/users/me/doctor-profile/photo'),
 
   // Caretaker Profile
   getCaretakerProfile: () =>

@@ -35,5 +35,5 @@ HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
 # Expose port
 EXPOSE 8000
 
-# Start command
-CMD sh -c "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"
+# Start command (Runs database migrations before starting Uvicorn server)
+CMD sh -c "PYTHONPATH=. alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"

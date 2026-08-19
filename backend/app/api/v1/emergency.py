@@ -1,8 +1,11 @@
+import logging
 from datetime import date, datetime, time, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Header, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import List
+
+logger = logging.getLogger(__name__)
 
 from app.api.deps import DbDep, TargetPatientIdForRead, TargetPatientIdForWrite
 from app.db.session import SessionLocal
@@ -142,67 +145,126 @@ async def delete_emergency_contact(
 
 async def process_sos_in_background(event_id: int, user_id: int):
     """Background task to dispatch SOS via all configured channels to contacts and Care Network."""
-    async with SessionLocal() as db:
-        # 1. Fetch the event
-        result = await db.execute(select(SosEvent).where(SosEvent.id == event_id))
-        event = result.scalar_one_or_none()
-        if not event:
-            return
+    try:
+        async with SessionLocal() as db:
+            # 1. Fetch the event
+            result = await db.execute(select(SosEvent).where(SosEvent.id == event_id))
+            event = result.scalar_one_or_none()
+            if not event:
+                logger.error(f"[SOS] Event {event_id} not found")
+                return
 
-        # 2. Fetch patient user & name
-        patient_user = await db.get(User, user_id)
-        patient_name = patient_user.full_name if patient_user else "Patient"
+            # 2. Fetch patient user & name
+            patient_user = await db.get(User, user_id)
+            patient_name = patient_user.full_name if patient_user else "Patient"
 
-        # 3. Fetch registered Emergency Contacts
-        contacts_result = await db.execute(
-            select(EmergencyContact).where(EmergencyContact.user_id == user_id)
-        )
-        contacts = list(contacts_result.scalars().all())
+            # 3. Fetch registered Emergency Contacts
+            contacts_result = await db.execute(
+                select(EmergencyContact).where(EmergencyContact.user_id == user_id)
+            )
+            contacts = list(contacts_result.scalars().all())
 
-        # 4. Fetch active connected Caretakers from Care Network
-        caretakers = []
-        patient_prof_res = await db.execute(
-            select(PatientProfile).where(PatientProfile.user_id == user_id)
-        )
-        patient_prof = patient_prof_res.scalar_one_or_none()
+            # 4. Fetch active connected Caretakers from Care Network
+            caretakers = []
+            patient_prof_res = await db.execute(
+                select(PatientProfile).where(PatientProfile.user_id == user_id)
+            )
+            patient_prof = patient_prof_res.scalar_one_or_none()
 
-        if patient_prof:
-            ct_query = await db.execute(
-                select(User)
-                .join(CaretakerProfile, CaretakerProfile.user_id == User.id)
-                .join(PatientCaretakerNetwork, PatientCaretakerNetwork.caretaker_id == CaretakerProfile.id)
-                .where(
-                    PatientCaretakerNetwork.patient_id == patient_prof.id,
-                    PatientCaretakerNetwork.relationship_status == ConnectionStatus.ACTIVE
+            if patient_prof:
+                ct_query = await db.execute(
+                    select(User)
+                    .join(CaretakerProfile, CaretakerProfile.user_id == User.id)
+                    .join(PatientCaretakerNetwork, PatientCaretakerNetwork.caretaker_id == CaretakerProfile.id)
+                    .where(
+                        PatientCaretakerNetwork.patient_id == patient_prof.id,
+                        PatientCaretakerNetwork.relationship_status == ConnectionStatus.ACTIVE
+                    )
                 )
-            )
-            caretakers = list(ct_query.scalars().all())
+                caretakers = list(ct_query.scalars().all())
 
-        # 5. Dispatch alerts via SOS Provider
-        provider = get_sos_provider()
-        if hasattr(provider, "send_sos_extended"):
-            delivery_results = await provider.send_sos_extended(
-                contacts=contacts,
-                caretakers=caretakers,
-                event=event,
-                patient_name=patient_name
-            )
-        else:
-            contact_res = await provider.send_sos(contacts, event)
-            delivery_results = {f"contact_{cid}": status for cid, status in contact_res.items()}
+            logger.info(f"[SOS] Event {event_id}: Found {len(caretakers)} caretakers, {len(contacts)} contacts for {patient_name}")
+            for ct in caretakers:
+                logger.info(f"[SOS] Caretaker: {ct.full_name} (id={ct.id}, fcm_token={'YES' if ct.fcm_token else 'NO'})")
 
-        # 6. Log deliveries for contacts
-        for contact in contacts:
-            status_str = delivery_results.get(f"contact_{contact.id}", "SENT")
-            delivery = SosDelivery(
-                sos_event_id=event.id,
-                contact_id=contact.id,
-                delivery_status=status_str,
-            )
-            db.add(delivery)
+            # 5. Dispatch alerts via SOS Provider
+            provider = get_sos_provider()
+            logger.info(f"[SOS] Using provider: {type(provider).__name__}")
+            if hasattr(provider, "send_sos_extended"):
+                delivery_results = await provider.send_sos_extended(
+                    contacts=contacts,
+                    caretakers=caretakers,
+                    event=event,
+                    patient_name=patient_name
+                )
+            else:
+                contact_res = await provider.send_sos(contacts, event)
+                delivery_results = {f"contact_{cid}": status for cid, status in contact_res.items()}
 
-        event.status = "COMPLETED"
-        await db.commit()
+            logger.info(f"[SOS] Event {event_id} delivery results: {delivery_results}")
+
+            # Direct push notification fallback — ensure every caretaker with an FCM token gets a push
+            from app.services.sos_provider import ensure_firebase_initialized
+            from firebase_admin import messaging as fb_messaging
+            from firebase_admin.exceptions import FirebaseError
+
+            if ensure_firebase_initialized():
+                for ct in caretakers:
+                    if ct.fcm_token and delivery_results.get(f"caretaker_{ct.id}") != "SENT":
+                        try:
+                            msg = fb_messaging.Message(
+                                data={
+                                    "event_id": str(event.id),
+                                    "lat": str(event.latitude or ""),
+                                    "lng": str(event.longitude or ""),
+                                    "title": f"🚨 Seizure Alert: {patient_name}",
+                                    "body": "Patient triggered an Emergency SOS. Tap to view live location.",
+                                },
+                                android=fb_messaging.AndroidConfig(
+                                    priority="high",
+                                    notification=fb_messaging.AndroidNotification(
+                                        title=f"🚨 Seizure Alert: {patient_name}",
+                                        body="Patient triggered an Emergency SOS. Tap to view live location.",
+                                        icon="icon-192",
+                                        color="#e63946",
+                                        sound="default",
+                                        channel_id="epicare-emergency",
+                                    ),
+                                ),
+                                token=ct.fcm_token,
+                            )
+                            resp = fb_messaging.send(msg)
+                            logger.info(f"[SOS] Direct push to {ct.full_name}: {resp}")
+                            delivery_results[f"caretaker_{ct.id}"] = "SENT"
+                        except FirebaseError as e:
+                            logger.error(f"[SOS] Direct push failed for {ct.full_name}: {e}")
+                            delivery_results[f"caretaker_{ct.id}"] = "FAILED"
+
+            # 6. Log deliveries for contacts
+            for contact in contacts:
+                status_str = delivery_results.get(f"contact_{contact.id}", "SENT")
+                delivery = SosDelivery(
+                    sos_event_id=event.id,
+                    contact_id=contact.id,
+                    delivery_status=status_str,
+                )
+                db.add(delivery)
+
+            event.status = "COMPLETED"
+            await db.commit()
+            logger.info(f"[SOS] Event {event_id} completed successfully")
+
+    except Exception as e:
+        logger.error(f"[SOS] Background task FAILED for event {event_id}: {e}", exc_info=True)
+        # Try to mark the event as FAILED so it doesn't stay stuck at SENDING
+        try:
+            async with SessionLocal() as db2:
+                evt = await db2.get(SosEvent, event_id)
+                if evt:
+                    evt.status = "FAILED"
+                    await db2.commit()
+        except Exception:
+            pass
 
 
 from datetime import date, datetime, time
@@ -249,6 +311,65 @@ async def get_sos_events(
     items = result.scalars().all()
     
     return create_paginated_response(items, total, params.skip, params.limit)
+
+
+@router.get(
+    "/fcm-diagnostic",
+    tags=['🤒 Patient - Emergency SOS'],
+    summary="FCM Push Notification Diagnostic",
+    description="Shows FCM token status for the current user and their connected caretakers. Use this to verify push notifications are configured correctly.",
+)
+async def fcm_diagnostic(
+    db: DbDep,
+    target_user_id: TargetPatientIdForRead,
+):
+    from app.core.config import settings
+    from app.services.sos_provider import ensure_firebase_initialized
+    from sqlalchemy.orm import selectinload
+
+    patient_user = await db.get(User, target_user_id)
+    fb_ready = ensure_firebase_initialized()
+
+    # Check connected caretakers' FCM status
+    caretaker_info = []
+    patient_prof_res = await db.execute(
+        select(PatientProfile).where(PatientProfile.user_id == target_user_id)
+    )
+    patient_prof = patient_prof_res.scalar_one_or_none()
+    if patient_prof:
+        ct_query = await db.execute(
+            select(User)
+            .join(CaretakerProfile, CaretakerProfile.user_id == User.id)
+            .join(PatientCaretakerNetwork, PatientCaretakerNetwork.caretaker_id == CaretakerProfile.id)
+            .where(
+                PatientCaretakerNetwork.patient_id == patient_prof.id,
+                PatientCaretakerNetwork.relationship_status == ConnectionStatus.ACTIVE
+            )
+        )
+        for ct in ct_query.scalars().all():
+            caretaker_info.append({
+                "name": ct.full_name,
+                "email": ct.email,
+                "has_fcm_token": bool(ct.fcm_token),
+                "fcm_token_preview": (ct.fcm_token[:20] + "...") if ct.fcm_token else None,
+            })
+
+    return {
+        "firebase_admin_initialized": fb_ready,
+        "sos_provider": settings.SOS_PROVIDER,
+        "firebase_credentials_path": settings.FIREBASE_CREDENTIALS_PATH or "NOT SET",
+        "patient": {
+            "name": patient_user.full_name if patient_user else None,
+            "has_fcm_token": bool(patient_user.fcm_token) if patient_user else False,
+        },
+        "connected_caretakers": caretaker_info,
+        "diagnosis": (
+            "OK — Firebase is configured and SOS_PROVIDER is set to firebase."
+            if fb_ready and settings.SOS_PROVIDER.lower() == "firebase"
+            else f"ISSUE — firebase_initialized={fb_ready}, SOS_PROVIDER={settings.SOS_PROVIDER}. "
+            + ("Check FIREBASE_CREDENTIALS_PATH in .env" if not fb_ready else "Change SOS_PROVIDER to 'firebase' in .env")
+        ),
+    }
 
 
 @router.post(

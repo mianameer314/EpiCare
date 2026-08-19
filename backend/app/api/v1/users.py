@@ -2,10 +2,12 @@
 User routes — profile management for different user roles (async).
 """
 from pydantic import BaseModel
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, File, HTTPException, UploadFile, Response, status
 
 from app.api.deps import CurrentUser, DbDep
+from app.schemas.user import UserOut
 from app.schemas.profiles import (
+
     PatientProfileOut,
     PatientProfileUpdate,
     DoctorProfileOut,
@@ -16,9 +18,70 @@ from app.schemas.profiles import (
 from app.services import patient_profile as patient_service
 from app.services import doctor_profile as doctor_service
 from app.services import caretaker_profile as caretaker_service
+from app.services.storage.service import get_storage_service
+from app.services.storage.validator import validate_doctor_upload
 
 # Removed global tags so we can specify them per role
 router = APIRouter(prefix="/users")
+
+
+@router.post(
+    "/me/profile-photo",
+    response_model=UserOut,
+    tags=["👤 Shared - Profile Photo"],
+    summary="Upload shared profile photo",
+)
+async def upload_my_profile_photo(current_user: CurrentUser, db: DbDep, file: UploadFile = File(...)):
+    data, filename, content_type = await validate_doctor_upload(file, photo=True)
+    storage = get_storage_service()
+    old_key = current_user.profile_photo_path
+    new_key = storage.save_user_photo(data, filename)
+    current_user.profile_photo_path = new_key
+    current_user.profile_photo_mime_type = content_type
+    try:
+        await db.commit()
+        await db.refresh(current_user)
+        storage.clear_pending()
+    except Exception:
+        await db.rollback()
+        storage.rollback_uploads()
+        raise
+    if old_key and old_key.startswith("user-profile/"):
+        storage.delete(old_key)
+    return current_user
+
+
+@router.get(
+    "/me/profile-photo",
+    tags=["👤 Shared - Profile Photo"],
+    summary="View shared profile photo",
+)
+async def view_my_profile_photo(current_user: CurrentUser):
+    if not current_user.profile_photo_path:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Profile photo not found")
+    storage = get_storage_service()
+    if not storage.exists(current_user.profile_photo_path):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Stored profile photo not found")
+    return Response(content=storage.read(current_user.profile_photo_path), media_type=current_user.profile_photo_mime_type or "image/jpeg")
+
+
+@router.delete(
+    "/me/profile-photo",
+    status_code=status.HTTP_204_NO_CONTENT,
+    tags=["👤 Shared - Profile Photo"],
+    summary="Delete shared profile photo",
+)
+async def delete_my_profile_photo(current_user: CurrentUser, db: DbDep):
+    if not current_user.profile_photo_path:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Profile photo not found")
+    old_key = current_user.profile_photo_path
+    current_user.profile_photo_path = None
+    current_user.profile_photo_mime_type = None
+    await db.commit()
+    storage = get_storage_service()
+    if old_key.startswith("user-profile/"):
+        storage.delete(old_key)
+    return None
 
 
 # ------------------------------------------------------------------
@@ -129,7 +192,109 @@ async def update_my_doctor_profile(data: DoctorProfileUpdate, current_user: Curr
     return await doctor_service.upsert_profile(db, current_user.id, data)
 
 
+@router.post(
+    "/me/doctor-profile/pmdc-certificate",
+    response_model=DoctorProfileOut,
+    tags=["👨‍⚕️ Doctor - Profile & Management"],
+    summary="Upload PMDC certificate",
+)
+async def upload_my_pmdc_certificate(
+    current_user: CurrentUser,
+    db: DbDep,
+    file: UploadFile = File(...),
+):
+    """Upload or replace the authenticated doctor's PMDC certificate."""
+    data, filename, mime_type = await validate_doctor_upload(file)
+    return await doctor_service.save_certificate(
+        db, current_user.id, get_storage_service(), data, filename, mime_type
+    )
+
+
+@router.get(
+    "/me/doctor-profile/pmdc-certificate",
+    tags=["👨‍⚕️ Doctor - Profile & Management"],
+    summary="View PMDC certificate",
+)
+async def view_my_pmdc_certificate(current_user: CurrentUser, db: DbDep):
+    """Return the authenticated doctor's certificate inline for preview/download."""
+    profile = await doctor_service.get_profile_for_user(db, current_user.id)
+    if not profile or not profile.pmdc_certificate_path:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="PMDC certificate not found")
+    storage = get_storage_service()
+    if not storage.exists(profile.pmdc_certificate_path):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Stored PMDC certificate not found")
+    content = storage.read(profile.pmdc_certificate_path)
+    filename = profile.pmdc_certificate_name or "pmdc-certificate"
+    return Response(
+        content=content,
+        media_type=profile.pmdc_certificate_mime_type or "application/octet-stream",
+        headers={"Content-Disposition": f'inline; filename="{filename}"'},
+    )
+
+
+@router.post(
+    "/me/doctor-profile/photo",
+    response_model=DoctorProfileOut,
+    tags=["👨‍⚕️ Doctor - Profile & Management"],
+    summary="Upload doctor profile photo",
+)
+async def upload_my_doctor_photo(
+    current_user: CurrentUser,
+    db: DbDep,
+    file: UploadFile = File(...),
+):
+    """Upload or replace the authenticated doctor's profile photo."""
+    data, filename, mime_type = await validate_doctor_upload(file, photo=True)
+    return await doctor_service.save_profile_photo(
+        db, current_user.id, get_storage_service(), data, filename, mime_type
+    )
+
+
+@router.get(
+    "/me/doctor-profile/photo",
+    tags=["👨‍⚕️ Doctor - Profile & Management"],
+    summary="View doctor profile photo",
+)
+async def view_my_doctor_photo(current_user: CurrentUser, db: DbDep):
+    """Return the authenticated doctor's profile photo for an authenticated preview."""
+    profile = await doctor_service.get_profile_for_user(db, current_user.id)
+    if not profile or not profile.profile_photo_path:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Profile photo not found")
+    storage = get_storage_service()
+    if not storage.exists(profile.profile_photo_path):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Stored profile photo not found")
+    return Response(
+        content=storage.read(profile.profile_photo_path),
+        media_type=profile.profile_photo_mime_type or "image/jpeg",
+    )
+
+
 @router.delete(
+    "/me/doctor-profile/pmdc-certificate",
+    status_code=status.HTTP_204_NO_CONTENT,
+    tags=["👨‍⚕️ Doctor - Profile & Management"],
+    summary="Remove PMDC certificate",
+)
+async def delete_my_pmdc_certificate(current_user: CurrentUser, db: DbDep):
+    """Remove the current certificate metadata without deleting the doctor profile."""
+    profile = await doctor_service.get_profile_for_user(db, current_user.id)
+    if not profile or not profile.pmdc_certificate_path:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="PMDC certificate not found")
+    old_key = profile.pmdc_certificate_path
+    profile.pmdc_certificate_path = None
+    profile.pmdc_certificate_name = None
+    profile.pmdc_certificate_mime_type = None
+    profile.pmdc_certificate_size = None
+    profile.license_image_url = None
+    await db.commit()
+    storage = get_storage_service()
+    if old_key.startswith("doctor-profile/"):
+        storage.delete(old_key)
+    return None
+
+
+@router.delete(
+
     "/me/doctor-profile",
     status_code=status.HTTP_204_NO_CONTENT,
     tags=["👨‍⚕️ Doctor - Profile & Management"],
@@ -193,6 +358,26 @@ async def get_my_caretaker_profile(current_user: CurrentUser, db: DbDep):
 async def update_my_caretaker_profile(data: CaretakerProfileUpdate, current_user: CurrentUser, db: DbDep):
     """Create or update the current user's caretaker profile."""
     return await caretaker_service.upsert_profile(db, current_user.id, data)
+
+
+@router.delete(
+    "/me/doctor-profile/photo",
+    status_code=status.HTTP_204_NO_CONTENT,
+    tags=["👨‍⚕️ Doctor - Profile & Management"],
+    summary="Remove doctor profile photo",
+)
+async def delete_my_doctor_photo(current_user: CurrentUser, db: DbDep):
+    profile = await doctor_service.get_profile_for_user(db, current_user.id)
+    if not profile or not profile.profile_photo_path:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Profile photo not found")
+    old_key = profile.profile_photo_path
+    profile.profile_photo_path = None
+    profile.profile_photo_mime_type = None
+    await db.commit()
+    storage = get_storage_service()
+    if old_key.startswith("doctor-profile/"):
+        storage.delete(old_key)
+    return None
 
 
 @router.delete(

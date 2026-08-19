@@ -52,15 +52,6 @@ async def dispatch_notification(user: User, subject: str, message: str) -> str:
                         ),
                     ),
                 ),
-                webpush=messaging.WebpushConfig(
-                    notification=messaging.WebpushNotification(
-                        title=subject,
-                        body=message,
-                        icon="/icon-192.png",
-                        badge="/favicon.svg",
-                        require_interaction=True,
-                    ),
-                ),
                 token=user.fcm_token,
             )
             response = messaging.send(msg)
