@@ -200,22 +200,22 @@ def _resample(
             f"0.5-{HIGH_HZ:g} Hz bandwidth"
         )
     if np.isclose(source_rate, target_rate):
-        return np.asarray(data, dtype=np.float64)
+        return np.asarray(data, dtype=np.float32)
 
     ratio = Fraction(target_rate / source_rate).limit_denominator(10_000)
-    return resample_poly(
-        np.asarray(data, dtype=np.float64),
-        ratio.numerator,
-        ratio.denominator,
-        axis=-1,
-    )
+    arr = np.asarray(data, dtype=np.float32)
+    target_samples = int(np.round(arr.shape[1] * ratio.numerator / ratio.denominator))
+    out = np.empty((arr.shape[0], target_samples), dtype=np.float32)
+    for ch in range(arr.shape[0]):
+        out[ch] = resample_poly(arr[ch], ratio.numerator, ratio.denominator).astype(np.float32)
+    return out
 
 
 def _bandpass(
     data: np.ndarray,
     sampling_rate: float,
 ) -> np.ndarray:
-    from scipy.signal import butter, filtfilt
+    from scipy.signal import butter, sosfiltfilt
 
     nyquist = sampling_rate / 2.0
     if HIGH_HZ >= nyquist:
@@ -223,16 +223,21 @@ def _bandpass(
             f"Target sampling rate {sampling_rate:g} Hz has insufficient "
             f"Nyquist frequency for {HIGH_HZ:g} Hz filtering"
         )
-    b, a = butter(
+    sos = butter(
         4,
         [LOW_HZ / nyquist, HIGH_HZ / nyquist],
         btype="band",
+        output="sos",
     )
-    return filtfilt(b, a, data, axis=-1)
+    # Channel-by-channel filtering avoids huge temporary allocations on cloud containers
+    out = np.empty_like(data, dtype=np.float32)
+    for ch in range(data.shape[0]):
+        out[ch] = sosfiltfilt(sos, data[ch]).astype(np.float32)
+    return out
 
 
 def _common_average_reference(data: np.ndarray) -> np.ndarray:
-    arr = np.asarray(data, dtype=np.float64)
+    arr = np.asarray(data, dtype=np.float32)
     return arr - arr.mean(axis=0, keepdims=True)
 
 

@@ -47,7 +47,7 @@ def _read_edf_block(file_path: str) -> dict[str, Any]:
             close()
 
     return {
-        "data": np.asarray(data, dtype=np.float64),
+        "data": np.asarray(data, dtype=np.float32),
         "sampling_rate": sfreq,
         "channel_labels": channel_labels,
         "source_format": "edf",
@@ -129,7 +129,7 @@ def _read_csv_block(file_path: str) -> dict[str, Any]:
     )
 
     return {
-        "data": np.asarray(values.T, dtype=np.float64),
+        "data": np.asarray(values.T, dtype=np.float32),
         "sampling_rate": float(sampling_rate),
         "channel_labels": [label.upper() for label in header_cells],
         "source_format": "csv",
@@ -167,7 +167,7 @@ async def read_eeg_file(file_path: str, extension: str) -> EegReadResult:
         ) from exc
 
     return EegReadResult(
-        data=np.asarray(payload["data"], dtype=np.float64),
+        data=np.asarray(payload["data"], dtype=np.float32),
         sampling_rate=float(payload["sampling_rate"]),
         channel_labels=list(payload["channel_labels"]),
         source_format=str(payload["source_format"]),
