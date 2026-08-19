@@ -1,0 +1,1697 @@
+Directory structure:
+└── models/
+    ├── .gitkeep
+    └── seizure_detector/
+        ├── current.json
+        ├── digest.txt
+        ├── .gitkeep
+        └── versions/
+            ├── .gitkeep
+            └── v1/
+                ├── README.md
+                ├── checksum.txt
+                ├── frozen_detector_bundle.json
+                ├── metrics.json
+                ├── model.onnx
+                ├── model_config.json
+                ├── package_manifest.json
+                ├── phase22_fixture_manifest.json
+                ├── phase22_model_input_fixture.npz
+                ├── phase22_temporal_fixture.json
+                ├── preprocessing.json
+                ├── research_preprocessing_contract.npz
+                ├── serving_contract.json
+                ├── temporal_policy.json
+                ├── universal_frequency_transforms.npz
+                ├── universal_router.json
+                ├── universal_router_parameters.npz
+                ├── universal_router_prototypes.npz
+                └── .gitkeep
+
+================================================
+File: .gitkeep
+================================================
+
+
+
+================================================
+File: seizure_detector/current.json
+================================================
+{
+  "active_version": "v1"
+}
+
+
+================================================
+File: seizure_detector/digest.txt
+================================================
+Directory structure:
+└── seizure_detector/
+    ├── current.json
+    ├── .gitkeep
+    └── versions/
+        ├── .gitkeep
+        └── v1/
+            ├── README.md
+            ├── checksum.txt
+            ├── frozen_detector_bundle.json
+            ├── metrics.json
+            ├── model.onnx
+            ├── model_config.json
+            ├── package_manifest.json
+            ├── preprocessing.json
+            ├── research_preprocessing_contract.npz
+            ├── temporal_policy.json
+            ├── universal_router.json
+            ├── universal_router_parameters.npz
+            ├── universal_router_prototypes.npz
+            └── .gitkeep
+
+================================================
+File: current.json
+================================================
+{
+  "active_version": "v1"
+}
+
+
+================================================
+File: .gitkeep
+================================================
+
+
+
+================================================
+File: versions/.gitkeep
+================================================
+
+
+
+================================================
+File: versions/v1/README.md
+================================================
+# Model artifact placeholder
+
+Drop the exported ONNX artifact here as `model.onnx` (gitignored on purpose):
+
+    models/seizure_detector/versions/v1/model.onnx
+
+The backend registry (`app/ml/model_registry.py`) requires:
+- model.onnx
+- model_config.json
+- preprocessing.json
+
+until then `/api/v1/system/model` reports `unavailable` and EEG inference
+returns 503 â€” by design (server stays up without an artifact).
+
+
+
+================================================
+File: versions/v1/checksum.txt
+================================================
+55d8bffc9389963bbafa02151756f0939467393cbe672b983c5d3a2be2db65ce  model.onnx
+
+
+
+================================================
+File: versions/v1/frozen_detector_bundle.json
+================================================
+{
+  "phase": "19f_final_universal_preprocessing_three_domain_causal_temporal_validation_freeze",
+  "status": "frozen_validation_selected_detector_bundle",
+  "run_id": "20260818_074930",
+  "run_time": "2026-08-18T07:49:30",
+  "clinical_readiness_claim": false,
+  "model": {
+    "path": "F:\\FYP\\models\\transfer\\cnn_2d\\exported\\phase12_cross_domain_consolidated_2d_validation_selected_state_dict.pt",
+    "sha256": "924a333bc9541746e23d12501854f966e522035c2b56dce8fb357e55f1abc2f7",
+    "trainable_after_phase19": false
+  },
+  "universal_preprocessing": {
+    "artifact": "F:\\FYP\\models\\deployment\\phase19_final\\phase19_universal_preprocessing_contract.json",
+    "sha256": "38274cc6e9afcba1dbbcb0294041eb682d6add4cedf1b1ce3dbdef53e11cb798",
+    "selected_router": "logistic_C_2",
+    "protocol_amendment": "Phase19S post-hoc functional-equivalence amendment"
+  },
+  "temporal_policy": {
+    "artifact": "F:\\FYP\\models\\deployment\\phase19_final\\phase19_frozen_shared_temporal_policy.json",
+    "sha256": "dd7f6b79af58cfcff6412c2f650ce18824dc90861281b4443e138d846e1b40a2",
+    "configuration": {
+      "smoothing_method": "causal_mean",
+      "smoothing_window": 3,
+      "ema_alpha": 0.5,
+      "threshold": 0.3,
+      "minimum_positive_run": 1,
+      "maximum_negative_gap": 0
+    }
+  },
+  "validation_event_metrics": [
+    {
+      "policy": "phase19_selected_fully_shared",
+      "domain": "tuh",
+      "recording_hours": 44.879444444444445,
+      "true_events": 95,
+      "predicted_events": 211,
+      "detected_true_events": 95,
+      "missed_true_events": 0,
+      "true_positive_predicted_events": 28,
+      "false_positive_events": 183,
+      "event_sensitivity": 1.0,
+      "event_precision": 0.13270142180094788,
+      "event_f1": 0.23430962343096234,
+      "false_positive_events_per_hour": 4.077590582176943,
+      "false_positive_events_per_24_hours": 97.86217397224664,
+      "mean_signed_latency_seconds": -255.75541789473684,
+      "median_signed_latency_seconds": -248.4766,
+      "mean_detection_latency_seconds": 0.0047157894736841776,
+      "median_detection_latency_seconds": 0.0,
+      "one_to_one_matched_events": 28,
+      "one_to_one_event_sensitivity": 0.29473684210526313,
+      "one_to_one_event_precision": 0.13270142180094788,
+      "one_to_one_event_f1": 0.18300653594771243,
+      "window_auprc": 0.12897239270823807,
+      "window_auroc": 0.7761919523056329,
+      "window_mcc": 0.00481933078926371,
+      "window_balanced_accuracy": 0.5004461156076732,
+      "window_precision": 0.02603131212723658,
+      "window_sensitivity": 1.0,
+      "window_specificity": 0.0008922312153463769,
+      "window_f1": 0.050741749924311234
+    },
+    {
+      "policy": "phase19_selected_fully_shared",
+      "domain": "siena",
+      "recording_hours": 26.105555555555554,
+      "true_events": 10,
+      "predicted_events": 20,
+      "detected_true_events": 10,
+      "missed_true_events": 0,
+      "true_positive_predicted_events": 10,
+      "false_positive_events": 10,
+      "event_sensitivity": 1.0,
+      "event_precision": 0.5,
+      "event_f1": 0.6666666666666666,
+      "false_positive_events_per_hour": 0.38306022557991065,
+      "false_positive_events_per_24_hours": 9.193445413917855,
+      "mean_signed_latency_seconds": -4117.6,
+      "median_signed_latency_seconds": -1181.5,
+      "mean_detection_latency_seconds": 0.0,
+      "median_detection_latency_seconds": 0.0,
+      "one_to_one_matched_events": 10,
+      "one_to_one_event_sensitivity": 1.0,
+      "one_to_one_event_precision": 0.5,
+      "one_to_one_event_f1": 0.6666666666666666,
+      "window_auprc": 0.5025342145274535,
+      "window_auroc": 0.8254410351892945,
+      "window_mcc": 0.004156772534568868,
+      "window_balanced_accuracy": 0.5012854847348688,
+      "window_precision": 0.0067207168764668234,
+      "window_sensitivity": 1.0,
+      "window_specificity": 0.002570969469737547,
+      "window_f1": 0.013351700752357741
+    },
+    {
+      "policy": "phase19_selected_fully_shared",
+      "domain": "chb",
+      "recording_hours": 118.26666666666667,
+      "true_events": 32,
+      "predicted_events": 102,
+      "detected_true_events": 32,
+      "missed_true_events": 0,
+      "true_positive_predicted_events": 24,
+      "false_positive_events": 78,
+      "event_sensitivity": 1.0,
+      "event_precision": 0.23529411764705882,
+      "event_f1": 0.38095238095238093,
+      "false_positive_events_per_hour": 0.6595264937993236,
+      "false_positive_events_per_24_hours": 15.828635851183765,
+      "mean_signed_latency_seconds": -2624.84375,
+      "median_signed_latency_seconds": -2141.5,
+      "mean_detection_latency_seconds": 0.0,
+      "median_detection_latency_seconds": 0.0,
+      "one_to_one_matched_events": 24,
+      "one_to_one_event_sensitivity": 0.75,
+      "one_to_one_event_precision": 0.23529411764705882,
+      "one_to_one_event_f1": 0.3582089552238805,
+      "window_auprc": 0.3726549377431351,
+      "window_auroc": 0.9204024870014328,
+      "window_mcc": 0.0,
+      "window_balanced_accuracy": 0.5,
+      "window_precision": 0.005519541525742203,
+      "window_sensitivity": 1.0,
+      "window_specificity": 0.0,
+      "window_f1": 0.010978486837495036
+    }
+  ],
+  "external_negative_stress": {
+    "role": "external Normal-only development stress test; not used for model/preprocessing/threshold selection",
+    "patients": 5,
+    "windows": 1096,
+    "eligible_hours": 3.0444444444444443,
+    "mean_raw_probability": 0.4274080898204859,
+    "p95_raw_probability": 0.5495968014001846,
+    "p99_raw_probability": 0.6256269186735152,
+    "selected_temporal_positive_windows": 1091,
+    "selected_temporal_positive_window_fraction": 0.9954379562043796,
+    "predicted_false_events": 10,
+    "false_events_per_eligible_hour": 3.2846715328467155,
+    "false_events_per_24_eligible_hours": 78.83211678832117,
+    "holdout_opened": false
+  },
+  "locked_holdouts": {
+    "chb_test_opened": false,
+    "epieeg_normal_holdout_opened": false,
+    "tuh_siena_status": "previously evaluated repeated benchmarks; not used in Phase19F selection"
+  },
+  "next_phase": "20_Final_TUH_Siena_CHBMIT_Frozen_Model_Window_and_Event_Level_Evaluation"
+}
+
+
+================================================
+File: versions/v1/metrics.json
+================================================
+{
+  "phase20_locked_chbmit_test": {
+    "global_auprc": 0.02708214028448438,
+    "global_auroc": 0.7726471564224725,
+    "event_sensitivity": 1.0,
+    "event_precision": 0.1031390134529148,
+    "event_f1": 0.18699186991869918,
+    "one_to_one_event_f1": 0.18110236220472445,
+    "false_positive_events_per_hour": 1.066113866883838,
+    "median_detection_latency_seconds": 0.0
+  },
+  "phase20_epieeg_normal_holdout": {
+    "window_specificity": 0.047004608294930916,
+    "false_events_per_hour": 6.935779816513762,
+    "positive_window_fraction": 0.9529953917050691
+  },
+  "interpretation": "Research/FYP results. High seizure-event sensitivity with substantial false-positive burden on unseen Normal EEG. Not clinically validated."
+}
+
+
+================================================
+File: versions/v1/model.onnx
+================================================
+[Non-text file]
+
+
+================================================
+File: versions/v1/model_config.json
+================================================
+{
+  "name": "EpiCarePhase12SpectrogramCNN",
+  "version": "v1",
+  "research_source": "Phase12 consolidated 2D SE-Residual CNN; Phase19F freeze; Phase20 one-shot final evaluation",
+  "model_type": "single_input_2d_spectrogram_binary_classifier",
+  "input_names": [
+    "spectrogram"
+  ],
+  "output_names": [
+    "seizure_probability"
+  ],
+  "input_shapes": {
+    "spectrogram": [
+      "batch",
+      1,
+      70,
+      19
+    ]
+  },
+  "output_shapes": {
+    "seizure_probability": [
+      "batch",
+      1
+    ]
+  },
+  "input_dtype": "float32",
+  "output_dtype": "float32",
+  "output_semantics": "sigmoid seizure probability",
+  "threshold": 0.3,
+  "aggregation": "causal_temporal_policy",
+  "sampling_rate": 256,
+  "window_seconds": 10,
+  "classes": [
+    "no_seizure",
+    "seizure"
+  ],
+  "clinical_readiness_claim": false
+}
+
+
+================================================
+File: versions/v1/package_manifest.json
+================================================
+{
+  "package": "epicare_seizure_detector_v1",
+  "created_at": "2026-08-18T15:45:35",
+  "source_phase": "Phase21",
+  "frozen_phase12_sha256": "924a333bc9541746e23d12501854f966e522035c2b56dce8fb357e55f1abc2f7",
+  "source_phase19_bundle_sha256": "8e66c9ffdbe9f3382414f11d1929c1f96fdc3c7cde0aead1c87bc87fe7ea52fc",
+  "onnx_sha256": "55d8bffc9389963bbafa02151756f0939467393cbe672b983c5d3a2be2db65ce",
+  "router_name": "logistic_C_2",
+  "temporal_configuration": {
+    "smoothing_method": "causal_mean",
+    "smoothing_window": 3,
+    "ema_alpha": 0.5,
+    "threshold": 0.3,
+    "minimum_positive_run": 1,
+    "maximum_negative_gap": 0
+  },
+  "onnx_parity": {
+    "max_abs_tolerance": 1e-05,
+    "mean_abs_tolerance": 2e-06,
+    "synthetic_pass": true,
+    "real_non_test_pass": true,
+    "real_non_test_source": "materialized_manifest_validation"
+  },
+  "files": [
+    {
+      "filename": "model.onnx",
+      "size_bytes": 5083399,
+      "sha256": "55d8bffc9389963bbafa02151756f0939467393cbe672b983c5d3a2be2db65ce"
+    },
+    {
+      "filename": "model_config.json",
+      "size_bytes": 863,
+      "sha256": "2dd6ef672312d2f6072233dc1334525710f2dc85e16ea3d059422fcea244ea19"
+    },
+    {
+      "filename": "preprocessing.json",
+      "size_bytes": 1535,
+      "sha256": "5e7cbc00f624b1d0dc9bf28884db9e97b2bd51fd30c789085b3c2298c5d5686d"
+    },
+    {
+      "filename": "metrics.json",
+      "size_bytes": 750,
+      "sha256": "75e0b823f00a734a2228086a4242902828d75ce570e98477a1e592225e2dd79d"
+    },
+    {
+      "filename": "checksum.txt",
+      "size_bytes": 78,
+      "sha256": "378a5c75851a7a136e735f914ebdc86be2f306f82cdf27b9db66dfcb5ac04934"
+    },
+    {
+      "filename": "temporal_policy.json",
+      "size_bytes": 5346,
+      "sha256": "dd7f6b79af58cfcff6412c2f650ce18824dc90861281b4443e138d846e1b40a2"
+    },
+    {
+      "filename": "universal_router.json",
+      "size_bytes": 1464,
+      "sha256": "d9cedbb5cadd6fb56713e65dcd38bfc3e591aec44c7803359a16d25d4a811031"
+    },
+    {
+      "filename": "universal_router_parameters.npz",
+      "size_bytes": 2681,
+      "sha256": "1c1430a83200a3d9be4a9ca20e44abc253656edaceb4ea1b0e79744f9d48f0f3"
+    },
+    {
+      "filename": "universal_router_prototypes.npz",
+      "size_bytes": 2947,
+      "sha256": "37edb2150cc730e3d141708ea32ce873d2ea6528b3f55a03d405ea78b4e9b262"
+    },
+    {
+      "filename": "research_preprocessing_contract.npz",
+      "size_bytes": 2600,
+      "sha256": "2d64b1998941eb46bb0e5ddcff7eb7d92027d9f3b6c616774764f8072f91acb6"
+    },
+    {
+      "filename": "frozen_detector_bundle.json",
+      "size_bytes": 6312,
+      "sha256": "8e66c9ffdbe9f3382414f11d1929c1f96fdc3c7cde0aead1c87bc87fe7ea52fc"
+    }
+  ],
+  "phase20_test_used_for_conversion_or_parity": false,
+  "clinical_readiness_claim": false
+}
+
+
+================================================
+File: versions/v1/preprocessing.json
+================================================
+{
+  "contract_version": "phase19f_final",
+  "sampling_rate": 256,
+  "window_seconds": 10,
+  "window_samples": 2560,
+  "canonical_channels": [
+    "FP1",
+    "FP2",
+    "F7",
+    "F8",
+    "F3",
+    "F4",
+    "T3",
+    "T4",
+    "C3",
+    "C4",
+    "T5",
+    "T6",
+    "P3",
+    "P4",
+    "O1",
+    "O2",
+    "FZ",
+    "CZ",
+    "PZ"
+  ],
+  "aliases": {
+    "T7": "T3",
+    "T8": "T4",
+    "P7": "T5",
+    "P8": "T6"
+  },
+  "bandpass_hz": [
+    0.5,
+    70.0
+  ],
+  "reference": "common_average_after_19_channel_harmonization",
+  "normalization": "per_channel_per_10s_window_zscore_clip_-8_8",
+  "stft": {
+    "window": "hamming",
+    "nperseg": 256,
+    "noverlap": 128,
+    "boundary": null,
+    "padded": false,
+    "frequency_hz": [
+      0.5,
+      70.0
+    ],
+    "power": "abs(stft)^2",
+    "channel_reduction": "mean_across_19_channels",
+    "post": "log1p_then_p1_p99_scaling_clip_0_1",
+    "model_tensor_shape": [
+      1,
+      70,
+      19
+    ]
+  },
+  "universal_router": {
+    "name": "logistic_C_2",
+    "dataset_name_input_required": false,
+    "router_parameters_file": "universal_router_parameters.npz",
+    "router_prototypes_file": "universal_router_prototypes.npz",
+    "router_metadata_file": "universal_router.json"
+  },
+  "research_frequency_statistics_file": "research_preprocessing_contract.npz",
+  "temporal_policy_file": "temporal_policy.json",
+  "source_contract_sha256": "38274cc6e9afcba1dbbcb0294041eb682d6add4cedf1b1ce3dbdef53e11cb798"
+}
+
+
+================================================
+File: versions/v1/research_preprocessing_contract.npz
+================================================
+[Non-text file]
+
+
+================================================
+File: versions/v1/temporal_policy.json
+================================================
+{
+  "phase": "19f_final_universal_preprocessing_three_domain_causal_temporal_validation_freeze",
+  "run_id": "20260818_074930",
+  "selection_source": "TUH + Siena + CHB full-natural validation only",
+  "configuration": {
+    "smoothing_method": "causal_mean",
+    "smoothing_window": 3,
+    "ema_alpha": 0.5,
+    "threshold": 0.3,
+    "minimum_positive_run": 1,
+    "maximum_negative_gap": 0
+  },
+  "selection_tier": 0,
+  "selection_tier_note": "All three validation domains satisfy event sensitivity >= 0.50.",
+  "causal": true,
+  "resets_at_timeline_discontinuities": true,
+  "same_configuration_all_domains": true,
+  "validation_metrics": [
+    {
+      "policy": "phase19_selected_fully_shared",
+      "domain": "tuh",
+      "recording_hours": 44.879444444444445,
+      "true_events": 95,
+      "predicted_events": 211,
+      "detected_true_events": 95,
+      "missed_true_events": 0,
+      "true_positive_predicted_events": 28,
+      "false_positive_events": 183,
+      "event_sensitivity": 1.0,
+      "event_precision": 0.13270142180094788,
+      "event_f1": 0.23430962343096234,
+      "false_positive_events_per_hour": 4.077590582176943,
+      "false_positive_events_per_24_hours": 97.86217397224664,
+      "mean_signed_latency_seconds": -255.75541789473684,
+      "median_signed_latency_seconds": -248.4766,
+      "mean_detection_latency_seconds": 0.0047157894736841776,
+      "median_detection_latency_seconds": 0.0,
+      "one_to_one_matched_events": 28,
+      "one_to_one_event_sensitivity": 0.29473684210526313,
+      "one_to_one_event_precision": 0.13270142180094788,
+      "one_to_one_event_f1": 0.18300653594771243,
+      "window_auprc": 0.12897239270823807,
+      "window_auroc": 0.7761919523056329,
+      "window_mcc": 0.00481933078926371,
+      "window_balanced_accuracy": 0.5004461156076732,
+      "window_precision": 0.02603131212723658,
+      "window_sensitivity": 1.0,
+      "window_specificity": 0.0008922312153463769,
+      "window_f1": 0.050741749924311234
+    },
+    {
+      "policy": "phase19_selected_fully_shared",
+      "domain": "siena",
+      "recording_hours": 26.105555555555554,
+      "true_events": 10,
+      "predicted_events": 20,
+      "detected_true_events": 10,
+      "missed_true_events": 0,
+      "true_positive_predicted_events": 10,
+      "false_positive_events": 10,
+      "event_sensitivity": 1.0,
+      "event_precision": 0.5,
+      "event_f1": 0.6666666666666666,
+      "false_positive_events_per_hour": 0.38306022557991065,
+      "false_positive_events_per_24_hours": 9.193445413917855,
+      "mean_signed_latency_seconds": -4117.6,
+      "median_signed_latency_seconds": -1181.5,
+      "mean_detection_latency_seconds": 0.0,
+      "median_detection_latency_seconds": 0.0,
+      "one_to_one_matched_events": 10,
+      "one_to_one_event_sensitivity": 1.0,
+      "one_to_one_event_precision": 0.5,
+      "one_to_one_event_f1": 0.6666666666666666,
+      "window_auprc": 0.5025342145274535,
+      "window_auroc": 0.8254410351892945,
+      "window_mcc": 0.004156772534568868,
+      "window_balanced_accuracy": 0.5012854847348688,
+      "window_precision": 0.0067207168764668234,
+      "window_sensitivity": 1.0,
+      "window_specificity": 0.002570969469737547,
+      "window_f1": 0.013351700752357741
+    },
+    {
+      "policy": "phase19_selected_fully_shared",
+      "domain": "chb",
+      "recording_hours": 118.26666666666667,
+      "true_events": 32,
+      "predicted_events": 102,
+      "detected_true_events": 32,
+      "missed_true_events": 0,
+      "true_positive_predicted_events": 24,
+      "false_positive_events": 78,
+      "event_sensitivity": 1.0,
+      "event_precision": 0.23529411764705882,
+      "event_f1": 0.38095238095238093,
+      "false_positive_events_per_hour": 0.6595264937993236,
+      "false_positive_events_per_24_hours": 15.828635851183765,
+      "mean_signed_latency_seconds": -2624.84375,
+      "median_signed_latency_seconds": -2141.5,
+      "mean_detection_latency_seconds": 0.0,
+      "median_detection_latency_seconds": 0.0,
+      "one_to_one_matched_events": 24,
+      "one_to_one_event_sensitivity": 0.75,
+      "one_to_one_event_precision": 0.23529411764705882,
+      "one_to_one_event_f1": 0.3582089552238805,
+      "window_auprc": 0.3726549377431351,
+      "window_auroc": 0.9204024870014328,
+      "window_mcc": 0.0,
+      "window_balanced_accuracy": 0.5,
+      "window_precision": 0.005519541525742203,
+      "window_sensitivity": 1.0,
+      "window_specificity": 0.0,
+      "window_f1": 0.010978486837495036
+    }
+  ],
+  "epieeg_normal_development_advisory": {
+    "role": "external Normal-only development stress test; not used for model/preprocessing/threshold selection",
+    "patients": 5,
+    "windows": 1096,
+    "eligible_hours": 3.0444444444444443,
+    "mean_raw_probability": 0.4274080898204859,
+    "p95_raw_probability": 0.5495968014001846,
+    "p99_raw_probability": 0.6256269186735152,
+    "selected_temporal_positive_windows": 1091,
+    "selected_temporal_positive_window_fraction": 0.9954379562043796,
+    "predicted_false_events": 10,
+    "false_events_per_eligible_hour": 3.2846715328467155,
+    "false_events_per_24_eligible_hours": 78.83211678832117,
+    "holdout_opened": false
+  },
+  "test_used": false
+}
+
+
+================================================
+File: versions/v1/universal_router.json
+================================================
+{
+  "selected_candidate": "logistic_C_2",
+  "family": "logistic",
+  "feature_columns": [
+    "montage_direct",
+    "montage_bipolar",
+    "montage_unknown",
+    "line_log50",
+    "line_log60",
+    "line_log_ratio_50_60",
+    "line_abs_log_margin",
+    "line_max_log_strength",
+    "normalized_distance_tuh",
+    "normalized_distance_siena",
+    "normalized_distance_chb",
+    "nearest_normalized_distance",
+    "second_nearest_normalized_distance",
+    "prototype_distance_margin",
+    "tuh_minus_siena_distance",
+    "tuh_minus_chb_distance",
+    "siena_minus_chb_distance"
+  ],
+  "ood_min_distance_threshold": 1.75,
+  "training_cv_metrics": {
+    "candidate": "logistic_C_2",
+    "family": "logistic",
+    "complexity_preference": 0,
+    "C": 2.0,
+    "line_weight": null,
+    "tuh_route_agreement": 0.9528795811518325,
+    "siena_route_agreement": 0.7272727272727273,
+    "chb_route_agreement": 1.0,
+    "minimum_domain_route_agreement": 0.7272727272727273,
+    "macro_domain_route_agreement": 0.8933841028081866,
+    "patient_macro_route_agreement": 0.9395704599352016,
+    "overall_route_agreement": 0.9786931818181818
+  },
+  "development_contract_sha256": "6cc869419b4620c1c656744efd04f8a3a3435657a5724d071f0616b091d3b029",
+  "validation_seen_during_fit": false,
+  "parameter_file": "F:\\FYP\\outputs\\transfer_learning\\phase19r_router_reliability_recovery\\router\\phase19r_selected_logistic_router_parameters.npz"
+}
+
+
+================================================
+File: versions/v1/universal_router_parameters.npz
+================================================
+[Non-text file]
+
+
+================================================
+File: versions/v1/universal_router_prototypes.npz
+================================================
+[Non-text file]
+
+
+================================================
+File: versions/v1/.gitkeep
+================================================
+
+
+
+
+
+================================================
+File: seizure_detector/.gitkeep
+================================================
+
+
+
+================================================
+File: seizure_detector/versions/.gitkeep
+================================================
+
+
+
+================================================
+File: seizure_detector/versions/v1/README.md
+================================================
+# Model artifact placeholder
+
+Drop the exported ONNX artifact here as `model.onnx` (gitignored on purpose):
+
+    models/seizure_detector/versions/v1/model.onnx
+
+The backend registry (`app/ml/model_registry.py`) requires:
+- model.onnx
+- model_config.json
+- preprocessing.json
+
+until then `/api/v1/system/model` reports `unavailable` and EEG inference
+returns 503 â€” by design (server stays up without an artifact).
+
+
+
+================================================
+File: seizure_detector/versions/v1/checksum.txt
+================================================
+55d8bffc9389963bbafa02151756f0939467393cbe672b983c5d3a2be2db65ce  model.onnx
+
+
+
+================================================
+File: seizure_detector/versions/v1/frozen_detector_bundle.json
+================================================
+{
+  "phase": "19f_final_universal_preprocessing_three_domain_causal_temporal_validation_freeze",
+  "status": "frozen_validation_selected_detector_bundle",
+  "run_id": "20260818_074930",
+  "run_time": "2026-08-18T07:49:30",
+  "clinical_readiness_claim": false,
+  "model": {
+    "path": "F:\\FYP\\models\\transfer\\cnn_2d\\exported\\phase12_cross_domain_consolidated_2d_validation_selected_state_dict.pt",
+    "sha256": "924a333bc9541746e23d12501854f966e522035c2b56dce8fb357e55f1abc2f7",
+    "trainable_after_phase19": false
+  },
+  "universal_preprocessing": {
+    "artifact": "F:\\FYP\\models\\deployment\\phase19_final\\phase19_universal_preprocessing_contract.json",
+    "sha256": "38274cc6e9afcba1dbbcb0294041eb682d6add4cedf1b1ce3dbdef53e11cb798",
+    "selected_router": "logistic_C_2",
+    "protocol_amendment": "Phase19S post-hoc functional-equivalence amendment"
+  },
+  "temporal_policy": {
+    "artifact": "F:\\FYP\\models\\deployment\\phase19_final\\phase19_frozen_shared_temporal_policy.json",
+    "sha256": "dd7f6b79af58cfcff6412c2f650ce18824dc90861281b4443e138d846e1b40a2",
+    "configuration": {
+      "smoothing_method": "causal_mean",
+      "smoothing_window": 3,
+      "ema_alpha": 0.5,
+      "threshold": 0.3,
+      "minimum_positive_run": 1,
+      "maximum_negative_gap": 0
+    }
+  },
+  "validation_event_metrics": [
+    {
+      "policy": "phase19_selected_fully_shared",
+      "domain": "tuh",
+      "recording_hours": 44.879444444444445,
+      "true_events": 95,
+      "predicted_events": 211,
+      "detected_true_events": 95,
+      "missed_true_events": 0,
+      "true_positive_predicted_events": 28,
+      "false_positive_events": 183,
+      "event_sensitivity": 1.0,
+      "event_precision": 0.13270142180094788,
+      "event_f1": 0.23430962343096234,
+      "false_positive_events_per_hour": 4.077590582176943,
+      "false_positive_events_per_24_hours": 97.86217397224664,
+      "mean_signed_latency_seconds": -255.75541789473684,
+      "median_signed_latency_seconds": -248.4766,
+      "mean_detection_latency_seconds": 0.0047157894736841776,
+      "median_detection_latency_seconds": 0.0,
+      "one_to_one_matched_events": 28,
+      "one_to_one_event_sensitivity": 0.29473684210526313,
+      "one_to_one_event_precision": 0.13270142180094788,
+      "one_to_one_event_f1": 0.18300653594771243,
+      "window_auprc": 0.12897239270823807,
+      "window_auroc": 0.7761919523056329,
+      "window_mcc": 0.00481933078926371,
+      "window_balanced_accuracy": 0.5004461156076732,
+      "window_precision": 0.02603131212723658,
+      "window_sensitivity": 1.0,
+      "window_specificity": 0.0008922312153463769,
+      "window_f1": 0.050741749924311234
+    },
+    {
+      "policy": "phase19_selected_fully_shared",
+      "domain": "siena",
+      "recording_hours": 26.105555555555554,
+      "true_events": 10,
+      "predicted_events": 20,
+      "detected_true_events": 10,
+      "missed_true_events": 0,
+      "true_positive_predicted_events": 10,
+      "false_positive_events": 10,
+      "event_sensitivity": 1.0,
+      "event_precision": 0.5,
+      "event_f1": 0.6666666666666666,
+      "false_positive_events_per_hour": 0.38306022557991065,
+      "false_positive_events_per_24_hours": 9.193445413917855,
+      "mean_signed_latency_seconds": -4117.6,
+      "median_signed_latency_seconds": -1181.5,
+      "mean_detection_latency_seconds": 0.0,
+      "median_detection_latency_seconds": 0.0,
+      "one_to_one_matched_events": 10,
+      "one_to_one_event_sensitivity": 1.0,
+      "one_to_one_event_precision": 0.5,
+      "one_to_one_event_f1": 0.6666666666666666,
+      "window_auprc": 0.5025342145274535,
+      "window_auroc": 0.8254410351892945,
+      "window_mcc": 0.004156772534568868,
+      "window_balanced_accuracy": 0.5012854847348688,
+      "window_precision": 0.0067207168764668234,
+      "window_sensitivity": 1.0,
+      "window_specificity": 0.002570969469737547,
+      "window_f1": 0.013351700752357741
+    },
+    {
+      "policy": "phase19_selected_fully_shared",
+      "domain": "chb",
+      "recording_hours": 118.26666666666667,
+      "true_events": 32,
+      "predicted_events": 102,
+      "detected_true_events": 32,
+      "missed_true_events": 0,
+      "true_positive_predicted_events": 24,
+      "false_positive_events": 78,
+      "event_sensitivity": 1.0,
+      "event_precision": 0.23529411764705882,
+      "event_f1": 0.38095238095238093,
+      "false_positive_events_per_hour": 0.6595264937993236,
+      "false_positive_events_per_24_hours": 15.828635851183765,
+      "mean_signed_latency_seconds": -2624.84375,
+      "median_signed_latency_seconds": -2141.5,
+      "mean_detection_latency_seconds": 0.0,
+      "median_detection_latency_seconds": 0.0,
+      "one_to_one_matched_events": 24,
+      "one_to_one_event_sensitivity": 0.75,
+      "one_to_one_event_precision": 0.23529411764705882,
+      "one_to_one_event_f1": 0.3582089552238805,
+      "window_auprc": 0.3726549377431351,
+      "window_auroc": 0.9204024870014328,
+      "window_mcc": 0.0,
+      "window_balanced_accuracy": 0.5,
+      "window_precision": 0.005519541525742203,
+      "window_sensitivity": 1.0,
+      "window_specificity": 0.0,
+      "window_f1": 0.010978486837495036
+    }
+  ],
+  "external_negative_stress": {
+    "role": "external Normal-only development stress test; not used for model/preprocessing/threshold selection",
+    "patients": 5,
+    "windows": 1096,
+    "eligible_hours": 3.0444444444444443,
+    "mean_raw_probability": 0.4274080898204859,
+    "p95_raw_probability": 0.5495968014001846,
+    "p99_raw_probability": 0.6256269186735152,
+    "selected_temporal_positive_windows": 1091,
+    "selected_temporal_positive_window_fraction": 0.9954379562043796,
+    "predicted_false_events": 10,
+    "false_events_per_eligible_hour": 3.2846715328467155,
+    "false_events_per_24_eligible_hours": 78.83211678832117,
+    "holdout_opened": false
+  },
+  "locked_holdouts": {
+    "chb_test_opened": false,
+    "epieeg_normal_holdout_opened": false,
+    "tuh_siena_status": "previously evaluated repeated benchmarks; not used in Phase19F selection"
+  },
+  "next_phase": "20_Final_TUH_Siena_CHBMIT_Frozen_Model_Window_and_Event_Level_Evaluation"
+}
+
+
+================================================
+File: seizure_detector/versions/v1/metrics.json
+================================================
+{
+  "phase20_locked_chbmit_test": {
+    "global_auprc": 0.02708214028448438,
+    "global_auroc": 0.7726471564224725,
+    "event_sensitivity": 1.0,
+    "event_precision": 0.1031390134529148,
+    "event_f1": 0.18699186991869918,
+    "one_to_one_event_f1": 0.18110236220472445,
+    "false_positive_events_per_hour": 1.066113866883838,
+    "median_detection_latency_seconds": 0.0
+  },
+  "phase20_epieeg_normal_holdout": {
+    "window_specificity": 0.047004608294930916,
+    "false_events_per_hour": 6.935779816513762,
+    "positive_window_fraction": 0.9529953917050691
+  },
+  "interpretation": "Research/FYP results. High seizure-event sensitivity with substantial false-positive burden on unseen Normal EEG. Not clinically validated."
+}
+
+
+================================================
+File: seizure_detector/versions/v1/model.onnx
+================================================
+[Non-text file]
+
+
+================================================
+File: seizure_detector/versions/v1/model_config.json
+================================================
+{
+  "name": "EpiCarePhase12SpectrogramCNN",
+  "version": "v1",
+  "research_source": "Phase12 consolidated 2D SE-Residual CNN; Phase19F freeze; Phase20 one-shot final evaluation",
+  "model_type": "single_input_2d_spectrogram_binary_classifier",
+  "input_names": [
+    "spectrogram"
+  ],
+  "output_names": [
+    "seizure_probability"
+  ],
+  "input_shapes": {
+    "spectrogram": [
+      "batch",
+      1,
+      70,
+      19
+    ]
+  },
+  "output_shapes": {
+    "seizure_probability": [
+      "batch",
+      1
+    ]
+  },
+  "input_dtype": "float32",
+  "output_dtype": "float32",
+  "output_semantics": "sigmoid seizure probability",
+  "threshold": 0.3,
+  "aggregation": "causal_temporal_policy",
+  "sampling_rate": 256,
+  "window_seconds": 10,
+  "classes": [
+    "no_seizure",
+    "seizure"
+  ],
+  "clinical_readiness_claim": false
+}
+
+
+================================================
+File: seizure_detector/versions/v1/package_manifest.json
+================================================
+{
+  "package": "epicare_seizure_detector_v1",
+  "created_at": "2026-08-18T15:45:35",
+  "source_phase": "Phase21",
+  "frozen_phase12_sha256": "924a333bc9541746e23d12501854f966e522035c2b56dce8fb357e55f1abc2f7",
+  "source_phase19_bundle_sha256": "8e66c9ffdbe9f3382414f11d1929c1f96fdc3c7cde0aead1c87bc87fe7ea52fc",
+  "onnx_sha256": "55d8bffc9389963bbafa02151756f0939467393cbe672b983c5d3a2be2db65ce",
+  "router_name": "logistic_C_2",
+  "temporal_configuration": {
+    "smoothing_method": "causal_mean",
+    "smoothing_window": 3,
+    "ema_alpha": 0.5,
+    "threshold": 0.3,
+    "minimum_positive_run": 1,
+    "maximum_negative_gap": 0
+  },
+  "onnx_parity": {
+    "max_abs_tolerance": 1e-05,
+    "mean_abs_tolerance": 2e-06,
+    "synthetic_pass": true,
+    "real_non_test_pass": true,
+    "real_non_test_source": "materialized_manifest_validation"
+  },
+  "files": [
+    {
+      "filename": "checksum.txt",
+      "size_bytes": 78,
+      "sha256": "378a5c75851a7a136e735f914ebdc86be2f306f82cdf27b9db66dfcb5ac04934"
+    },
+    {
+      "filename": "frozen_detector_bundle.json",
+      "size_bytes": 6312,
+      "sha256": "8e66c9ffdbe9f3382414f11d1929c1f96fdc3c7cde0aead1c87bc87fe7ea52fc"
+    },
+    {
+      "filename": "metrics.json",
+      "size_bytes": 750,
+      "sha256": "75e0b823f00a734a2228086a4242902828d75ce570e98477a1e592225e2dd79d"
+    },
+    {
+      "filename": "model.onnx",
+      "size_bytes": 5083399,
+      "sha256": "55d8bffc9389963bbafa02151756f0939467393cbe672b983c5d3a2be2db65ce"
+    },
+    {
+      "filename": "model_config.json",
+      "size_bytes": 863,
+      "sha256": "2dd6ef672312d2f6072233dc1334525710f2dc85e16ea3d059422fcea244ea19"
+    },
+    {
+      "filename": "phase22_fixture_manifest.json",
+      "size_bytes": 533,
+      "sha256": "76b2cc9021f3c85f7afdae854c769acc59d1d785aa5326da38f95c46dbd010a4"
+    },
+    {
+      "filename": "phase22_model_input_fixture.npz",
+      "size_bytes": 153472,
+      "sha256": "d5ff412851075c9cfb6695a40cd45e2b21e46b7ba3fe47c5c31d14d3e1263274"
+    },
+    {
+      "filename": "phase22_temporal_fixture.json",
+      "size_bytes": 2537,
+      "sha256": "5c54ca8c855bde546bbb5cc9f30de5968d099dba5cca6d1a0319fdb651530ec2"
+    },
+    {
+      "filename": "preprocessing.json",
+      "size_bytes": 1811,
+      "sha256": "9d3a61620b927647ece438200d772f4ee63fc5a5807601cc0870c63adf756cf1"
+    },
+    {
+      "filename": "research_preprocessing_contract.npz",
+      "size_bytes": 2600,
+      "sha256": "2d64b1998941eb46bb0e5ddcff7eb7d92027d9f3b6c616774764f8072f91acb6"
+    },
+    {
+      "filename": "serving_contract.json",
+      "size_bytes": 3502,
+      "sha256": "25b6ae96fc4649db7ef14a5433241c07519bcc92bbd6336528a5a30ac0f7e0e1"
+    },
+    {
+      "filename": "temporal_policy.json",
+      "size_bytes": 5346,
+      "sha256": "dd7f6b79af58cfcff6412c2f650ce18824dc90861281b4443e138d846e1b40a2"
+    },
+    {
+      "filename": "universal_frequency_transforms.npz",
+      "size_bytes": 4097,
+      "sha256": "53b71fd926e40e712d85f86c61ff9a78455e2bc0fcae7bc108fcf091b72abbb6"
+    },
+    {
+      "filename": "universal_router.json",
+      "size_bytes": 1464,
+      "sha256": "d9cedbb5cadd6fb56713e65dcd38bfc3e591aec44c7803359a16d25d4a811031"
+    },
+    {
+      "filename": "universal_router_parameters.npz",
+      "size_bytes": 2681,
+      "sha256": "1c1430a83200a3d9be4a9ca20e44abc253656edaceb4ea1b0e79744f9d48f0f3"
+    },
+    {
+      "filename": "universal_router_prototypes.npz",
+      "size_bytes": 2947,
+      "sha256": "37edb2150cc730e3d141708ea32ce873d2ea6528b3f55a03d405ea78b4e9b262"
+    }
+  ],
+  "phase20_test_used_for_conversion_or_parity": false,
+  "clinical_readiness_claim": false,
+  "package_revision": "v1-phase21.5-serving-complete",
+  "phase21_5_completed_at": "2026-08-18T16:07:17",
+  "serving_contract_file": "serving_contract.json",
+  "universal_frequency_transforms_file": "universal_frequency_transforms.npz",
+  "phase22_fixtures": [
+    "phase22_model_input_fixture.npz",
+    "phase22_fixture_manifest.json",
+    "phase22_temporal_fixture.json"
+  ]
+}
+
+
+================================================
+File: seizure_detector/versions/v1/phase22_fixture_manifest.json
+================================================
+{
+  "source": "CHB-MIT validation only",
+  "source_split": "validation",
+  "samples": 32,
+  "input_shape": [
+    32,
+    1,
+    70,
+    19
+  ],
+  "model_input": "already frozen CHB full-aligned [1,70,19] tensors",
+  "onnx_sha256": "55d8bffc9389963bbafa02151756f0939467393cbe672b983c5d3a2be2db65ce",
+  "phase20_chb_test_used": false,
+  "phase20_epieeg_holdout_used": false,
+  "fixture_npz": "phase22_model_input_fixture.npz",
+  "fixture_npz_sha256": "d5ff412851075c9cfb6695a40cd45e2b21e46b7ba3fe47c5c31d14d3e1263274"
+}
+
+
+================================================
+File: seizure_detector/versions/v1/phase22_model_input_fixture.npz
+================================================
+[Non-text file]
+
+
+================================================
+File: seizure_detector/versions/v1/phase22_temporal_fixture.json
+================================================
+{
+  "configuration": {
+    "smoothing_method": "causal_mean",
+    "smoothing_window": 3,
+    "ema_alpha": 0.5,
+    "threshold": 0.3,
+    "minimum_positive_run": 1,
+    "maximum_negative_gap": 0
+  },
+  "cases": [
+    {
+      "case_id": 0,
+      "raw_probability": [
+        0.1,
+        0.2,
+        0.4,
+        0.5,
+        0.2,
+        0.1,
+        0.7,
+        0.8,
+        0.1
+      ],
+      "expected_smoothed_probability": [
+        0.1,
+        0.15000000000000002,
+        0.23333333333333336,
+        0.3666666666666667,
+        0.3666666666666667,
+        0.26666666666666666,
+        0.3333333333333333,
+        0.5333333333333333,
+        0.5333333333333333
+      ],
+      "expected_binary": [
+        0,
+        0,
+        0,
+        1,
+        1,
+        0,
+        1,
+        1,
+        1
+      ],
+      "expected_events": [
+        {
+          "start_window": 3,
+          "stop_window_exclusive": 5
+        },
+        {
+          "start_window": 6,
+          "stop_window_exclusive": 9
+        }
+      ]
+    },
+    {
+      "case_id": 1,
+      "raw_probability": [
+        0.6,
+        0.1,
+        0.1,
+        0.1,
+        0.35,
+        0.35,
+        0.35,
+        0.05
+      ],
+      "expected_smoothed_probability": [
+        0.6,
+        0.35,
+        0.26666666666666666,
+        0.10000000000000002,
+        0.18333333333333335,
+        0.26666666666666666,
+        0.3499999999999999,
+        0.25
+      ],
+      "expected_binary": [
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0
+      ],
+      "expected_events": [
+        {
+          "start_window": 0,
+          "stop_window_exclusive": 2
+        },
+        {
+          "start_window": 6,
+          "stop_window_exclusive": 7
+        }
+      ]
+    },
+    {
+      "case_id": 2,
+      "raw_probability": [
+        0.05,
+        0.05,
+        0.05,
+        0.29,
+        0.3,
+        0.31,
+        0.29,
+        0.6
+      ],
+      "expected_smoothed_probability": [
+        0.05,
+        0.05,
+        0.05000000000000001,
+        0.13,
+        0.2133333333333333,
+        0.3,
+        0.3,
+        0.39999999999999997
+      ],
+      "expected_binary": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        1,
+        1
+      ],
+      "expected_events": [
+        {
+          "start_window": 5,
+          "stop_window_exclusive": 8
+        }
+      ]
+    }
+  ]
+}
+
+
+================================================
+File: seizure_detector/versions/v1/preprocessing.json
+================================================
+{
+  "contract_version": "phase19f_final",
+  "sampling_rate": 256,
+  "window_seconds": 10,
+  "window_samples": 2560,
+  "canonical_channels": [
+    "FP1",
+    "FP2",
+    "F7",
+    "F8",
+    "F3",
+    "F4",
+    "T3",
+    "T4",
+    "C3",
+    "C4",
+    "T5",
+    "T6",
+    "P3",
+    "P4",
+    "O1",
+    "O2",
+    "FZ",
+    "CZ",
+    "PZ"
+  ],
+  "aliases": {
+    "T7": "T3",
+    "T8": "T4",
+    "P7": "T5",
+    "P8": "T6"
+  },
+  "bandpass_hz": [
+    0.5,
+    70.0
+  ],
+  "reference": "common_average_after_19_channel_harmonization",
+  "normalization": "per_channel_per_10s_window_zscore_clip_-8_8",
+  "stft": {
+    "window": "hamming",
+    "nperseg": 256,
+    "noverlap": 128,
+    "boundary": null,
+    "padded": false,
+    "frequency_hz": [
+      0.5,
+      70.0
+    ],
+    "power": "abs(stft)^2",
+    "channel_reduction": "mean_across_19_channels",
+    "post": "log1p_then_p1_p99_scaling_clip_0_1",
+    "model_tensor_shape": [
+      1,
+      70,
+      19
+    ]
+  },
+  "universal_router": {
+    "name": "logistic_C_2",
+    "dataset_name_input_required": false,
+    "router_parameters_file": "universal_router_parameters.npz",
+    "router_prototypes_file": "universal_router_prototypes.npz",
+    "router_metadata_file": "universal_router.json"
+  },
+  "research_frequency_statistics_file": "research_preprocessing_contract.npz",
+  "temporal_policy_file": "temporal_policy.json",
+  "source_contract_sha256": "38274cc6e9afcba1dbbcb0294041eb682d6add4cedf1b1ce3dbdef53e11cb798",
+  "universal_frequency_transforms_file": "universal_frequency_transforms.npz",
+  "serving_contract_file": "serving_contract.json",
+  "phase22_model_input_fixture_file": "phase22_model_input_fixture.npz",
+  "phase22_temporal_fixture_file": "phase22_temporal_fixture.json"
+}
+
+
+================================================
+File: seizure_detector/versions/v1/research_preprocessing_contract.npz
+================================================
+[Non-text file]
+
+
+================================================
+File: seizure_detector/versions/v1/serving_contract.json
+================================================
+{
+  "contract_version": "phase21_5_serving_v1",
+  "purpose": "backend implementation contract for the already-frozen research detector",
+  "clinical_readiness_claim": false,
+  "onnx": {
+    "file": "model.onnx",
+    "sha256": "55d8bffc9389963bbafa02151756f0939467393cbe672b983c5d3a2be2db65ce",
+    "input_name": "spectrogram",
+    "input_dtype": "float32",
+    "input_shape": [
+      "batch",
+      1,
+      70,
+      19
+    ],
+    "output_name": "seizure_probability",
+    "output_shape": [
+      "batch",
+      1
+    ]
+  },
+  "raw_signal": {
+    "canonical_channels": [
+      "FP1",
+      "FP2",
+      "F7",
+      "F8",
+      "F3",
+      "F4",
+      "T3",
+      "T4",
+      "C3",
+      "C4",
+      "T5",
+      "T6",
+      "P3",
+      "P4",
+      "O1",
+      "O2",
+      "FZ",
+      "CZ",
+      "PZ"
+    ],
+    "aliases": {
+      "T7": "T3",
+      "T8": "T4",
+      "P7": "T5",
+      "P8": "T6"
+    },
+    "sampling_rate_hz": 256,
+    "window_seconds": 10,
+    "window_samples": 2560,
+    "bandpass_hz": [
+      0.5,
+      70.0
+    ],
+    "reference": "common_average_after_19_channel_harmonization",
+    "notch_policy": "no additional serving notch is introduced by Phase22; continuous 50/60-Hz evidence is used by the frozen router",
+    "direct_missing_channel_policy": {
+      "allowed_imputation": {
+        "FZ": [
+          "F3",
+          "F4"
+        ],
+        "PZ": [
+          "P3",
+          "P4"
+        ]
+      },
+      "all_other_missing_canonical_channels": "reject"
+    },
+    "bipolar_policy": "least-squares graph pseudo-referential reconstruction with one zero-mean gauge constraint per connected component"
+  },
+  "window_preprocessing": {
+    "zscore": "per_channel_per_window",
+    "std_floor": 1e-06,
+    "clip": [
+      -8.0,
+      8.0
+    ],
+    "stft": {
+      "window": "hamming",
+      "nperseg": 256,
+      "noverlap": 128,
+      "boundary": null,
+      "padded": false,
+      "power": "abs(stft)^2",
+      "channel_reduction": "mean",
+      "frequency_bins_hz": [
+        1.0,
+        70.0
+      ],
+      "log1p": true,
+      "normalization": "per-window p1/p99 then clip [0,1]",
+      "output_shape": [
+        1,
+        70,
+        19
+      ]
+    }
+  },
+  "router": {
+    "name": "logistic_C_2",
+    "parameters_file": "universal_router_parameters.npz",
+    "prototypes_file": "universal_router_prototypes.npz",
+    "profile_max_windows": 30,
+    "line_evidence_seconds": 120.0,
+    "line_confident_peak_ratio": 1.25,
+    "dataset_name_input_required": false,
+    "ood_min_distance_threshold": 1.75
+  },
+  "frequency_transforms": {
+    "file": "universal_frequency_transforms.npz",
+    "tuh": "identity",
+    "siena": "0.5 * original + 0.5 * align(siena_mean/std -> tuh_mean/std)",
+    "chb": "align(chb_mean/std -> tuh_mean/std)",
+    "self": "0.5 * original + 0.5 * align(recording_profile_mean/std -> tuh_mean/std)"
+  },
+  "temporal_policy": {
+    "smoothing_method": "causal_mean",
+    "smoothing_window": 3,
+    "ema_alpha": 0.5,
+    "threshold": 0.3,
+    "minimum_positive_run": 1,
+    "maximum_negative_gap": 0
+  },
+  "persistence": {
+    "threshold_source": "temporal_policy.configuration.threshold",
+    "window_probabilities": "raw ONNX seizure probabilities",
+    "positive_windows": "post-temporal-policy positive windows",
+    "predicted_class": "seizure iff at least one post-temporal-policy positive event exists"
+  }
+}
+
+
+================================================
+File: seizure_detector/versions/v1/temporal_policy.json
+================================================
+{
+  "phase": "19f_final_universal_preprocessing_three_domain_causal_temporal_validation_freeze",
+  "run_id": "20260818_074930",
+  "selection_source": "TUH + Siena + CHB full-natural validation only",
+  "configuration": {
+    "smoothing_method": "causal_mean",
+    "smoothing_window": 3,
+    "ema_alpha": 0.5,
+    "threshold": 0.3,
+    "minimum_positive_run": 1,
+    "maximum_negative_gap": 0
+  },
+  "selection_tier": 0,
+  "selection_tier_note": "All three validation domains satisfy event sensitivity >= 0.50.",
+  "causal": true,
+  "resets_at_timeline_discontinuities": true,
+  "same_configuration_all_domains": true,
+  "validation_metrics": [
+    {
+      "policy": "phase19_selected_fully_shared",
+      "domain": "tuh",
+      "recording_hours": 44.879444444444445,
+      "true_events": 95,
+      "predicted_events": 211,
+      "detected_true_events": 95,
+      "missed_true_events": 0,
+      "true_positive_predicted_events": 28,
+      "false_positive_events": 183,
+      "event_sensitivity": 1.0,
+      "event_precision": 0.13270142180094788,
+      "event_f1": 0.23430962343096234,
+      "false_positive_events_per_hour": 4.077590582176943,
+      "false_positive_events_per_24_hours": 97.86217397224664,
+      "mean_signed_latency_seconds": -255.75541789473684,
+      "median_signed_latency_seconds": -248.4766,
+      "mean_detection_latency_seconds": 0.0047157894736841776,
+      "median_detection_latency_seconds": 0.0,
+      "one_to_one_matched_events": 28,
+      "one_to_one_event_sensitivity": 0.29473684210526313,
+      "one_to_one_event_precision": 0.13270142180094788,
+      "one_to_one_event_f1": 0.18300653594771243,
+      "window_auprc": 0.12897239270823807,
+      "window_auroc": 0.7761919523056329,
+      "window_mcc": 0.00481933078926371,
+      "window_balanced_accuracy": 0.5004461156076732,
+      "window_precision": 0.02603131212723658,
+      "window_sensitivity": 1.0,
+      "window_specificity": 0.0008922312153463769,
+      "window_f1": 0.050741749924311234
+    },
+    {
+      "policy": "phase19_selected_fully_shared",
+      "domain": "siena",
+      "recording_hours": 26.105555555555554,
+      "true_events": 10,
+      "predicted_events": 20,
+      "detected_true_events": 10,
+      "missed_true_events": 0,
+      "true_positive_predicted_events": 10,
+      "false_positive_events": 10,
+      "event_sensitivity": 1.0,
+      "event_precision": 0.5,
+      "event_f1": 0.6666666666666666,
+      "false_positive_events_per_hour": 0.38306022557991065,
+      "false_positive_events_per_24_hours": 9.193445413917855,
+      "mean_signed_latency_seconds": -4117.6,
+      "median_signed_latency_seconds": -1181.5,
+      "mean_detection_latency_seconds": 0.0,
+      "median_detection_latency_seconds": 0.0,
+      "one_to_one_matched_events": 10,
+      "one_to_one_event_sensitivity": 1.0,
+      "one_to_one_event_precision": 0.5,
+      "one_to_one_event_f1": 0.6666666666666666,
+      "window_auprc": 0.5025342145274535,
+      "window_auroc": 0.8254410351892945,
+      "window_mcc": 0.004156772534568868,
+      "window_balanced_accuracy": 0.5012854847348688,
+      "window_precision": 0.0067207168764668234,
+      "window_sensitivity": 1.0,
+      "window_specificity": 0.002570969469737547,
+      "window_f1": 0.013351700752357741
+    },
+    {
+      "policy": "phase19_selected_fully_shared",
+      "domain": "chb",
+      "recording_hours": 118.26666666666667,
+      "true_events": 32,
+      "predicted_events": 102,
+      "detected_true_events": 32,
+      "missed_true_events": 0,
+      "true_positive_predicted_events": 24,
+      "false_positive_events": 78,
+      "event_sensitivity": 1.0,
+      "event_precision": 0.23529411764705882,
+      "event_f1": 0.38095238095238093,
+      "false_positive_events_per_hour": 0.6595264937993236,
+      "false_positive_events_per_24_hours": 15.828635851183765,
+      "mean_signed_latency_seconds": -2624.84375,
+      "median_signed_latency_seconds": -2141.5,
+      "mean_detection_latency_seconds": 0.0,
+      "median_detection_latency_seconds": 0.0,
+      "one_to_one_matched_events": 24,
+      "one_to_one_event_sensitivity": 0.75,
+      "one_to_one_event_precision": 0.23529411764705882,
+      "one_to_one_event_f1": 0.3582089552238805,
+      "window_auprc": 0.3726549377431351,
+      "window_auroc": 0.9204024870014328,
+      "window_mcc": 0.0,
+      "window_balanced_accuracy": 0.5,
+      "window_precision": 0.005519541525742203,
+      "window_sensitivity": 1.0,
+      "window_specificity": 0.0,
+      "window_f1": 0.010978486837495036
+    }
+  ],
+  "epieeg_normal_development_advisory": {
+    "role": "external Normal-only development stress test; not used for model/preprocessing/threshold selection",
+    "patients": 5,
+    "windows": 1096,
+    "eligible_hours": 3.0444444444444443,
+    "mean_raw_probability": 0.4274080898204859,
+    "p95_raw_probability": 0.5495968014001846,
+    "p99_raw_probability": 0.6256269186735152,
+    "selected_temporal_positive_windows": 1091,
+    "selected_temporal_positive_window_fraction": 0.9954379562043796,
+    "predicted_false_events": 10,
+    "false_events_per_eligible_hour": 3.2846715328467155,
+    "false_events_per_24_eligible_hours": 78.83211678832117,
+    "holdout_opened": false
+  },
+  "test_used": false
+}
+
+
+================================================
+File: seizure_detector/versions/v1/universal_frequency_transforms.npz
+================================================
+[Non-text file]
+
+
+================================================
+File: seizure_detector/versions/v1/universal_router.json
+================================================
+{
+  "selected_candidate": "logistic_C_2",
+  "family": "logistic",
+  "feature_columns": [
+    "montage_direct",
+    "montage_bipolar",
+    "montage_unknown",
+    "line_log50",
+    "line_log60",
+    "line_log_ratio_50_60",
+    "line_abs_log_margin",
+    "line_max_log_strength",
+    "normalized_distance_tuh",
+    "normalized_distance_siena",
+    "normalized_distance_chb",
+    "nearest_normalized_distance",
+    "second_nearest_normalized_distance",
+    "prototype_distance_margin",
+    "tuh_minus_siena_distance",
+    "tuh_minus_chb_distance",
+    "siena_minus_chb_distance"
+  ],
+  "ood_min_distance_threshold": 1.75,
+  "training_cv_metrics": {
+    "candidate": "logistic_C_2",
+    "family": "logistic",
+    "complexity_preference": 0,
+    "C": 2.0,
+    "line_weight": null,
+    "tuh_route_agreement": 0.9528795811518325,
+    "siena_route_agreement": 0.7272727272727273,
+    "chb_route_agreement": 1.0,
+    "minimum_domain_route_agreement": 0.7272727272727273,
+    "macro_domain_route_agreement": 0.8933841028081866,
+    "patient_macro_route_agreement": 0.9395704599352016,
+    "overall_route_agreement": 0.9786931818181818
+  },
+  "development_contract_sha256": "6cc869419b4620c1c656744efd04f8a3a3435657a5724d071f0616b091d3b029",
+  "validation_seen_during_fit": false,
+  "parameter_file": "F:\\FYP\\outputs\\transfer_learning\\phase19r_router_reliability_recovery\\router\\phase19r_selected_logistic_router_parameters.npz"
+}
+
+
+================================================
+File: seizure_detector/versions/v1/universal_router_parameters.npz
+================================================
+[Non-text file]
+
+
+================================================
+File: seizure_detector/versions/v1/universal_router_prototypes.npz
+================================================
+[Non-text file]
+
+
+================================================
+File: seizure_detector/versions/v1/.gitkeep
+================================================
+
+

@@ -1,9 +1,18 @@
 {
-  "accuracy": null,
-  "sensitivity": null,
-  "specificity": null,
-  "f1": null,
-  "auroc": null,
-  "false_alarms_per_hour": null,
-  "note": "Placeholder metrics. Populated after the training pipeline produces a validated artifact."
+  "phase20_locked_chbmit_test": {
+    "global_auprc": 0.02708214028448438,
+    "global_auroc": 0.7726471564224725,
+    "event_sensitivity": 1.0,
+    "event_precision": 0.1031390134529148,
+    "event_f1": 0.18699186991869918,
+    "one_to_one_event_f1": 0.18110236220472445,
+    "false_positive_events_per_hour": 1.066113866883838,
+    "median_detection_latency_seconds": 0.0
+  },
+  "phase20_epieeg_normal_holdout": {
+    "window_specificity": 0.047004608294930916,
+    "false_events_per_hour": 6.935779816513762,
+    "positive_window_fraction": 0.9529953917050691
+  },
+  "interpretation": "Research/FYP results. High seizure-event sensitivity with substantial false-positive burden on unseen Normal EEG. Not clinically validated."
 }

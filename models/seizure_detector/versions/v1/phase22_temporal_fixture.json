@@ -1,0 +1,140 @@
+{
+  "configuration": {
+    "smoothing_method": "causal_mean",
+    "smoothing_window": 3,
+    "ema_alpha": 0.5,
+    "threshold": 0.3,
+    "minimum_positive_run": 1,
+    "maximum_negative_gap": 0
+  },
+  "cases": [
+    {
+      "case_id": 0,
+      "raw_probability": [
+        0.1,
+        0.2,
+        0.4,
+        0.5,
+        0.2,
+        0.1,
+        0.7,
+        0.8,
+        0.1
+      ],
+      "expected_smoothed_probability": [
+        0.1,
+        0.15000000000000002,
+        0.23333333333333336,
+        0.3666666666666667,
+        0.3666666666666667,
+        0.26666666666666666,
+        0.3333333333333333,
+        0.5333333333333333,
+        0.5333333333333333
+      ],
+      "expected_binary": [
+        0,
+        0,
+        0,
+        1,
+        1,
+        0,
+        1,
+        1,
+        1
+      ],
+      "expected_events": [
+        {
+          "start_window": 3,
+          "stop_window_exclusive": 5
+        },
+        {
+          "start_window": 6,
+          "stop_window_exclusive": 9
+        }
+      ]
+    },
+    {
+      "case_id": 1,
+      "raw_probability": [
+        0.6,
+        0.1,
+        0.1,
+        0.1,
+        0.35,
+        0.35,
+        0.35,
+        0.05
+      ],
+      "expected_smoothed_probability": [
+        0.6,
+        0.35,
+        0.26666666666666666,
+        0.10000000000000002,
+        0.18333333333333335,
+        0.26666666666666666,
+        0.3499999999999999,
+        0.25
+      ],
+      "expected_binary": [
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0
+      ],
+      "expected_events": [
+        {
+          "start_window": 0,
+          "stop_window_exclusive": 2
+        },
+        {
+          "start_window": 6,
+          "stop_window_exclusive": 7
+        }
+      ]
+    },
+    {
+      "case_id": 2,
+      "raw_probability": [
+        0.05,
+        0.05,
+        0.05,
+        0.29,
+        0.3,
+        0.31,
+        0.29,
+        0.6
+      ],
+      "expected_smoothed_probability": [
+        0.05,
+        0.05,
+        0.05000000000000001,
+        0.13,
+        0.2133333333333333,
+        0.3,
+        0.3,
+        0.39999999999999997
+      ],
+      "expected_binary": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        1,
+        1
+      ],
+      "expected_events": [
+        {
+          "start_window": 5,
+          "stop_window_exclusive": 8
+        }
+      ]
+    }
+  ]
+}

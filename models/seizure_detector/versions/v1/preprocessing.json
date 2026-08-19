@@ -1,15 +1,72 @@
 {
+  "contract_version": "phase19f_final",
   "sampling_rate": 256,
   "window_seconds": 10,
   "window_samples": 2560,
-  "bandpass": {"low": 0.5, "high": 40.0, "order": 4},
-  "notch": {"freq": 50.0, "quality": 30.0},
-  "normalization": "zscore_per_channel",
-  "stft": {"nperseg": 256, "noverlap": 128, "fmin": 0.5, "fmax": 40.0},
-  "channels": [
-    "Fp1", "Fp2", "F7", "F3", "Fz", "F4", "F8",
-    "T7", "C3", "Cz", "C4", "T8",
-    "P7", "P3", "Pz", "P4", "P8",
-    "O1", "O2"
-  ]
+  "canonical_channels": [
+    "FP1",
+    "FP2",
+    "F7",
+    "F8",
+    "F3",
+    "F4",
+    "T3",
+    "T4",
+    "C3",
+    "C4",
+    "T5",
+    "T6",
+    "P3",
+    "P4",
+    "O1",
+    "O2",
+    "FZ",
+    "CZ",
+    "PZ"
+  ],
+  "aliases": {
+    "T7": "T3",
+    "T8": "T4",
+    "P7": "T5",
+    "P8": "T6"
+  },
+  "bandpass_hz": [
+    0.5,
+    70.0
+  ],
+  "reference": "common_average_after_19_channel_harmonization",
+  "normalization": "per_channel_per_10s_window_zscore_clip_-8_8",
+  "stft": {
+    "window": "hamming",
+    "nperseg": 256,
+    "noverlap": 128,
+    "boundary": null,
+    "padded": false,
+    "frequency_hz": [
+      0.5,
+      70.0
+    ],
+    "power": "abs(stft)^2",
+    "channel_reduction": "mean_across_19_channels",
+    "post": "log1p_then_p1_p99_scaling_clip_0_1",
+    "model_tensor_shape": [
+      1,
+      70,
+      19
+    ]
+  },
+  "universal_router": {
+    "name": "logistic_C_2",
+    "dataset_name_input_required": false,
+    "router_parameters_file": "universal_router_parameters.npz",
+    "router_prototypes_file": "universal_router_prototypes.npz",
+    "router_metadata_file": "universal_router.json"
+  },
+  "research_frequency_statistics_file": "research_preprocessing_contract.npz",
+  "temporal_policy_file": "temporal_policy.json",
+  "source_contract_sha256": "38274cc6e9afcba1dbbcb0294041eb682d6add4cedf1b1ce3dbdef53e11cb798",
+  "universal_frequency_transforms_file": "universal_frequency_transforms.npz",
+  "serving_contract_file": "serving_contract.json",
+  "phase22_model_input_fixture_file": "phase22_model_input_fixture.npz",
+  "phase22_temporal_fixture_file": "phase22_temporal_fixture.json"
 }
