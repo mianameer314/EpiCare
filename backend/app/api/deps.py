@@ -292,10 +292,37 @@ async def get_target_patient_for_prescription(
     patient_user_id: int | None = Query(None, description="Target patient User ID (required for prescriptions)")
 ) -> int:
     if current_user.role == UserRole.PATIENT:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Patients cannot prescribe medications")
+        return current_user.id
 
     if current_user.role == UserRole.CARETAKER:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Caretakers cannot prescribe medications")
+        if patient_user_id:
+            result = await db.execute(
+                select(PatientCaretakerNetwork)
+                .join(CaretakerProfile, CaretakerProfile.id == PatientCaretakerNetwork.caretaker_id)
+                .join(PatientProfile, PatientProfile.id == PatientCaretakerNetwork.patient_id)
+                .where(
+                    CaretakerProfile.user_id == current_user.id,
+                    PatientProfile.user_id == patient_user_id,
+                    PatientCaretakerNetwork.relationship_status == ConnectionStatus.ACTIVE
+                )
+            )
+            if not result.scalar_one_or_none():
+                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No active connection to this patient")
+            return patient_user_id
+
+        result = await db.execute(
+            select(PatientProfile.user_id)
+            .join(PatientCaretakerNetwork, PatientCaretakerNetwork.patient_id == PatientProfile.id)
+            .join(CaretakerProfile, CaretakerProfile.id == PatientCaretakerNetwork.caretaker_id)
+            .where(
+                CaretakerProfile.user_id == current_user.id,
+                PatientCaretakerNetwork.relationship_status == ConnectionStatus.ACTIVE
+            )
+        )
+        connected_patient = result.scalar_one_or_none()
+        if not connected_patient:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No active connected patient found")
+        return connected_patient
 
     if current_user.role == UserRole.DOCTOR:
         result = await db.execute(select(DoctorProfile).where(DoctorProfile.user_id == current_user.id))

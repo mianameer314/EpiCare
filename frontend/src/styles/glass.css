@@ -77,12 +77,13 @@
 
 /* ── Glass Modal / Dialog ── */
 .glass-modal {
-  background: var(--glass-bg-elevated);
-  backdrop-filter: blur(var(--glass-blur-heavy));
-  -webkit-backdrop-filter: blur(var(--glass-blur-heavy));
-  border: 1px solid var(--glass-border);
+  background: #ffffff;
+  border: 1px solid rgba(45, 90, 63, 0.16);
   border-radius: var(--radius-2xl);
-  box-shadow: var(--shadow-float-32);
+  box-shadow: 
+    0 24px 60px -12px rgba(18, 38, 26, 0.22),
+    0 12px 24px -8px rgba(18, 38, 26, 0.12),
+    0 0 0 1px rgba(255, 255, 255, 0.9) inset;
 }
 
 /* ── Glass Input Field ── */
@@ -117,9 +118,9 @@
 .glass-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.3);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: rgba(18, 38, 26, 0.45);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   z-index: var(--z-overlay);
 }
 
