@@ -201,12 +201,8 @@ class EmailSOSProvider(BaseSOSProvider):
         html_content = build_sos_html_email(event, patient_name)
         text_content = build_sos_message(event, patient_name)
 
-        # Collect email recipients
+        # Collect email recipients (Connected Caregivers & Emergency Contacts)
         recipient_emails = set()
-
-        # 0. Patient (Self-alert confirmation & emergency record)
-        if patient_email and "@" in patient_email:
-            recipient_emails.add(("patient", patient_email, patient_name))
 
         # 1. Connected Caretakers
         for ct in caretakers:
