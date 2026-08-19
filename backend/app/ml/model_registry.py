@@ -206,16 +206,18 @@ class ModelRegistry:
             expected = str(item.get("sha256") or "").lower()
             if not name or not expected:
                 continue
+            # checksum.txt is specifically validated against model.onnx above; skip metadata files
+            if name in {"checksum.txt", "README.md"}:
+                continue
             path = version_dir / str(name)
             if not path.exists():
                 raise ValueError(f"Manifest-listed file missing: {name}")
             
             actual_sha = _sha256_file(path).lower()
             if actual_sha != expected:
-                # Text files (like checksum.txt, README.md, json) can have CRLF vs LF differences across Git checkouts
                 if path.suffix.lower() in {".txt", ".json", ".md"}:
                     norm_sha = _sha256_text_normalized(path).lower()
-                    if norm_sha == expected or path.name in {"checksum.txt", "README.md"}:
+                    if norm_sha == expected:
                         continue
                 raise ValueError(f"SHA256 mismatch for package file: {name}")
 
