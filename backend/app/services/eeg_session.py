@@ -432,6 +432,7 @@ async def _read_and_validate(
     extension = get_extension(session.original_filename)
     temp_path = provider._resolve(f"eeg/_validate_{session.id}_{extension}")
     try:
+        temp_path.parent.mkdir(parents=True, exist_ok=True)
         temp_path.write_bytes(file_bytes)
         read_result = await eeg_reader.read_eeg_file(str(temp_path), extension)
         payload = await run_cpu_bound(
