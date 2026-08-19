@@ -333,6 +333,10 @@ async def analyze_session(
             validated.channel_labels,
             str(model_loader.package.root),
         )
+        # Release the raw signal array from memory immediately
+        validated.data = None
+        import gc
+        gc.collect()
     except Exception as exc:
         await _set_failed(db, session, str(exc))
         raise error_response(
