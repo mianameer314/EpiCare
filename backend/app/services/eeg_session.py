@@ -248,7 +248,11 @@ async def analyze_session(
 
     # 1) Read + validate -------------------------------------------
     await _set_status(db, session, EegSessionStatus.VALIDATING)
-    validated = await _read_and_validate(db, session, file_bytes)
+    try:
+        validated = await _read_and_validate(db, session, file_bytes)
+    except Exception as exc:
+        await _set_failed(db, session, str(exc))
+        raise
 
     if not validated.validation.valid:
         session.validation_result = _validation_dict(validated.validation)
