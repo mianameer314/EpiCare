@@ -1,4 +1,4 @@
-﻿"""
+"""
 CPU-bound task executor — isolates heavy NumPy/SciPy/MNE work in a
 ProcessPoolExecutor so blocking signal processing never stalls the
 asyncio event loop.
@@ -8,39 +8,38 @@ explicitly because contextvars do not cross process boundaries).
 """
 import logging
 import time
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Callable, TypeVar
 
-from app.core.config import settings
 from app.middleware.request_context import get_request_id
 
 logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
 
-_pool: ProcessPoolExecutor | None = None
-_pool_workers: int = max(2, min(8, (settings.ONNX_INTRA_OP_THREADS + 1) // 2))
+_pool: ThreadPoolExecutor | None = None
+_pool_workers: int = 2
 
 
-def get_executor() -> ProcessPoolExecutor:
-    """Return the shared ProcessPoolExecutor, creating it on first use."""
+def get_executor() -> ThreadPoolExecutor:
+    """Return the shared ThreadPoolExecutor, creating it on first use."""
     global _pool
     if _pool is None:
         logger.info(
-            "ProcessPoolExecutor initialised",
+            "ThreadPoolExecutor initialised",
             extra={"workers": _pool_workers},
         )
-        _pool = ProcessPoolExecutor(max_workers=_pool_workers)
+        _pool = ThreadPoolExecutor(max_workers=_pool_workers)
     return _pool
 
 
 async def shutdown_executor() -> None:
-    """Gracefully shut down the process pool (called on app shutdown)."""
+    """Gracefully shut down the thread pool (called on app shutdown)."""
     global _pool
     if _pool is not None:
         _pool.shutdown(wait=False, cancel_futures=True)
         _pool = None
-        logger.info("ProcessPoolExecutor shut down")
+        logger.info("ThreadPoolExecutor shut down")
 
 
 async def run_cpu_bound(fn: Callable[..., T], *args: Any, task_name: str | None = None) -> T:

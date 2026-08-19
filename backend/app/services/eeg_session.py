@@ -66,6 +66,8 @@ class _ValidatedFile:
 def generate_spectrogram_image(model_inputs: np.ndarray) -> bytes:
     """Generate dark-themed clinical STFT brainwave spectrogram PNG."""
     import io
+    import os
+    os.environ.setdefault("MPLCONFIGDIR", "/tmp/matplotlib")
     import numpy as np
     import matplotlib
     matplotlib.use("Agg")
