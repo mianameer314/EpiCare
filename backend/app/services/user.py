@@ -113,7 +113,15 @@ async def register_user(db: AsyncSession, data: UserRegister, background_tasks: 
     # 4. Dispatch email
     background_tasks.add_task(send_verification_email, pending.email, otp_plain, pending.full_name)
     
-    return {"message": "Verification code sent to your email.", "email": pending.email}
+    return {
+        "message": "Verification code sent to your email.",
+        "email": pending.email,
+        "full_name": pending.full_name,
+        "role": pending.role,
+        "is_active": True,
+        "is_email_verified": False,
+        "is_phone_verified": False,
+    }
 
 
 async def verify_registration_otp(db: AsyncSession, email: str, otp: str) -> bool:

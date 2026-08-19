@@ -59,7 +59,20 @@ async def register(data: UserRegister, db: DbDep, background_tasks: BackgroundTa
 async def login(data: LoginRequest, db: DbDep):
     """Authenticate and get access + refresh tokens."""
     user = await user_service.get_user_by_email(db, data.email)
-    if not user or not verify_password(data.password, user.password_hash):
+    if not user:
+        from app.models.pending_registration import PendingRegistration
+        res = await db.execute(select(PendingRegistration).where(PendingRegistration.email == data.email))
+        pending = res.scalar_one_or_none()
+        if pending and verify_password(data.password, pending.password_hash):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Email is not verified. Please verify your email first.",
+            )
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid email or password",
+        )
+    if not verify_password(data.password, user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password",

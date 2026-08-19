@@ -29,9 +29,32 @@ def _auth(client: TestClient, email: str | None = None) -> dict[str, str]:
     
     async def verify_user():
         async with TestSessionLocal() as session:
-            result = await session.execute(select(User).where(User.email == email))
-            user = result.scalar_one()
-            user.is_email_verified = True
+            from app.models.pending_registration import PendingRegistration
+            from app.models.patient_profile import PatientProfile
+            from app.models.enums import UserRole
+            from datetime import datetime, timezone
+
+            res = await session.execute(select(PendingRegistration).where(PendingRegistration.email == email))
+            pending = res.scalar_one_or_none()
+            if pending:
+                user = User(
+                    email=pending.email,
+                    password_hash=pending.password_hash,
+                    phone_number=pending.phone_number,
+                    full_name=pending.full_name,
+                    role=UserRole.PATIENT,
+                    is_active=True,
+                    is_email_verified=True,
+                    is_phone_verified=False,
+                )
+                session.add(user)
+                await session.flush()
+                session.add(PatientProfile(user_id=user.id, date_of_birth=datetime.now(timezone.utc).date()))
+                await session.delete(pending)
+            else:
+                result = await session.execute(select(User).where(User.email == email))
+                user = result.scalar_one()
+                user.is_email_verified = True
             await session.commit()
             
     asyncio.run(verify_user())

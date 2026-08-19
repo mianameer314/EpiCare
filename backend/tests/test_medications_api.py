@@ -27,15 +27,57 @@ def _setup_doctor_and_patient(client: TestClient, prefix: str):
     # Verify emails and PMDC
     async def verify_users():
         async with TestSessionLocal() as session:
+            from app.models.pending_registration import PendingRegistration
+            from app.models.patient_profile import PatientProfile
+            from app.models.enums import UserRole
+            from datetime import datetime, timezone
+
             # Patient
-            pt = (await session.execute(select(User).where(User.email == pt_email))).scalar_one()
-            pt.is_email_verified = True
+            res_pt = await session.execute(select(PendingRegistration).where(PendingRegistration.email == pt_email))
+            pending_pt = res_pt.scalar_one_or_none()
+            if pending_pt:
+                pt = User(
+                    email=pending_pt.email,
+                    password_hash=pending_pt.password_hash,
+                    phone_number=pending_pt.phone_number,
+                    full_name=pending_pt.full_name,
+                    role=UserRole.PATIENT,
+                    is_active=True,
+                    is_email_verified=True,
+                    is_phone_verified=False,
+                )
+                session.add(pt)
+                await session.flush()
+                session.add(PatientProfile(user_id=pt.id, date_of_birth=datetime.now(timezone.utc).date()))
+                await session.delete(pending_pt)
+            else:
+                pt = (await session.execute(select(User).where(User.email == pt_email))).scalar_one()
+                pt.is_email_verified = True
             
             # Doctor
-            dr = (await session.execute(select(User).where(User.email == dr_email))).scalar_one()
-            dr.is_email_verified = True
-            prof = (await session.execute(select(DoctorProfile).where(DoctorProfile.user_id == dr.id))).scalar_one()
-            prof.is_pmdc_verified = True
+            res_dr = await session.execute(select(PendingRegistration).where(PendingRegistration.email == dr_email))
+            pending_dr = res_dr.scalar_one_or_none()
+            if pending_dr:
+                dr = User(
+                    email=pending_dr.email,
+                    password_hash=pending_dr.password_hash,
+                    phone_number=pending_dr.phone_number,
+                    full_name=pending_dr.full_name,
+                    role=UserRole.DOCTOR,
+                    is_active=True,
+                    is_email_verified=True,
+                    is_phone_verified=False,
+                )
+                session.add(dr)
+                await session.flush()
+                session.add(DoctorProfile(user_id=dr.id, pmdc_number=pending_dr.pmdc_number, specialty="Neurologist", is_pmdc_verified=True))
+                await session.delete(pending_dr)
+            else:
+                dr = (await session.execute(select(User).where(User.email == dr_email))).scalar_one()
+                dr.is_email_verified = True
+                prof = (await session.execute(select(DoctorProfile).where(DoctorProfile.user_id == dr.id))).scalar_one()
+                prof.is_pmdc_verified = True
+            
             await session.commit()
             return pt.id, dr.id
             

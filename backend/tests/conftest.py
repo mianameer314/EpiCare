@@ -182,10 +182,43 @@ def auth_headers(client) -> dict:
         # Manually verify the user in DB
         async def verify_user():
             async with TestSessionLocal() as session:
+                from app.models.pending_registration import PendingRegistration
+                from app.models.enums import UserRole
+                from app.models.patient_profile import PatientProfile
+                from app.models.doctor_profile import DoctorProfile
+                from app.models.caretaker_profile import CaretakerProfile
+                from datetime import datetime, timezone
+                
                 result = await session.execute(select(User).where(User.email == email))
-                user = result.scalar_one()
-                user.is_email_verified = True
-                await session.commit()
+                user = result.scalar_one_or_none()
+                if user:
+                    user.is_email_verified = True
+                    await session.commit()
+                    return
+                
+                res = await session.execute(select(PendingRegistration).where(PendingRegistration.email == email))
+                pending = res.scalar_one_or_none()
+                if pending:
+                    user = User(
+                        email=pending.email,
+                        password_hash=pending.password_hash,
+                        phone_number=pending.phone_number,
+                        full_name=pending.full_name,
+                        role=pending.role,
+                        is_active=True,
+                        is_email_verified=True,
+                        is_phone_verified=False,
+                    )
+                    session.add(user)
+                    await session.flush()
+                    if user.role == UserRole.PATIENT:
+                        session.add(PatientProfile(user_id=user.id, date_of_birth=datetime.now(timezone.utc).date()))
+                    elif user.role == UserRole.DOCTOR:
+                        session.add(DoctorProfile(user_id=user.id, pmdc_number=pending.pmdc_number, specialty="Neurologist", is_pmdc_verified=True))
+                    elif user.role == UserRole.CARETAKER:
+                        session.add(CaretakerProfile(user_id=user.id))
+                    await session.delete(pending)
+                    await session.commit()
                 
         asyncio.run(verify_user())
         

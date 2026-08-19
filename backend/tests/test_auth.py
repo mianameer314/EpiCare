@@ -28,6 +28,12 @@ def _verify_email(email: str):
     import asyncio
     from app.db.session import TestSessionLocal
     from app.models.user import User
+    from app.models.pending_registration import PendingRegistration
+    from app.models.enums import UserRole
+    from app.models.patient_profile import PatientProfile
+    from app.models.doctor_profile import DoctorProfile
+    from app.models.caretaker_profile import CaretakerProfile
+    from datetime import datetime, timezone
     from sqlalchemy import select
 
     async def _do_verify():
@@ -37,6 +43,31 @@ def _verify_email(email: str):
             if user:
                 user.is_email_verified = True
                 user.is_phone_verified = True
+                await session.commit()
+                return
+
+            res = await session.execute(select(PendingRegistration).where(PendingRegistration.email == email))
+            pending = res.scalar_one_or_none()
+            if pending:
+                user = User(
+                    email=pending.email,
+                    password_hash=pending.password_hash,
+                    phone_number=pending.phone_number,
+                    full_name=pending.full_name,
+                    role=pending.role,
+                    is_active=True,
+                    is_email_verified=True,
+                    is_phone_verified=True,
+                )
+                session.add(user)
+                await session.flush()
+                if user.role == UserRole.PATIENT:
+                    session.add(PatientProfile(user_id=user.id, date_of_birth=datetime.now(timezone.utc).date()))
+                elif user.role == UserRole.DOCTOR:
+                    session.add(DoctorProfile(user_id=user.id, pmdc_number=pending.pmdc_number, specialty="Neurologist", is_pmdc_verified=True))
+                elif user.role == UserRole.CARETAKER:
+                    session.add(CaretakerProfile(user_id=user.id))
+                await session.delete(pending)
                 await session.commit()
 
     asyncio.run(_do_verify())
@@ -149,21 +180,7 @@ def test_register_validates_password_length(client: TestClient) -> None:
 
 def test_login_returns_tokens(client: TestClient) -> None:
     _register(client, "login@example.com")
-    
-    # Needs to be verified first
-    import asyncio
-    from app.db.session import TestSessionLocal
-    from app.models.user import User
-    from sqlalchemy import select
-    
-    async def verify_user():
-        async with TestSessionLocal() as session:
-            result = await session.execute(select(User).where(User.email == "login@example.com"))
-            user = result.scalar_one()
-            user.is_email_verified = True
-            await session.commit()
-            
-    asyncio.run(verify_user())
+    _verify_email("login@example.com")
     
     response = client.post(
         "/api/v1/auth/login",
@@ -187,20 +204,7 @@ def test_login_wrong_password(client: TestClient) -> None:
 
 def test_me_returns_profile(client: TestClient) -> None:
     _register(client, "me@example.com")
-    
-    import asyncio
-    from app.db.session import TestSessionLocal
-    from app.models.user import User
-    from sqlalchemy import select
-    
-    async def verify_user():
-        async with TestSessionLocal() as session:
-            result = await session.execute(select(User).where(User.email == "me@example.com"))
-            user = result.scalar_one()
-            user.is_email_verified = True
-            await session.commit()
-            
-    asyncio.run(verify_user())
+    _verify_email("me@example.com")
     
     login = client.post(
         "/api/v1/auth/login",
@@ -264,14 +268,35 @@ def test_doctor_login_requires_pmdc_verification(client: TestClient) -> None:
     import asyncio
     from app.db.session import TestSessionLocal
     from app.models.user import User
+    from app.models.pending_registration import PendingRegistration
+    from app.models.doctor_profile import DoctorProfile
     from sqlalchemy import select
     
     async def verify_user():
         async with TestSessionLocal() as session:
-            result = await session.execute(select(User).where(User.email == "dr_pmdc@example.com"))
-            user = result.scalar_one()
-            user.is_email_verified = True
-            await session.commit()
+            res = await session.execute(select(PendingRegistration).where(PendingRegistration.email == "dr_pmdc@example.com"))
+            pending = res.scalar_one_or_none()
+            if pending:
+                user = User(
+                    email=pending.email,
+                    password_hash=pending.password_hash,
+                    phone_number=pending.phone_number,
+                    full_name=pending.full_name,
+                    role=pending.role,
+                    is_active=True,
+                    is_email_verified=True,
+                    is_phone_verified=False,
+                )
+                session.add(user)
+                await session.flush()
+                session.add(DoctorProfile(user_id=user.id, pmdc_number=pending.pmdc_number, specialty="Neurologist", is_pmdc_verified=False))
+                await session.delete(pending)
+                await session.commit()
+            else:
+                result = await session.execute(select(User).where(User.email == "dr_pmdc@example.com"))
+                user = result.scalar_one()
+                user.is_email_verified = True
+                await session.commit()
             
     asyncio.run(verify_user())
     
@@ -302,15 +327,21 @@ def test_verify_otp(client: TestClient) -> None:
     import asyncio
     from app.db.session import TestSessionLocal
     from app.models.user import User
+    from app.models.pending_registration import PendingRegistration
     from sqlalchemy import select
     from app.core.security import hash_password
     
     otp = "123456"
     async def get_otp():
         async with TestSessionLocal() as session:
-            result = await session.execute(select(User).where(User.email == "otp_test@example.com"))
-            user = result.scalar_one()
-            user.otp_secret_hash = hash_password(otp)
+            res = await session.execute(select(PendingRegistration).where(PendingRegistration.email == "otp_test@example.com"))
+            pending = res.scalar_one_or_none()
+            if pending:
+                pending.otp_secret_hash = hash_password(otp)
+            else:
+                result = await session.execute(select(User).where(User.email == "otp_test@example.com"))
+                user = result.scalar_one()
+                user.otp_secret_hash = hash_password(otp)
             await session.commit()
             
     asyncio.run(get_otp())

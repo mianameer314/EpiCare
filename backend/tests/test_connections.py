@@ -27,15 +27,43 @@ def _create_user(client: TestClient, role: str, email_prefix: str) -> dict:
     
     async def verify_and_get():
         async with TestSessionLocal() as session:
-            result = await session.execute(select(User).where(User.email == email))
-            user = result.scalar_one()
-            user.is_email_verified = True
-            
-            if role == "DOCTOR":
-                # Verify doctor profile too
-                prof_result = await session.execute(select(DoctorProfile).where(DoctorProfile.user_id == user.id))
-                prof = prof_result.scalar_one()
-                prof.is_pmdc_verified = True
+            from app.models.pending_registration import PendingRegistration
+            from app.models.patient_profile import PatientProfile
+            from app.models.caretaker_profile import CaretakerProfile
+            from app.models.enums import UserRole
+            from datetime import datetime, timezone
+
+            res = await session.execute(select(PendingRegistration).where(PendingRegistration.email == email))
+            pending = res.scalar_one_or_none()
+            if pending:
+                user = User(
+                    email=pending.email,
+                    password_hash=pending.password_hash,
+                    phone_number=pending.phone_number,
+                    full_name=pending.full_name,
+                    role=UserRole(role),
+                    is_active=True,
+                    is_email_verified=True,
+                    is_phone_verified=False,
+                )
+                session.add(user)
+                await session.flush()
+                if user.role == UserRole.PATIENT:
+                    session.add(PatientProfile(user_id=user.id, date_of_birth=datetime.now(timezone.utc).date()))
+                elif user.role == UserRole.DOCTOR:
+                    session.add(DoctorProfile(user_id=user.id, pmdc_number=pending.pmdc_number, specialty="Neurologist", is_pmdc_verified=True))
+                elif user.role == UserRole.CARETAKER:
+                    session.add(CaretakerProfile(user_id=user.id))
+                await session.delete(pending)
+            else:
+                result = await session.execute(select(User).where(User.email == email))
+                user = result.scalar_one()
+                user.is_email_verified = True
+                
+                if role == "DOCTOR":
+                    prof_result = await session.execute(select(DoctorProfile).where(DoctorProfile.user_id == user.id))
+                    prof = prof_result.scalar_one()
+                    prof.is_pmdc_verified = True
                 
             await session.commit()
             
