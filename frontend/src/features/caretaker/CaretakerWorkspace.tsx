@@ -357,15 +357,17 @@ export function CaretakerWorkspace() {
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
             {activeEmergencyAlert.latitude && activeEmergencyAlert.longitude && (
-              <a
-                href={`https://maps.google.com/?q=${activeEmergencyAlert.latitude},${activeEmergencyAlert.longitude}`}
-                target="_blank"
-                rel="noreferrer"
+              <button
+                type="button"
                 className="btn btn-sm"
-                style={{ background: '#dc2626', color: '#ffffff', border: 'none', display: 'flex', alignItems: 'center', gap: '4px', textDecoration: 'none' }}
+                onClick={() => {
+                  window.open(`https://maps.google.com/?q=${activeEmergencyAlert.latitude},${activeEmergencyAlert.longitude}`, '_blank');
+                  handleAcknowledgeAlert();
+                }}
+                style={{ background: '#dc2626', color: '#ffffff', border: 'none', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
               >
-                <MapPin size={14} /> View Map
-              </a>
+                <MapPin size={14} /> Open Google Maps
+              </button>
             )}
             <button
               className="btn btn-sm btn-outline"

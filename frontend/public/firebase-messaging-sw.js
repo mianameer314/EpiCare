@@ -99,19 +99,18 @@ self.addEventListener('push', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const urlToOpen = event.notification.data?.lat
-    ? `https://maps.google.com/?q=${event.notification.data.lat},${event.notification.data.lng}`
-    : '/dashboard';
+  const appUrl = '/dashboard';
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
       for (let client of windowClients) {
         if (client.url.includes(self.location.origin) && 'focus' in client) {
+          client.navigate(appUrl);
           return client.focus();
         }
       }
       if (clients.openWindow) {
-        return clients.openWindow(urlToOpen);
+        return clients.openWindow(appUrl);
       }
     })
   );
