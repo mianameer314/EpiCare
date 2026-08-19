@@ -109,6 +109,11 @@ export const eegApi = {
     return `${base}/eeg/sessions/${sessionId}/spectrogram`;
   },
 
+  getSpectrogramBlob: async (sessionId: number): Promise<string> => {
+    const blob = await apiClient.getBlob(`/eeg/sessions/${sessionId}/spectrogram`);
+    return URL.createObjectURL(blob);
+  },
+
   deleteSession: (sessionId: number) =>
     apiClient.delete<void>(`/eeg/sessions/${sessionId}`),
 

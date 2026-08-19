@@ -62,6 +62,49 @@ class _ValidatedFile:
     data: object  # np.ndarray carried for preprocessing reuse
 
 
+def generate_spectrogram_image(model_inputs: np.ndarray) -> bytes:
+    """Generate dark-themed clinical STFT brainwave spectrogram PNG."""
+    import io
+    import numpy as np
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    # Average spectral power across channels
+    spec_2d = np.mean(model_inputs[:, 0, :, :], axis=-1).T  # [70, N]
+    
+    fig, ax = plt.subplots(figsize=(10, 3.5), dpi=150)
+    fig.patch.set_facecolor("#181c1a")
+    ax.set_facecolor("#181c1a")
+    
+    im = ax.imshow(
+        spec_2d,
+        aspect="auto",
+        origin="lower",
+        extent=[0, model_inputs.shape[0] * 10, 1, 70],
+        cmap="magma",
+    )
+    
+    ax.set_title("Short-Time Fourier Transform (STFT) Brainwave Spectrogram", color="#e8f0ec", fontsize=11, pad=10, fontweight="bold")
+    ax.set_xlabel("Time (seconds)", color="#a0b0a8", fontsize=9)
+    ax.set_ylabel("Frequency (Hz)", color="#a0b0a8", fontsize=9)
+    ax.tick_params(colors="#a0b0a8", labelsize=8)
+    for spine in ax.spines.values():
+        spine.set_color("#2d4036")
+        
+    cbar = fig.colorbar(im, ax=ax, pad=0.02)
+    cbar.set_label("Normalized Spectral Power", color="#a0b0a8", size=8)
+    cbar.ax.yaxis.set_tick_params(color="#a0b0a8")
+    plt.setp(plt.getp(cbar.ax.axes, 'yticklabels'), color="#a0b0a8", size=8)
+    
+    fig.tight_layout()
+    buf = io.BytesIO()
+    fig.savefig(buf, format="png", facecolor=fig.get_facecolor(), edgecolor="none")
+    plt.close(fig)
+    buf.seek(0)
+    return buf.getvalue()
+
+
 # ------------------------------------------------------------------
 # Queries
 # ------------------------------------------------------------------
@@ -295,6 +338,13 @@ async def analyze_session(
             details=str(exc),
             status_code=400,
         ) from exc
+
+    # Generate and store STFT Spectrogram visual artifact
+    try:
+        spec_bytes = generate_spectrogram_image(preprocessed.model_inputs)
+        storage.save_spectrogram(spec_bytes, session.id)
+    except Exception as exc:
+        logger.warning("Could not generate spectrogram image: %s", exc)
 
     # Persist serving diagnostics without changing the prediction table schema.
     validation_payload = _validation_dict(

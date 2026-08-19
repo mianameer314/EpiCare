@@ -185,6 +185,27 @@ async def get_session_spectrogram(
     storage = get_storage_service()
     key = f"spectrograms/session_{session_id}.png"
     if not storage.exists(key):
+        # Generate on-demand if session file exists
+        try:
+            from app.ml.model_loader import get_model_loader
+            from app.services.eeg_session import _read_and_validate, generate_spectrogram_image
+            from app.services.eeg_preprocessing import preprocess_eeg
+            loader = get_model_loader()
+            if loader.is_ready and loader.package is not None:
+                file_bytes = storage.read(session.stored_path)
+                validated = await _read_and_validate(db, session, file_bytes)
+                preprocessed = await preprocess_eeg(
+                    validated.data,
+                    validated.sampling_rate,
+                    validated.channel_labels,
+                    str(loader.package.root),
+                )
+                spec_bytes = generate_spectrogram_image(preprocessed.model_inputs)
+                storage.save_spectrogram(spec_bytes, session.id)
+        except Exception:
+            pass
+
+    if not storage.exists(key):
         raise not_found_error("Spectrogram")
 
     from app.services.storage.local import LocalStorageProvider
