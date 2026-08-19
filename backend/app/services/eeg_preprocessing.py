@@ -388,7 +388,7 @@ def _line_features(
     """Match the frozen router's first-120-second 50/60-Hz evidence."""
     from scipy.signal import welch
 
-    arr = np.asarray(original_data, dtype=np.float64)
+    arr = np.asarray(original_data, dtype=np.float32)
     picks = [
         idx
         for idx, label in enumerate(channel_names)
@@ -599,7 +599,7 @@ def _apply_route(
 
 
 def _preprocess_block(payload: dict[str, Any]) -> dict[str, Any]:
-    original = np.asarray(payload["data"], dtype=np.float64)
+    original = np.asarray(payload["data"], dtype=np.float32)
     sampling_rate = float(payload["sampling_rate"])
     channel_labels = [str(v) for v in payload["channel_labels"]]
     package_root = str(payload["package_root"])
@@ -694,7 +694,7 @@ async def preprocess_eeg(
 ) -> PreprocessingResult:
     """Run frozen raw-to-model-input preprocessing off the asyncio event loop."""
     payload = {
-        "data": np.asarray(data, dtype=np.float64),
+        "data": np.asarray(data, dtype=np.float32),
         "sampling_rate": float(sampling_rate),
         "channel_labels": [str(v) for v in channel_labels],
         "package_root": str(package_root),

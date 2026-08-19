@@ -258,7 +258,7 @@ def reconstruct_bipolar(
     data: np.ndarray,
     channel_names: list[str],
 ) -> HarmonizedSignal:
-    arr = np.asarray(data, dtype=np.float64)
+    arr = np.asarray(data, dtype=np.float32)
     if arr.ndim != 2 or arr.shape[0] != len(channel_names):
         raise ValueError("EEG data/channel-label dimensions do not match")
 
@@ -277,7 +277,7 @@ def reconstruct_bipolar(
     A = plan["A"]
     constraints = []
     for component in plan["components"]:
-        row = np.zeros(len(plan["active_nodes"]), dtype=np.float64)
+        row = np.zeros(len(plan["active_nodes"]), dtype=np.float32)
         for electrode in component:
             row[plan["node_to_col"][electrode]] = 1.0
         constraints.append(row)
@@ -285,9 +285,9 @@ def reconstruct_bipolar(
     C = (
         np.stack(constraints)
         if constraints
-        else np.empty((0, len(plan["active_nodes"])), dtype=np.float64)
+        else np.empty((0, len(plan["active_nodes"])), dtype=np.float32)
     )
-    pinv = np.linalg.pinv(np.vstack([A, C]))
+    pinv = np.linalg.pinv(np.vstack([A, C])).astype(np.float32)
 
     edge_observations = []
     for key in plan["unique_edges"]:
@@ -296,11 +296,11 @@ def reconstruct_bipolar(
             for idx, sign, _label in plan["edge_groups"][key]
         ]
         edge_observations.append(
-            np.mean(np.stack(aligned, axis=0), axis=0)
+            np.mean(np.stack(aligned, axis=0), axis=0).astype(np.float32)
         )
     B = np.stack(edge_observations, axis=0)
     rhs = np.vstack(
-        [B, np.zeros((C.shape[0], B.shape[1]), dtype=np.float64)]
+        [B, np.zeros((C.shape[0], B.shape[1]), dtype=np.float32)]
     )
     potentials = pinv @ rhs
 
@@ -310,12 +310,12 @@ def reconstruct_bipolar(
             for channel in CANONICAL_CHANNELS
         ],
         axis=0,
-    )
+    ).astype(np.float32)
     if target.shape[0] != 19 or not np.isfinite(target).all():
         raise ValueError("Invalid pseudo-referential bipolar reconstruction")
 
     return HarmonizedSignal(
-        data=target.astype(np.float64, copy=False),
+        data=target,
         montage_style="bipolar_graph",
         warnings=[
             "Bipolar EEG reconstructed to frozen 19-channel "
