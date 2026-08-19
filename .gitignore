@@ -40,10 +40,9 @@ yarn-error.log*
 *.sln
 *.sw?
 
-# ---------- Storage: never commit uploaded files / model weights ----------
+# ---------- Storage: never commit uploaded files ----------
 storage/*
 !storage/.gitkeep
-models/**/model.onnx
 models/**/*.joblib
 rag/documents/*
 !rag/documents/.gitkeep
@@ -58,14 +57,7 @@ tsconfig.tsbuildinfo
 Final main Proposal.pdf
 backend/*firebase*adminsdk*.json
 backend/*service*account*.json
-<<<<<<< HEAD
-api_testing_guide.md 
-=======
 api_testing_guide.md
->>>>>>> parent of 8de9bc7 (json)
 docs/swagger_testing_guide.md
 Capture.JPG
-Capture.JPG
-Capture.JPG
 Captures.JPG
-Capture.JPG
