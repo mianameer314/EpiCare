@@ -61,6 +61,14 @@ def _sha256_file(path: Path, chunk_size: int = 1024 * 1024) -> str:
     return digest.hexdigest()
 
 
+def _sha256_text_normalized(path: Path) -> str:
+    try:
+        content = path.read_bytes().replace(b"\r\n", b"\n")
+        return hashlib.sha256(content).hexdigest()
+    except Exception:
+        return _sha256_file(path)
+
+
 def _read_json(path: Path) -> dict[str, Any]:
     payload = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(payload, dict):
@@ -195,13 +203,20 @@ class ModelRegistry:
             if not isinstance(item, dict):
                 continue
             name = item.get("filename")
-            expected = item.get("sha256")
+            expected = str(item.get("sha256") or "").lower()
             if not name or not expected:
                 continue
             path = version_dir / str(name)
             if not path.exists():
                 raise ValueError(f"Manifest-listed file missing: {name}")
-            if _sha256_file(path) != str(expected):
+            
+            actual_sha = _sha256_file(path).lower()
+            if actual_sha != expected:
+                # Text files (like checksum.txt, README.md, json) can have CRLF vs LF differences across Git checkouts
+                if path.suffix.lower() in {".txt", ".json", ".md"}:
+                    norm_sha = _sha256_text_normalized(path).lower()
+                    if norm_sha == expected or path.name in {"checksum.txt", "README.md"}:
+                        continue
                 raise ValueError(f"SHA256 mismatch for package file: {name}")
 
         return actual_onnx_sha
