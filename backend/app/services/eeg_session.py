@@ -37,6 +37,9 @@ VALID_ANALYZE_STATUSES = {
     EegSessionStatus.INVALID,
     EegSessionStatus.FAILED,
     EegSessionStatus.COMPLETED,
+    EegSessionStatus.VALIDATING,
+    EegSessionStatus.PREPROCESSING,
+    EegSessionStatus.INFERENCE_RUNNING,
 }
 
 
