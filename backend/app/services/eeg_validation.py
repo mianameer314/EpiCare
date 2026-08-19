@@ -1,4 +1,4 @@
-﻿"""
+"""
 EEG validation — lightweight structural checks that run in the process pool.
 
 Heavy signal inspection (sampling rate, channels, duration, NaN/Inf, flat
@@ -28,9 +28,9 @@ class EegValidationResult:
 
 
 def _validate_signal_block(
-    data: np.ndarray,
-    sampling_rate: float,
-    channel_labels: list[str],
+    data: np.ndarray | dict[str, Any],
+    sampling_rate: float | None = None,
+    channel_labels: list[str] | None = None,
     min_channels: int = 8,
     min_duration_seconds: float = 5.0,
 ) -> dict[str, Any]:
@@ -38,13 +38,23 @@ def _validate_signal_block(
     CPU-bound validation of a raw EEG matrix.
 
     Args:
-        data: float64 array shape (channels, samples).
+        data: float64 array shape (channels, samples) or dict payload.
         sampling_rate: Hz.
         channel_labels: Ordered channel names (len == channels).
 
     Returns:
         Serializable dict (picklable across the process boundary).
     """
+    if isinstance(data, dict):
+        sampling_rate = float(data.get("sampling_rate", 256.0))
+        channel_labels = list(data.get("channel_labels", []))
+        min_channels = int(data.get("min_channels", min_channels))
+        min_duration_seconds = float(data.get("min_duration_seconds", min_duration_seconds))
+        data = np.asarray(data["data"], dtype=np.float64)
+    else:
+        sampling_rate = float(sampling_rate or 256.0)
+        channel_labels = list(channel_labels or [])
+        data = np.asarray(data, dtype=np.float64)
     warnings: list[str] = []
     errors: list[str] = []
     channels, samples = data.shape
