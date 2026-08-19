@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Siren, Phone, X, Check, Loader2 } from 'lucide-react';
 import { emergencyApi } from '../../../api/emergency';
@@ -16,6 +17,7 @@ export function SOSButton() {
   const [state, setState] = useState<SOSState>('idle');
   const [errorMessage, setErrorMessage] = useState('');
   const isSubmittingRef = useRef(false);
+  const queryClient = useQueryClient();
 
   const handleTrigger = () => {
     setState('confirming');
@@ -34,6 +36,8 @@ export function SOSButton() {
         longitude: geo.longitude,
         location_available: geo.location_available,
       });
+      queryClient.invalidateQueries({ queryKey: ['emergency', 'sos-history'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard', 'stats'] });
       setState('success');
       setTimeout(() => {
         setState('idle');

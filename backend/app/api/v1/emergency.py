@@ -195,7 +195,8 @@ async def process_sos_in_background(event_id: int, user_id: int):
                     contacts=contacts,
                     caretakers=caretakers,
                     event=event,
-                    patient_name=patient_name
+                    patient_name=patient_name,
+                    patient_email=patient_user.email if patient_user else None,
                 )
             else:
                 contact_res = await provider.send_sos(contacts, event)

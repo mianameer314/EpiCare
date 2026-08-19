@@ -195,6 +195,7 @@ class EmailSOSProvider(BaseSOSProvider):
         caretakers: List[User],
         event: SosEvent,
         patient_name: str = "A Patient",
+        patient_email: Optional[str] = None,
     ) -> Dict[str, str]:
         results: Dict[str, str] = {}
         html_content = build_sos_html_email(event, patient_name)
@@ -202,6 +203,10 @@ class EmailSOSProvider(BaseSOSProvider):
 
         # Collect email recipients
         recipient_emails = set()
+
+        # 0. Patient (Self-alert confirmation & emergency record)
+        if patient_email and "@" in patient_email:
+            recipient_emails.add(("patient", patient_email, patient_name))
 
         # 1. Connected Caretakers
         for ct in caretakers:
@@ -244,6 +249,7 @@ class FirebaseSOSProvider(BaseSOSProvider):
         caretakers: List[User],
         event: SosEvent,
         patient_name: str = "A Patient",
+        patient_email: Optional[str] = None,
     ) -> Dict[str, str]:
         results: Dict[str, str] = {}
         fb_ready = ensure_firebase_initialized()
@@ -311,9 +317,9 @@ class FirebaseSOSProvider(BaseSOSProvider):
         for contact in contacts:
             results[f"contact_{contact.id}"] = "SENT"
 
-        # Also trigger email fallback so caretakers always receive notification
+        # Also trigger email fallback so caretakers & patient always receive notification
         email_provider = EmailSOSProvider()
-        await email_provider.send_sos_extended(contacts, caretakers, event, patient_name)
+        await email_provider.send_sos_extended(contacts, caretakers, event, patient_name, patient_email=patient_email)
 
         return results
 
@@ -329,6 +335,7 @@ class WhatsAppSOSProvider(BaseSOSProvider):
         caretakers: List[User],
         event: SosEvent,
         patient_name: str = "A Patient",
+        patient_email: Optional[str] = None,
     ) -> Dict[str, str]:
         results: Dict[str, str] = {}
         message_body = build_sos_message(event, patient_name)
@@ -368,7 +375,7 @@ class WhatsAppSOSProvider(BaseSOSProvider):
 
         # Also fallback email
         email_provider = EmailSOSProvider()
-        await email_provider.send_sos_extended(contacts, caretakers, event, patient_name)
+        await email_provider.send_sos_extended(contacts, caretakers, event, patient_name, patient_email=patient_email)
 
         return results
 
@@ -384,6 +391,7 @@ class TwilioSOSProvider(BaseSOSProvider):
         caretakers: List[User],
         event: SosEvent,
         patient_name: str = "A Patient",
+        patient_email: Optional[str] = None,
     ) -> Dict[str, str]:
         results: Dict[str, str] = {}
         message_body = build_sos_message(event, patient_name)
@@ -418,7 +426,7 @@ class TwilioSOSProvider(BaseSOSProvider):
 
         # Also fallback email
         email_provider = EmailSOSProvider()
-        await email_provider.send_sos_extended(contacts, caretakers, event, patient_name)
+        await email_provider.send_sos_extended(contacts, caretakers, event, patient_name, patient_email=patient_email)
 
         return results
 
