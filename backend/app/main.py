@@ -10,6 +10,9 @@ import logging
 import os
 from contextlib import asynccontextmanager
 
+# Set writable Matplotlib config dir before any Matplotlib imports to silence Railway /nonexistent warning
+os.environ.setdefault("MPLCONFIGDIR", "/tmp/matplotlib")
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
