@@ -1,0 +1,117 @@
+{
+  "package": "epicare_seizure_detector_v1",
+  "created_at": "2026-08-18T15:45:35",
+  "source_phase": "Phase21",
+  "frozen_phase12_sha256": "924a333bc9541746e23d12501854f966e522035c2b56dce8fb357e55f1abc2f7",
+  "source_phase19_bundle_sha256": "8e66c9ffdbe9f3382414f11d1929c1f96fdc3c7cde0aead1c87bc87fe7ea52fc",
+  "onnx_sha256": "55d8bffc9389963bbafa02151756f0939467393cbe672b983c5d3a2be2db65ce",
+  "router_name": "logistic_C_2",
+  "temporal_configuration": {
+    "smoothing_method": "causal_mean",
+    "smoothing_window": 3,
+    "ema_alpha": 0.5,
+    "threshold": 0.3,
+    "minimum_positive_run": 1,
+    "maximum_negative_gap": 0
+  },
+  "onnx_parity": {
+    "max_abs_tolerance": 1e-05,
+    "mean_abs_tolerance": 2e-06,
+    "synthetic_pass": true,
+    "real_non_test_pass": true,
+    "real_non_test_source": "materialized_manifest_validation"
+  },
+  "files": [
+    {
+      "filename": "checksum.txt",
+      "size_bytes": 78,
+      "sha256": "378a5c75851a7a136e735f914ebdc86be2f306f82cdf27b9db66dfcb5ac04934"
+    },
+    {
+      "filename": "frozen_detector_bundle.json",
+      "size_bytes": 6312,
+      "sha256": "8e66c9ffdbe9f3382414f11d1929c1f96fdc3c7cde0aead1c87bc87fe7ea52fc"
+    },
+    {
+      "filename": "metrics.json",
+      "size_bytes": 750,
+      "sha256": "75e0b823f00a734a2228086a4242902828d75ce570e98477a1e592225e2dd79d"
+    },
+    {
+      "filename": "model.onnx",
+      "size_bytes": 5083399,
+      "sha256": "55d8bffc9389963bbafa02151756f0939467393cbe672b983c5d3a2be2db65ce"
+    },
+    {
+      "filename": "model_config.json",
+      "size_bytes": 863,
+      "sha256": "2dd6ef672312d2f6072233dc1334525710f2dc85e16ea3d059422fcea244ea19"
+    },
+    {
+      "filename": "phase22_fixture_manifest.json",
+      "size_bytes": 533,
+      "sha256": "76b2cc9021f3c85f7afdae854c769acc59d1d785aa5326da38f95c46dbd010a4"
+    },
+    {
+      "filename": "phase22_model_input_fixture.npz",
+      "size_bytes": 153472,
+      "sha256": "d5ff412851075c9cfb6695a40cd45e2b21e46b7ba3fe47c5c31d14d3e1263274"
+    },
+    {
+      "filename": "phase22_temporal_fixture.json",
+      "size_bytes": 2537,
+      "sha256": "5c54ca8c855bde546bbb5cc9f30de5968d099dba5cca6d1a0319fdb651530ec2"
+    },
+    {
+      "filename": "preprocessing.json",
+      "size_bytes": 1811,
+      "sha256": "9d3a61620b927647ece438200d772f4ee63fc5a5807601cc0870c63adf756cf1"
+    },
+    {
+      "filename": "research_preprocessing_contract.npz",
+      "size_bytes": 2600,
+      "sha256": "2d64b1998941eb46bb0e5ddcff7eb7d92027d9f3b6c616774764f8072f91acb6"
+    },
+    {
+      "filename": "serving_contract.json",
+      "size_bytes": 3502,
+      "sha256": "25b6ae96fc4649db7ef14a5433241c07519bcc92bbd6336528a5a30ac0f7e0e1"
+    },
+    {
+      "filename": "temporal_policy.json",
+      "size_bytes": 5346,
+      "sha256": "dd7f6b79af58cfcff6412c2f650ce18824dc90861281b4443e138d846e1b40a2"
+    },
+    {
+      "filename": "universal_frequency_transforms.npz",
+      "size_bytes": 4097,
+      "sha256": "53b71fd926e40e712d85f86c61ff9a78455e2bc0fcae7bc108fcf091b72abbb6"
+    },
+    {
+      "filename": "universal_router.json",
+      "size_bytes": 1464,
+      "sha256": "d9cedbb5cadd6fb56713e65dcd38bfc3e591aec44c7803359a16d25d4a811031"
+    },
+    {
+      "filename": "universal_router_parameters.npz",
+      "size_bytes": 2681,
+      "sha256": "1c1430a83200a3d9be4a9ca20e44abc253656edaceb4ea1b0e79744f9d48f0f3"
+    },
+    {
+      "filename": "universal_router_prototypes.npz",
+      "size_bytes": 2947,
+      "sha256": "37edb2150cc730e3d141708ea32ce873d2ea6528b3f55a03d405ea78b4e9b262"
+    }
+  ],
+  "phase20_test_used_for_conversion_or_parity": false,
+  "clinical_readiness_claim": false,
+  "package_revision": "v1-phase21.5-serving-complete",
+  "phase21_5_completed_at": "2026-08-18T16:07:17",
+  "serving_contract_file": "serving_contract.json",
+  "universal_frequency_transforms_file": "universal_frequency_transforms.npz",
+  "phase22_fixtures": [
+    "phase22_model_input_fixture.npz",
+    "phase22_fixture_manifest.json",
+    "phase22_temporal_fixture.json"
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "source": "CHB-MIT validation only",
+  "source_split": "validation",
+  "samples": 32,
+  "input_shape": [
+    32,
+    1,
+    70,
+    19
+  ],
+  "model_input": "already frozen CHB full-aligned [1,70,19] tensors",
+  "onnx_sha256": "55d8bffc9389963bbafa02151756f0939467393cbe672b983c5d3a2be2db65ce",
+  "phase20_chb_test_used": false,
+  "phase20_epieeg_holdout_used": false,
+  "fixture_npz": "phase22_model_input_fixture.npz",
+  "fixture_npz_sha256": "d5ff412851075c9cfb6695a40cd45e2b21e46b7ba3fe47c5c31d14d3e1263274"
+}

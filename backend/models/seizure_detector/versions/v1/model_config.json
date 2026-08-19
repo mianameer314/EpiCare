@@ -1,0 +1,38 @@
+{
+  "name": "EpiCarePhase12SpectrogramCNN",
+  "version": "v1",
+  "research_source": "Phase12 consolidated 2D SE-Residual CNN; Phase19F freeze; Phase20 one-shot final evaluation",
+  "model_type": "single_input_2d_spectrogram_binary_classifier",
+  "input_names": [
+    "spectrogram"
+  ],
+  "output_names": [
+    "seizure_probability"
+  ],
+  "input_shapes": {
+    "spectrogram": [
+      "batch",
+      1,
+      70,
+      19
+    ]
+  },
+  "output_shapes": {
+    "seizure_probability": [
+      "batch",
+      1
+    ]
+  },
+  "input_dtype": "float32",
+  "output_dtype": "float32",
+  "output_semantics": "sigmoid seizure probability",
+  "threshold": 0.3,
+  "aggregation": "causal_temporal_policy",
+  "sampling_rate": 256,
+  "window_seconds": 10,
+  "classes": [
+    "no_seizure",
+    "seizure"
+  ],
+  "clinical_readiness_claim": false
+}

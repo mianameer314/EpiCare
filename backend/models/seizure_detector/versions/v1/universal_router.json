@@ -1,0 +1,41 @@
+{
+  "selected_candidate": "logistic_C_2",
+  "family": "logistic",
+  "feature_columns": [
+    "montage_direct",
+    "montage_bipolar",
+    "montage_unknown",
+    "line_log50",
+    "line_log60",
+    "line_log_ratio_50_60",
+    "line_abs_log_margin",
+    "line_max_log_strength",
+    "normalized_distance_tuh",
+    "normalized_distance_siena",
+    "normalized_distance_chb",
+    "nearest_normalized_distance",
+    "second_nearest_normalized_distance",
+    "prototype_distance_margin",
+    "tuh_minus_siena_distance",
+    "tuh_minus_chb_distance",
+    "siena_minus_chb_distance"
+  ],
+  "ood_min_distance_threshold": 1.75,
+  "training_cv_metrics": {
+    "candidate": "logistic_C_2",
+    "family": "logistic",
+    "complexity_preference": 0,
+    "C": 2.0,
+    "line_weight": null,
+    "tuh_route_agreement": 0.9528795811518325,
+    "siena_route_agreement": 0.7272727272727273,
+    "chb_route_agreement": 1.0,
+    "minimum_domain_route_agreement": 0.7272727272727273,
+    "macro_domain_route_agreement": 0.8933841028081866,
+    "patient_macro_route_agreement": 0.9395704599352016,
+    "overall_route_agreement": 0.9786931818181818
+  },
+  "development_contract_sha256": "6cc869419b4620c1c656744efd04f8a3a3435657a5724d071f0616b091d3b029",
+  "validation_seen_during_fit": false,
+  "parameter_file": "F:\\FYP\\outputs\\transfer_learning\\phase19r_router_reliability_recovery\\router\\phase19r_selected_logistic_router_parameters.npz"
+}

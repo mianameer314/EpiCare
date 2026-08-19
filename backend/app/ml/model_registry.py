@@ -83,22 +83,25 @@ def _resolve_registry_root(value: str | None) -> Path:
 
     candidates: list[Path] = [
         (Path.cwd() / raw).resolve(),
+        (Path.cwd() / "models" / "seizure_detector").resolve(),
     ]
 
-    # backend/app/ml/model_registry.py -> parents[3] is EpiCare repository root.
+    # backend/app/ml/model_registry.py -> parents[2] is backend root (/app in Docker/Railway)
+    backend_root = Path(__file__).resolve().parents[2]
+    candidates.append((backend_root / "models" / "seizure_detector").resolve())
+    candidates.append((backend_root / raw).resolve())
+
+    # parents[3] is EpiCare repository root when running from local subfolder
     repo_root = Path(__file__).resolve().parents[3]
     candidates.append((repo_root / raw).resolve())
-
-    # If the configured value starts with ../ and the process is launched from
-    # somewhere other than backend/, also try resolving relative to backend/.
-    backend_root = repo_root / "backend"
-    candidates.append((backend_root / raw).resolve())
+    candidates.append((repo_root / "models" / "seizure_detector").resolve())
+    candidates.append((repo_root / "backend" / "models" / "seizure_detector").resolve())
 
     for candidate in candidates:
         if (candidate / "current.json").exists():
             return candidate
 
-    # Preserve the first interpretation for readable diagnostics.
+    # Preserve the first candidate with current.json or first interpretation for readable diagnostics.
     return candidates[0]
 
 
