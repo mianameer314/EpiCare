@@ -1,0 +1,133 @@
+{
+  "contract_version": "phase21_5_serving_v1",
+  "purpose": "backend implementation contract for the already-frozen research detector",
+  "clinical_readiness_claim": false,
+  "onnx": {
+    "file": "model.onnx",
+    "sha256": "55d8bffc9389963bbafa02151756f0939467393cbe672b983c5d3a2be2db65ce",
+    "input_name": "spectrogram",
+    "input_dtype": "float32",
+    "input_shape": [
+      "batch",
+      1,
+      70,
+      19
+    ],
+    "output_name": "seizure_probability",
+    "output_shape": [
+      "batch",
+      1
+    ]
+  },
+  "raw_signal": {
+    "canonical_channels": [
+      "FP1",
+      "FP2",
+      "F7",
+      "F8",
+      "F3",
+      "F4",
+      "T3",
+      "T4",
+      "C3",
+      "C4",
+      "T5",
+      "T6",
+      "P3",
+      "P4",
+      "O1",
+      "O2",
+      "FZ",
+      "CZ",
+      "PZ"
+    ],
+    "aliases": {
+      "T7": "T3",
+      "T8": "T4",
+      "P7": "T5",
+      "P8": "T6"
+    },
+    "sampling_rate_hz": 256,
+    "window_seconds": 10,
+    "window_samples": 2560,
+    "bandpass_hz": [
+      0.5,
+      70.0
+    ],
+    "reference": "common_average_after_19_channel_harmonization",
+    "notch_policy": "no additional serving notch is introduced by Phase22; continuous 50/60-Hz evidence is used by the frozen router",
+    "direct_missing_channel_policy": {
+      "allowed_imputation": {
+        "FZ": [
+          "F3",
+          "F4"
+        ],
+        "PZ": [
+          "P3",
+          "P4"
+        ]
+      },
+      "all_other_missing_canonical_channels": "reject"
+    },
+    "bipolar_policy": "least-squares graph pseudo-referential reconstruction with one zero-mean gauge constraint per connected component"
+  },
+  "window_preprocessing": {
+    "zscore": "per_channel_per_window",
+    "std_floor": 1e-06,
+    "clip": [
+      -8.0,
+      8.0
+    ],
+    "stft": {
+      "window": "hamming",
+      "nperseg": 256,
+      "noverlap": 128,
+      "boundary": null,
+      "padded": false,
+      "power": "abs(stft)^2",
+      "channel_reduction": "mean",
+      "frequency_bins_hz": [
+        1.0,
+        70.0
+      ],
+      "log1p": true,
+      "normalization": "per-window p1/p99 then clip [0,1]",
+      "output_shape": [
+        1,
+        70,
+        19
+      ]
+    }
+  },
+  "router": {
+    "name": "logistic_C_2",
+    "parameters_file": "universal_router_parameters.npz",
+    "prototypes_file": "universal_router_prototypes.npz",
+    "profile_max_windows": 30,
+    "line_evidence_seconds": 120.0,
+    "line_confident_peak_ratio": 1.25,
+    "dataset_name_input_required": false,
+    "ood_min_distance_threshold": 1.75
+  },
+  "frequency_transforms": {
+    "file": "universal_frequency_transforms.npz",
+    "tuh": "identity",
+    "siena": "0.5 * original + 0.5 * align(siena_mean/std -> tuh_mean/std)",
+    "chb": "align(chb_mean/std -> tuh_mean/std)",
+    "self": "0.5 * original + 0.5 * align(recording_profile_mean/std -> tuh_mean/std)"
+  },
+  "temporal_policy": {
+    "smoothing_method": "causal_mean",
+    "smoothing_window": 3,
+    "ema_alpha": 0.5,
+    "threshold": 0.3,
+    "minimum_positive_run": 1,
+    "maximum_negative_gap": 0
+  },
+  "persistence": {
+    "threshold_source": "temporal_policy.configuration.threshold",
+    "window_probabilities": "raw ONNX seizure probabilities",
+    "positive_windows": "post-temporal-policy positive windows",
+    "predicted_class": "seizure iff at least one post-temporal-policy positive event exists"
+  }
+}
