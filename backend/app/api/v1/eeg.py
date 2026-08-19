@@ -5,7 +5,7 @@ The analyze endpoint runs the full pipeline (validate → preprocess → infer)
 synchronously per request for the FYP; the session status column keeps every
 step observable so a future background-task refactor is drop-in.
 """
-from fastapi import APIRouter, Depends, File, Form, UploadFile
+from fastapi import APIRouter, Depends, File, Form, Response, UploadFile
 from fastapi.responses import FileResponse
 
 from app.api.deps import CurrentUser, DbDep, TargetPatientIdForRead, TargetPatientIdForDiagnosticUpload
@@ -208,13 +208,8 @@ async def get_session_spectrogram(
     if not storage.exists(key):
         raise not_found_error("Spectrogram")
 
-    from app.services.storage.local import LocalStorageProvider
-
-    provider = storage.provider
-    if isinstance(provider, LocalStorageProvider):
-        return FileResponse(str(provider._resolve(key)), media_type="image/png")
-
-    raise not_found_error("Spectrogram")
+    image_bytes = storage.read(key)
+    return Response(content=image_bytes, media_type="image/png")
 
 
 @router.get(

@@ -426,14 +426,16 @@ async def _read_and_validate(
     file_bytes: bytes,
 ) -> _ValidatedFile:
     """Parse the stored file and run structural validation in the pool."""
-    from app.services.storage.local import LocalStorageProvider
+    import tempfile
+    from pathlib import Path
 
-    provider = LocalStorageProvider()
-    extension = get_extension(session.original_filename)
-    temp_path = provider._resolve(f"eeg/_validate_{session.id}_{extension}")
+    extension = get_extension(session.original_filename) or ".edf"
+    with tempfile.NamedTemporaryFile(suffix=extension, delete=False) as temp_file:
+        temp_path = Path(temp_file.name)
+        temp_file.write(file_bytes)
+        temp_file.flush()
+
     try:
-        temp_path.parent.mkdir(parents=True, exist_ok=True)
-        temp_path.write_bytes(file_bytes)
         read_result = await eeg_reader.read_eeg_file(str(temp_path), extension)
         payload = await run_cpu_bound(
             eeg_validation._validate_signal_block,
