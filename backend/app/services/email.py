@@ -126,27 +126,28 @@ async def _send_via_smtp(to_email: str, subject: str, template_name: str, templa
 # ---------------------------------------------------------------------------
 
 async def send_verification_email(email: EmailStr, otp: str, user_name: str) -> None:
-    """Send an OTP verification email. Picks Gmail API or SMTP automatically."""
+    """Send an OTP verification email. Picks Gmail API or falls back to SMTP automatically."""
     logger.info(f"send_verification_email called for {email}")
+    sent = False
 
     if _use_gmail_api():
-        # ----- Gmail API over HTTPS (Railway / cloud) -----
-        logger.info("Using Gmail API (HTTPS) transport")
         try:
             html_body = _render_template("verification.html", {
                 "user_name": user_name,
                 "otp_code": otp,
             })
             await _send_via_gmail_api(email, "Verify your EpiCare Account", html_body)
+            sent = True
+            logger.info(f"Verification email sent to {email} via Gmail API")
         except Exception as e:
             logger.error(
                 f"FAILED to send verification email via Gmail API to {email}: "
-                f"{type(e).__name__}: {str(e)}",
+                f"{type(e).__name__}: {str(e)}. Falling back to SMTP...",
                 exc_info=True,
             )
-    elif settings.MAIL_USERNAME and settings.MAIL_PASSWORD:
-        # ----- SMTP fallback (local dev) -----
-        logger.info("Using SMTP transport")
+
+    if not sent and settings.MAIL_USERNAME and settings.MAIL_PASSWORD:
+        logger.info("Using SMTP transport for verification email")
         try:
             await _send_via_smtp(
                 email,
@@ -154,27 +155,34 @@ async def send_verification_email(email: EmailStr, otp: str, user_name: str) -> 
                 "verification.html",
                 {"user_name": user_name, "otp_code": otp},
             )
+            sent = True
+            logger.info(f"Verification email sent to {email} via SMTP fallback")
         except Exception as e:
             logger.error(
                 f"FAILED to send verification email via SMTP to {email}: "
                 f"{type(e).__name__}: {str(e)}",
                 exc_info=True,
             )
-    else:
+
+    if not sent:
         logger.warning(
-            "No email transport configured. Set GMAIL_CLIENT_ID/SECRET/REFRESH_TOKEN "
-            f"or MAIL_USERNAME/PASSWORD. Would have sent OTP {otp} to {email}."
+            "No email transport configured or all failed. "
+            f"Would have sent OTP {otp} to {email}."
         )
 
 
 async def send_email(to_email: str, subject: str, html_content: str) -> None:
-    """Send a generic HTML email. Picks Gmail API or SMTP automatically."""
+    """Send a generic HTML email. Tries Gmail API first; automatically falls back to SMTP if OAuth token expires or fails."""
+    sent = False
     if _use_gmail_api():
         try:
             await _send_via_gmail_api(to_email, subject, html_content)
+            sent = True
+            logger.info(f"Email sent to {to_email} via Gmail API")
         except Exception as e:
-            logger.error(f"Failed to send email via Gmail API to {to_email}: {str(e)}")
-    elif settings.MAIL_USERNAME and settings.MAIL_PASSWORD:
+            logger.error(f"Failed to send email via Gmail API to {to_email}: {str(e)}. Falling back to SMTP...")
+
+    if not sent and settings.MAIL_USERNAME and settings.MAIL_PASSWORD:
         from fastapi_mail import MessageSchema, MessageType
         fm = _get_fast_mail()
         message = MessageSchema(
@@ -185,8 +193,10 @@ async def send_email(to_email: str, subject: str, html_content: str) -> None:
         )
         try:
             await fm.send_message(message)
-            logger.info(f"Email sent to {to_email}")
+            sent = True
+            logger.info(f"Email sent to {to_email} via SMTP fallback")
         except Exception as e:
             logger.error(f"Failed to send email via SMTP to {to_email}: {str(e)}")
-    else:
-        logger.warning(f"No email transport configured. Suppressed email to {to_email}")
+
+    if not sent:
+        logger.warning(f"No email transport configured or all failed. Suppressed email to {to_email}")
