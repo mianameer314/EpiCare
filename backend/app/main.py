@@ -31,6 +31,7 @@ from app.api.v1 import (
     dashboard,
     seizures,
     rag,
+    recommendations,
 )
 from app.core.config import settings
 from app.core.exceptions import register_exception_handlers
@@ -243,6 +244,7 @@ app.include_router(medications.router, prefix=api_prefix)
 app.include_router(lifestyle.router, prefix=api_prefix)
 app.include_router(dashboard.router, prefix=api_prefix)
 app.include_router(seizures.router, prefix=api_prefix)
+app.include_router(recommendations.router, prefix=api_prefix)
 
 
 @app.get("/", include_in_schema=False)

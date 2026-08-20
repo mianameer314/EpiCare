@@ -19,6 +19,7 @@ import {
   ChevronDown,
   Bot,
   ArrowLeft,
+  Lightbulb,
 } from 'lucide-react';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { useUnsavedChangesContext } from '../../providers/UnsavedChangesProvider';
@@ -45,6 +46,7 @@ const patientNavItems: NavItem[] = [
   { to: '/medications', label: 'Medications', icon: <Pill size={19} /> },
   { to: '/lifestyle', label: 'Lifestyle & Logs', icon: <Activity size={19} /> },
   { to: '/network', label: 'Care Network', icon: <HeartHandshake size={19} /> },
+  { to: '/insights', label: 'Care Insights', icon: <Lightbulb size={19} /> },
   { to: '/emergency', label: 'Emergency Protocol', icon: <Siren size={19} /> },
 ];
 

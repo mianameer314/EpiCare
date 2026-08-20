@@ -22,8 +22,8 @@ export interface ManualSeizureLogCreate {
   occurred_at: string;
   duration_seconds: number;
   seizure_type: string;
-  auras_felt?: string[];
-  post_ictal_symptoms?: string[];
+  auras_felt?: string | string[];
+  post_ictal_symptoms?: string | string[];
   notes?: string;
 }
 
@@ -53,7 +53,15 @@ export const seizuresApi = {
     const sp = new URLSearchParams();
     if (params?.patient_user_id) sp.set('patient_user_id', String(params.patient_user_id));
     const qs = sp.toString();
-    return apiClient.post<ManualSeizureLog>(`/seizures/manual${qs ? `?${qs}` : ''}`, data);
+    
+    // Convert arrays to comma-separated strings for the backend
+    const payload = {
+      ...data,
+      auras_felt: Array.isArray(data.auras_felt) ? data.auras_felt.join(', ') : data.auras_felt,
+      post_ictal_symptoms: Array.isArray(data.post_ictal_symptoms) ? data.post_ictal_symptoms.join(', ') : data.post_ictal_symptoms
+    };
+    
+    return apiClient.post<ManualSeizureLog>(`/seizures/manual${qs ? `?${qs}` : ''}`, payload);
   },
 
   deleteManualSeizure: (id: number) =>

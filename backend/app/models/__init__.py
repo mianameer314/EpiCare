@@ -12,7 +12,9 @@ from app.models.prediction import Prediction
 from app.models.ai_report import AiReport
 from app.models.medication import Medication, MedicationSchedule, MedicationLog
 from app.models.lifestyle import LifestyleLog, SleepLog, TriggerLog
+from app.models.patient_feature_snapshot import PatientFeatureSnapshot
 from app.models.recommendation import Recommendation
+from app.models.recommendation_feedback import RecommendationFeedback
 from app.models.emergency import EmergencyContact, SosEvent, SosDelivery
 from app.models.chat import ChatSession, ChatMessage
 from app.models.rag import RagDocument, RagChunk
@@ -37,7 +39,9 @@ __all__ = [
     "LifestyleLog",
     "SleepLog",
     "TriggerLog",
+    "PatientFeatureSnapshot",
     "Recommendation",
+    "RecommendationFeedback",
     "EmergencyContact",
     "SosEvent",
     "SosDelivery",

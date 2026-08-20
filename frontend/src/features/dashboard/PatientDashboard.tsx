@@ -9,8 +9,9 @@ import { SOSButton } from './components/SOSButton';
 import { QuickActions } from './components/QuickActions';
 import { SessionsPreview } from './components/SessionsPreview';
 import { useAuth } from '../../hooks/useAuth';
-import { Activity, Sparkles, Moon, BrainCircuit } from 'lucide-react';
+import { Activity, Moon, BrainCircuit } from 'lucide-react';
 import { NotificationPermissionBanner } from '../../components/shared/NotificationPermissionBanner';
+import { RecommendationCard } from '../recommendations/components/RecommendationCard';
 import './PatientDashboard.css';
 
 /* ────────────────────────────────────────────────────
@@ -104,24 +105,22 @@ export function PatientDashboard() {
       {/* ── AI Recommendation Bar (if available) ── */}
       {stats?.recommendations && stats.recommendations.length > 0 && (
         <motion.div
-          className="dashboard-rec-banner glass-panel"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
           style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 'var(--space-3)',
-            padding: 'var(--space-4) var(--space-6)',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+            gap: 'var(--space-4)',
             marginBottom: 'var(--space-6)',
-            background: 'var(--color-primary-50)',
-            borderColor: 'var(--color-primary-100)',
           }}
         >
-          <Sparkles size={20} style={{ color: 'var(--color-primary)', flexShrink: 0 }} />
-          <div style={{ flex: 1, fontSize: 'var(--text-sm)', color: 'var(--color-primary-dark)' }}>
-            <strong>AI Care Insight:</strong> {stats.recommendations[0]}
-          </div>
+          {stats.recommendations.map(rec => (
+            <RecommendationCard 
+              key={rec.id} 
+              recommendation={rec} 
+            />
+          ))}
         </motion.div>
       )}
 

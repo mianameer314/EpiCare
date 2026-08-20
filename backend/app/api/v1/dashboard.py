@@ -12,8 +12,9 @@ from app.models.lifestyle import SleepLog, LifestyleLog, TriggerLog
 from app.models.medication import MedicationLog
 from app.models.seizure import ManualSeizureLog
 from app.schemas.base import StrictModel
-from app.services.recommender import get_daily_recommendations
 from app.models.eeg_session import EegSession
+from app.models.recommendation import Recommendation
+from app.schemas.recommendation import RecommendationOut
 
 router = APIRouter(prefix="/dashboard", tags=["🤒 Patient - Dashboard"])
 
@@ -39,7 +40,7 @@ class DashboardStatsOut(StrictModel):
     avg_stress_level: float | None
     most_frequent_triggers: list[str]
     
-    recommendations: list[str]
+    recommendations: list[RecommendationOut]
 
 
 @router.get(
@@ -145,8 +146,10 @@ async def get_dashboard_stats(db: DbDep, target_user_id: TargetPatientIdForRead)
         .where(SleepLog.user_id == target_user_id)
         .where(SleepLog.woke_at >= thirty_days_ago)
     )
-    avg_sleep_mins = sleep_query.scalar() or 0
-    avg_sleep_hours = round(avg_sleep_mins / 60.0, 1)
+    avg_sleep_mins = sleep_query.scalar()
+    if avg_sleep_mins is None:
+        avg_sleep_mins = 0
+    avg_sleep_hours = round(float(avg_sleep_mins) / 60.0, 1)
 
     # 3. Medication adherence (TAKEN vs total logs)
     med_query = await db.execute(
@@ -213,8 +216,12 @@ async def get_dashboard_stats(db: DbDep, target_user_id: TargetPatientIdForRead)
     )
     most_frequent_triggers = [row[0] for row in triggers_query.all()]
 
-    # 6. Generate daily recommendations
-    recommendations = await get_daily_recommendations(target_user_id, db)
+    # 6. Fetch active recommendations from the database
+    rec_stmt = select(Recommendation).where(
+        Recommendation.user_id == target_user_id,
+        Recommendation.is_active == True
+    ).order_by(Recommendation.created_at.desc())
+    recommendations = (await db.execute(rec_stmt)).scalars().all()
 
     return DashboardStatsOut(
         total_seizures_past_30_days=total_seizures_past_30_days,
@@ -292,7 +299,10 @@ async def export_dashboard_pdf(db: DbDep, target_user_id: TargetPatientIdForRead
     if stats.recommendations:
         for rec in stats.recommendations:
             # Simple handling of long text
-            pdf.multi_cell(0, 8, f"* {rec}", new_x="LMARGIN", new_y="NEXT")
+            pdf.set_font("helvetica", "B", 12)
+            pdf.multi_cell(0, 8, f"* {rec.title}", new_x="LMARGIN", new_y="NEXT")
+            pdf.set_font("helvetica", "", 12)
+            pdf.multi_cell(0, 8, f"  {rec.body}", new_x="LMARGIN", new_y="NEXT")
     else:
         pdf.cell(0, 10, "No recommendations generated.", new_x="LMARGIN", new_y="NEXT")
     

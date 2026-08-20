@@ -1,4 +1,5 @@
 import { apiClient } from './client';
+import type { RecommendationOut } from '../features/recommendations/api';
 
 /* ────────────────────────────────────────────────────
    Dashboard API — Patient Analytics & EEG Sessions
@@ -18,7 +19,7 @@ export interface DashboardStats {
   avg_sleep_hours: number;
   avg_stress_level: number | null;
   most_frequent_triggers: string[];
-  recommendations: string[];
+  recommendations: RecommendationOut[];
 }
 
 export interface EegSession {

@@ -86,6 +86,14 @@ class AppScheduler:
             coalesce=True,
             max_instances=1,
         )
+        self.scheduler.add_job(
+            daily_recommendation_generation_job,
+            CronTrigger(hour=2, minute=0),  # Run at 2 AM UTC daily
+            id="daily-recommendations",
+            replace_existing=True,
+            coalesce=True,
+            max_instances=1,
+        )
 
     async def refresh_state(self) -> SchedulerState:
         """Refresh the diagnostics snapshot from the live scheduler."""
@@ -221,3 +229,32 @@ async def missed_med_detection_job() -> None:
             
         await db.commit()
         logger.info("missed_med_detection_job executed", extra={"missed_logs_inserted": missed_count})
+
+
+async def daily_recommendation_generation_job() -> None:
+    """Generate deterministic recommendations for all active patients daily."""
+    from app.db.session import SessionLocal
+    from app.models.user import User
+    from app.services.feature_engine import FeatureEngine
+    from app.services.recommender import RuleEngine
+
+    now = datetime.now(timezone.utc)
+    
+    async with SessionLocal() as db:
+        # Fetch all active patients
+        result = await db.execute(
+            select(User).where(User.is_active == True, User.role == "PATIENT")
+        )
+        patients = result.scalars().all()
+        
+        recs_generated = 0
+        for patient in patients:
+            try:
+                snapshot = await FeatureEngine.compute_snapshot(db, patient.id)
+                recs = await RuleEngine.generate_recommendations(db, snapshot)
+                recs_generated += len(recs)
+            except Exception as e:
+                logger.error(f"Failed to generate recommendations for user {patient.id}: {e}")
+                
+        logger.info("daily_recommendation_generation_job executed", extra={"recs_generated": recs_generated})
+

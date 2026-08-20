@@ -16,6 +16,7 @@ import { ProfilePage } from './features/profile/ProfilePage';
 import { AdminDashboard } from './features/admin/AdminDashboard';
 import { ErrorBoundary } from './components/errors/ErrorBoundary';
 import { UnsavedChangesProvider } from './providers/UnsavedChangesProvider';
+import { RecommendationsDashboard } from './features/recommendations/RecommendationsDashboard';
 import { useAuth } from './hooks/useAuth';
 
 /* ────────────────────────────────────────────────────
@@ -95,6 +96,14 @@ function App() {
               element={
                 <ProtectedRoute allowedRoles={['PATIENT']}>
                   <PatientCareNetwork />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/insights"
+              element={
+                <ProtectedRoute allowedRoles={['PATIENT']}>
+                  <RecommendationsDashboard />
                 </ProtectedRoute>
               }
             />
