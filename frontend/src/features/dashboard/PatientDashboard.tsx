@@ -140,16 +140,6 @@ export function PatientDashboard() {
     : stats.days_since_last_seizure === 0
       ? 'Today'
       : `${stats.days_since_last_seizure} days ago`;
-  const primaryRecommendation = stats?.recommendations?.find(
-    (recommendation) => recommendation.is_active && !recommendation.is_dismissed && Boolean(recommendation.action_url)
-  );
-  const recommendationIcon = primaryRecommendation?.action_url?.includes('/medications')
-    ? <Pill size={17} />
-    : primaryRecommendation?.action_url?.includes('/eeg')
-      ? <BrainCircuit size={17} />
-      : primaryRecommendation?.action_url?.includes('/insights')
-        ? <Lightbulb size={17} />
-        : <ClipboardCheck size={17} />;
 
   return (
     <div className="dashboard-page">
@@ -210,30 +200,6 @@ export function PatientDashboard() {
           </div>
         </aside>
       </motion.div>
-
-      {primaryRecommendation && (
-        <motion.div
-          className="dashboard-next-step"
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.12, duration: 0.35 }}
-        >
-          <div className="next-step-icon">{recommendationIcon}</div>
-          <div className="next-step-copy">
-            <span className="next-step-label">{primaryRecommendation.category}</span>
-            <strong>{primaryRecommendation.title}</strong>
-            <span>{primaryRecommendation.body}</span>
-          </div>
-          <button
-            type="button"
-            className="next-step-action"
-            onClick={() => primaryRecommendation.action_url && navigate(primaryRecommendation.action_url)}
-          >
-            <span>View action</span>
-            <ArrowUpRight size={15} />
-          </button>
-        </motion.div>
-      )}
 
       {/* ── AI Recommendation Bar (if available) ── */}
       {stats?.recommendations && stats.recommendations.length > 0 && (
