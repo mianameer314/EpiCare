@@ -118,6 +118,16 @@ export function LifestylePage() {
   const [errorMessage, setErrorMessage] = useState('');
   const [showLearnMore, setShowLearnMore] = useState(false);
 
+
+  // Form visibility and confirmation state
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [confirmSaveData, setConfirmSaveData] = useState<{
+    type: 'seizure' | 'sleep' | 'trigger' | 'habits';
+    title: string;
+    summary: string;
+    payload?: any;
+  } | null>(null);
+
   // Delete modal state
   const [deleteTarget, setDeleteTarget] = useState<{ id: number; type: 'seizure' | 'sleep' | 'trigger'; name: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -220,6 +230,8 @@ export function LifestylePage() {
       queryClient.invalidateQueries({ queryKey: ['seizures'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       showSuccess('Seizure episode recorded successfully.');
+      setIsFormOpen(false);
+      setConfirmSaveData(null);
       setDurationMinutes(1);
       setDurationSeconds(0);
       setCustomAuras([]);
@@ -244,6 +256,8 @@ export function LifestylePage() {
       queryClient.invalidateQueries({ queryKey: ['lifestyle', 'sleep'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       showSuccess('Sleep session recorded successfully.');
+      setIsFormOpen(false);
+      setConfirmSaveData(null);
       setSleepForm({
         slept_at: new Date(Date.now() - 8 * 3600 * 1000).toISOString().slice(0, 16),
         woke_at: new Date().toISOString().slice(0, 16),
@@ -260,6 +274,8 @@ export function LifestylePage() {
       queryClient.invalidateQueries({ queryKey: ['lifestyle', 'triggers'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       showSuccess('Trigger event logged successfully.');
+      setIsFormOpen(false);
+      setConfirmSaveData(null);
       setTriggerForm({
         trigger_name: 'Sleep Deprivation',
         severity: 3,
@@ -287,6 +303,8 @@ export function LifestylePage() {
       queryClient.invalidateQueries({ queryKey: ['lifestyle'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       showSuccess('Daily diet & digital habits saved.');
+      setIsFormOpen(false);
+      setConfirmSaveData(null);
     },
     onError: (err: any) => setErrorMessage(err.message || 'Failed to log habits.'),
   });
@@ -300,29 +318,69 @@ export function LifestylePage() {
     e.preventDefault();
     setErrorMessage('');
     const totalDuration = Math.max(1, (Number(durationMinutes) || 0) * 60 + (Number(durationSeconds) || 0));
-    seizureMutation.mutate({
-      ...seizureForm,
-      duration_seconds: totalDuration,
+    setConfirmSaveData({
+      type: 'seizure',
+      title: 'Log Seizure Episode',
+      summary: `You are logging a ${seizureForm.seizure_type} lasting ${durationMinutes}m ${durationSeconds}s.`,
+      payload: {
+        ...seizureForm,
+        duration_seconds: totalDuration,
+      }
     });
   };
 
   const handleSleepSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
-    sleepMutation.mutate({
-      ...sleepForm,
-      quality: Number(sleepForm.quality),
+    setConfirmSaveData({
+      type: 'sleep',
+      title: 'Log Sleep Session',
+      summary: `You are logging a sleep session with quality rating ${sleepForm.quality}/5.`,
+      payload: {
+        ...sleepForm,
+        quality: Number(sleepForm.quality),
+      }
     });
   };
 
   const handleTriggerSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
-    triggerMutation.mutate({
-      ...triggerForm,
-      severity: Number(triggerForm.severity),
+    setConfirmSaveData({
+      type: 'trigger',
+      title: 'Log Environmental Trigger',
+      summary: `You are logging the trigger "${triggerForm.trigger_name}" at severity ${triggerForm.severity}/5.`,
+      payload: {
+        ...triggerForm,
+        severity: Number(triggerForm.severity),
+      }
     });
   };
+
+  const handleHabitsSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMessage('');
+    setConfirmSaveData({
+      type: 'habits',
+      title: 'Log Daily Habits',
+      summary: `You are logging ${screenHours}h of screen time, keto: ${ketoCompliant ? 'Yes' : 'No'}, alcohol: ${alcoholConsumed ? 'Yes' : 'No'}.`,
+      payload: {}
+    });
+  };
+
+  const handleConfirmSave = () => {
+    if (!confirmSaveData) return;
+    if (confirmSaveData.type === 'seizure') {
+      seizureMutation.mutate(confirmSaveData.payload);
+    } else if (confirmSaveData.type === 'sleep') {
+      sleepMutation.mutate(confirmSaveData.payload);
+    } else if (confirmSaveData.type === 'trigger') {
+      triggerMutation.mutate(confirmSaveData.payload);
+    } else if (confirmSaveData.type === 'habits') {
+      habitsMutation.mutate();
+    }
+  };
+
 
   // Toggle Aura Chip
   const toggleAura = (auraText: string) => {
@@ -504,28 +562,28 @@ export function LifestylePage() {
         <div className="lifestyle-tab-switcher">
           <button
             className={`lifestyle-tab-btn seizure ${activeTab === 'seizure' ? 'active' : ''}`}
-            onClick={() => setActiveTab('seizure')}
+            onClick={() => { setActiveTab('seizure'); setIsFormOpen(false); }}
           >
             <Activity size={15} />
             <span>Seizure Log</span>
           </button>
           <button
             className={`lifestyle-tab-btn sleep ${activeTab === 'sleep' ? 'active' : ''}`}
-            onClick={() => setActiveTab('sleep')}
+            onClick={() => { setActiveTab('sleep'); setIsFormOpen(false); }}
           >
             <Moon size={15} />
             <span>Sleep</span>
           </button>
           <button
             className={`lifestyle-tab-btn triggers ${activeTab === 'triggers' ? 'active' : ''}`}
-            onClick={() => setActiveTab('triggers')}
+            onClick={() => { setActiveTab('triggers'); setIsFormOpen(false); }}
           >
             <Zap size={15} />
             <span>Triggers</span>
           </button>
           <button
             className={`lifestyle-tab-btn habits ${activeTab === 'habits' ? 'active' : ''}`}
-            onClick={() => setActiveTab('habits')}
+            onClick={() => { setActiveTab('habits'); setIsFormOpen(false); }}
           >
             <Monitor size={15} />
             <span>Diet & Habits</span>
@@ -552,6 +610,9 @@ export function LifestylePage() {
               TAB 1: SEIZURE LOG FORM
              ══════════════════════════════════════════════ */}
           {activeTab === 'seizure' && (
+
+            isFormOpen ? (
+
             <form onSubmit={handleSeizureSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
               {/* Hero Banner inside Card */}
               <div className="lifestyle-form-banner">
@@ -997,8 +1058,16 @@ export function LifestylePage() {
               {/* Form Action Footer */}
               <div className="lifestyle-form-actions">
                 <button
+                  type="button"
+                  className="lifestyle-cancel-btn"
+                  onClick={() => setIsFormOpen(false)}
+                >
+                  <X size={16} />
+                  <span>Cancel</span>
+                </button>
+                <button
                   type="submit"
-                  className="lifestyle-submit-btn"
+                  className="lifestyle-submit-btn seizure"
                   disabled={seizureMutation.isPending}
                 >
                   {seizureMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
@@ -1006,12 +1075,36 @@ export function LifestylePage() {
                 </button>
               </div>
             </form>
+
+            ) : (
+              <div className="lifestyle-add-log-prompt seizure">
+                <div className="lifestyle-prompt-icon-ring seizure">
+                  <Activity size={32} />
+                </div>
+                <h3 className="lifestyle-prompt-title">Record a Seizure Episode</h3>
+                <p className="lifestyle-prompt-desc">Log a recent seizure event for your neurologist to review and for AI trend analysis.</p>
+                <button 
+                  type="button" 
+                  onClick={() => setIsFormOpen(true)} 
+                  className="lifestyle-neumorphic-add-btn seizure"
+                >
+                  <span className="btn-icon-wrapper">
+                    <Plus size={18} />
+                  </span>
+                  <span>Add Seizure Log</span>
+                </button>
+              </div>
+            )
+
           )}
 
           {/* ══════════════════════════════════════════════
               TAB 2: SLEEP LOG FORM
              ══════════════════════════════════════════════ */}
           {activeTab === 'sleep' && (
+
+            isFormOpen ? (
+
             <form onSubmit={handleSleepSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
               <div className="lifestyle-form-banner">
                 <div className="lifestyle-banner-left">
@@ -1121,22 +1214,53 @@ export function LifestylePage() {
 
               <div className="lifestyle-form-actions">
                 <button
+                  type="button"
+                  className="lifestyle-cancel-btn"
+                  onClick={() => setIsFormOpen(false)}
+                >
+                  <X size={16} />
+                  <span>Cancel</span>
+                </button>
+                <button
                   type="submit"
-                  className="lifestyle-submit-btn"
+                  className="lifestyle-submit-btn sleep"
                   disabled={sleepMutation.isPending}
-                  style={{ background: 'linear-gradient(135deg, #4f46e5 0%, #3730a3 100%)', boxShadow: '0 6px 20px -4px rgba(79, 70, 229, 0.4)' }}
                 >
                   {sleepMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
                   <span>Log Sleep Session</span>
                 </button>
               </div>
             </form>
+
+            ) : (
+              <div className="lifestyle-add-log-prompt sleep">
+                <div className="lifestyle-prompt-icon-ring sleep">
+                  <Moon size={32} />
+                </div>
+                <h3 className="lifestyle-prompt-title">Log Sleep Session</h3>
+                <p className="lifestyle-prompt-desc">Track your sleep quality and duration to identify potential seizure triggers.</p>
+                <button 
+                  type="button" 
+                  onClick={() => setIsFormOpen(true)} 
+                  className="lifestyle-neumorphic-add-btn sleep"
+                >
+                  <span className="btn-icon-wrapper">
+                    <Plus size={18} />
+                  </span>
+                  <span>Add Sleep Log</span>
+                </button>
+              </div>
+            )
+
           )}
 
           {/* ══════════════════════════════════════════════
               TAB 3: TRIGGERS FORM
              ══════════════════════════════════════════════ */}
           {activeTab === 'triggers' && (
+
+            isFormOpen ? (
+
             <form onSubmit={handleTriggerSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
               <div className="lifestyle-form-banner">
                 <div className="lifestyle-banner-left">
@@ -1252,22 +1376,53 @@ export function LifestylePage() {
 
               <div className="lifestyle-form-actions">
                 <button
+                  type="button"
+                  className="lifestyle-cancel-btn"
+                  onClick={() => setIsFormOpen(false)}
+                >
+                  <X size={16} />
+                  <span>Cancel</span>
+                </button>
+                <button
                   type="submit"
-                  className="lifestyle-submit-btn"
+                  className="lifestyle-submit-btn triggers"
                   disabled={triggerMutation.isPending}
-                  style={{ background: 'linear-gradient(135deg, #d97706 0%, #b45309 100%)', boxShadow: '0 6px 20px -4px rgba(217, 119, 6, 0.4)' }}
                 >
                   {triggerMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
                   <span>Record Trigger</span>
                 </button>
               </div>
             </form>
+
+            ) : (
+              <div className="lifestyle-add-log-prompt triggers">
+                <div className="lifestyle-prompt-icon-ring triggers">
+                  <Zap size={32} />
+                </div>
+                <h3 className="lifestyle-prompt-title">Log Environmental Trigger</h3>
+                <p className="lifestyle-prompt-desc">Document potential environmental triggers like flashing lights, stress, or missed meds.</p>
+                <button 
+                  type="button" 
+                  onClick={() => setIsFormOpen(true)} 
+                  className="lifestyle-neumorphic-add-btn triggers"
+                >
+                  <span className="btn-icon-wrapper">
+                    <Plus size={18} />
+                  </span>
+                  <span>Add Trigger Log</span>
+                </button>
+              </div>
+            )
+
           )}
 
           {/* ══════════════════════════════════════════════
               TAB 4: DIET & HABITS FORM
              ══════════════════════════════════════════════ */}
           {activeTab === 'habits' && (
+
+            isFormOpen ? (
+
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
               <div className="lifestyle-form-banner">
                 <div className="lifestyle-banner-left">
@@ -1371,18 +1526,45 @@ export function LifestylePage() {
                 </div>
               </div>
 
-              <div className="lifestyle-form-actions">
-                <button
-                  type="button"
-                  className="lifestyle-submit-btn"
-                  onClick={() => habitsMutation.mutate()}
-                  disabled={habitsMutation.isPending}
+                <div className="lifestyle-form-actions">
+                  <button
+                    type="button"
+                    className="lifestyle-cancel-btn"
+                    onClick={() => setIsFormOpen(false)}
+                  >
+                    <X size={16} />
+                    <span>Cancel</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="lifestyle-submit-btn habits"
+                    onClick={handleHabitsSubmit}
+                    disabled={habitsMutation.isPending}
+                  >
+                    {habitsMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
+                    <span>Save Daily Habits</span>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="lifestyle-add-log-prompt habits">
+                <div className="lifestyle-prompt-icon-ring habits">
+                  <Monitor size={32} />
+                </div>
+                <h3 className="lifestyle-prompt-title">Log Daily Habits</h3>
+                <p className="lifestyle-prompt-desc">Record your screen time, keto compliance, and alcohol intake to build predictive AI health telemetry.</p>
+                <button 
+                  type="button" 
+                  onClick={() => setIsFormOpen(true)} 
+                  className="lifestyle-neumorphic-add-btn habits"
                 >
-                  {habitsMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
-                  <span>Save Daily Habits</span>
+                  <span className="btn-icon-wrapper">
+                    <Plus size={18} />
+                  </span>
+                  <span>Update Habits</span>
                 </button>
               </div>
-            </div>
+            )
           )}
         </div>
 
@@ -1609,6 +1791,20 @@ export function LifestylePage() {
         isLoading={isDeleting}
         onConfirm={handleDeleteConfirm}
         onClose={() => setDeleteTarget(null)}
+      />
+
+      {/* ── Save Confirmation Dialog ── */}
+      <ConfirmDialog
+        isOpen={Boolean(confirmSaveData)}
+        title={confirmSaveData?.title || 'Confirm Save'}
+        description={confirmSaveData?.summary || ''}
+        confirmText="Save Record"
+        cancelText="Cancel"
+        variant="info"
+        isLoading={seizureMutation.isPending || sleepMutation.isPending || triggerMutation.isPending || habitsMutation.isPending}
+        loadingText="Saving..."
+        onConfirm={handleConfirmSave}
+        onClose={() => setConfirmSaveData(null)}
       />
     </div>
   );

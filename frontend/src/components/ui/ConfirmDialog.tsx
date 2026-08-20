@@ -19,6 +19,7 @@ export interface ConfirmDialogProps {
   variant?: 'danger' | 'warning' | 'info';
   confirmVariant?: 'danger' | 'warning' | 'info'; // alias for variant
   isLoading?: boolean;
+  loadingText?: string;
   onConfirm: () => void;
   onClose?: () => void;
   onCancel?: () => void; // alias for onClose
@@ -34,6 +35,7 @@ export function ConfirmDialog({
   variant,
   confirmVariant,
   isLoading = false,
+  loadingText = 'Deleting...',
   onConfirm,
   onClose,
   onCancel,
@@ -206,7 +208,7 @@ export function ConfirmDialog({
                 {isLoading ? (
                   <>
                     <Loader2 size={16} className="animate-spin" />
-                    <span>Deleting...</span>
+                    <span>{loadingText}</span>
                   </>
                 ) : (
                   <span>{confirmText}</span>

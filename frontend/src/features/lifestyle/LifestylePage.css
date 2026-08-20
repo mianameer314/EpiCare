@@ -694,16 +694,264 @@
   border-color: #dc2626;
 }
 
+/* ==========================================
+   NEUMORPHIC PROMPT CARDS & ACTION BUTTONS
+   ========================================= */
+
+/* ── Centralized Neumorphic Prompt Card ── */
+.lifestyle-add-log-prompt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 56px 28px;
+  background: linear-gradient(145deg, #f9fbf9 0%, #f0f4f1 100%);
+  border-radius: var(--radius-2xl);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow:
+    -8px -8px 20px rgba(255, 255, 255, 0.95),
+    8px 8px 24px rgba(160, 175, 165, 0.28),
+    inset 0 1px 1px rgba(255, 255, 255, 0.8);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.lifestyle-add-log-prompt::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, rgba(45, 90, 63, 0.25), transparent);
+  opacity: 0.8;
+}
+
+/* ── Tactile Embossed Icon Circle ── */
+.lifestyle-prompt-icon-ring {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+  background: #f4f7f5;
+  box-shadow:
+    -5px -5px 12px #ffffff,
+    5px 5px 14px rgba(160, 175, 165, 0.35),
+    inset 1px 1px 2px rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  position: relative;
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.lifestyle-prompt-icon-ring.seizure {
+  color: #2d5a3f;
+}
+.lifestyle-prompt-icon-ring.sleep {
+  color: #4f46e5;
+}
+.lifestyle-prompt-icon-ring.triggers {
+  color: #d97706;
+}
+.lifestyle-prompt-icon-ring.habits {
+  color: #059669;
+}
+
+.lifestyle-add-log-prompt:hover .lifestyle-prompt-icon-ring {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow:
+    -6px -6px 16px #ffffff,
+    6px 6px 18px rgba(160, 175, 165, 0.45);
+}
+
+/* ── Prompt Typography ── */
+.lifestyle-prompt-title {
+  font-size: var(--text-2xl);
+  font-weight: 800;
+  color: var(--color-text-main);
+  margin: 0 0 10px;
+  letter-spacing: -0.02em;
+}
+
+.lifestyle-prompt-desc {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  max-width: 440px;
+  margin: 0 auto 28px;
+  line-height: 1.55;
+}
+
+/* ── True Neumorphic "Add" Button with Sheen & Micro-Interaction ── */
+.lifestyle-neumorphic-add-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 34px;
+  border-radius: var(--radius-full);
+  border: none;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  user-select: none;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  color: #ffffff;
+}
+
+.lifestyle-neumorphic-add-btn .btn-icon-wrapper {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(4px);
+  transition: transform 0.25s ease;
+}
+
+/* Theme Variations */
+.lifestyle-neumorphic-add-btn.seizure {
+  background: linear-gradient(145deg, #2d5a3f 0%, #1b4332 100%);
+  box-shadow:
+    -4px -4px 10px rgba(255, 255, 255, 0.9),
+    4px 4px 14px rgba(45, 90, 63, 0.4),
+    inset 0 1px 1px rgba(255, 255, 255, 0.35);
+}
+.lifestyle-neumorphic-add-btn.seizure:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow:
+    -3px -3px 10px rgba(255, 255, 255, 0.8),
+    0 10px 24px rgba(27, 67, 50, 0.45);
+}
+.lifestyle-neumorphic-add-btn.seizure:active {
+  transform: translateY(1px) scale(0.98);
+  box-shadow:
+    inset 2px 2px 6px rgba(15, 43, 25, 0.6),
+    inset -2px -2px 6px rgba(52, 211, 153, 0.25);
+}
+
+.lifestyle-neumorphic-add-btn.sleep {
+  background: linear-gradient(145deg, #4f46e5 0%, #3730a3 100%);
+  box-shadow:
+    -4px -4px 10px rgba(255, 255, 255, 0.9),
+    4px 4px 14px rgba(79, 70, 229, 0.4),
+    inset 0 1px 1px rgba(255, 255, 255, 0.35);
+}
+.lifestyle-neumorphic-add-btn.sleep:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow:
+    -3px -3px 10px rgba(255, 255, 255, 0.8),
+    0 10px 24px rgba(79, 70, 229, 0.45);
+}
+.lifestyle-neumorphic-add-btn.sleep:active {
+  transform: translateY(1px) scale(0.98);
+  box-shadow:
+    inset 2px 2px 6px rgba(30, 27, 75, 0.6),
+    inset -2px -2px 6px rgba(129, 140, 248, 0.25);
+}
+
+.lifestyle-neumorphic-add-btn.triggers {
+  background: linear-gradient(145deg, #d97706 0%, #b45309 100%);
+  box-shadow:
+    -4px -4px 10px rgba(255, 255, 255, 0.9),
+    4px 4px 14px rgba(217, 119, 6, 0.4),
+    inset 0 1px 1px rgba(255, 255, 255, 0.35);
+}
+.lifestyle-neumorphic-add-btn.triggers:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow:
+    -3px -3px 10px rgba(255, 255, 255, 0.8),
+    0 10px 24px rgba(217, 119, 6, 0.45);
+}
+.lifestyle-neumorphic-add-btn.triggers:active {
+  transform: translateY(1px) scale(0.98);
+  box-shadow:
+    inset 2px 2px 6px rgba(69, 26, 3, 0.6),
+    inset -2px -2px 6px rgba(251, 191, 36, 0.25);
+}
+
+.lifestyle-neumorphic-add-btn.habits {
+  background: linear-gradient(145deg, #059669 0%, #047857 100%);
+  box-shadow:
+    -4px -4px 10px rgba(255, 255, 255, 0.9),
+    4px 4px 14px rgba(5, 150, 105, 0.4),
+    inset 0 1px 1px rgba(255, 255, 255, 0.35);
+}
+.lifestyle-neumorphic-add-btn.habits:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow:
+    -3px -3px 10px rgba(255, 255, 255, 0.8),
+    0 10px 24px rgba(5, 150, 105, 0.45);
+}
+.lifestyle-neumorphic-add-btn.habits:active {
+  transform: translateY(1px) scale(0.98);
+  box-shadow:
+    inset 2px 2px 6px rgba(6, 78, 59, 0.6),
+    inset -2px -2px 6px rgba(52, 211, 153, 0.25);
+}
+
+.lifestyle-neumorphic-add-btn:hover .btn-icon-wrapper {
+  transform: rotate(90deg);
+}
+
 /* ── Form Actions Footer ── */
 .lifestyle-form-actions {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: var(--space-4);
-  padding-top: var(--space-4);
+  gap: 14px;
+  padding-top: var(--space-6);
   border-top: 1px solid var(--color-border-subtle);
+  margin-top: var(--space-2);
 }
 
+/* ── Tactile Neumorphic Cancel Button ── */
+.lifestyle-cancel-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border-radius: var(--radius-xl);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  background: #f0f4f1;
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  cursor: pointer;
+  user-select: none;
+  box-shadow:
+    -3px -3px 8px #ffffff,
+    3px 3px 8px rgba(160, 175, 165, 0.35);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.lifestyle-cancel-btn:hover {
+  background: #fee2e2;
+  color: #dc2626;
+  border-color: rgba(220, 38, 38, 0.25);
+  transform: translateY(-1.5px);
+  box-shadow:
+    -2px -2px 6px #ffffff,
+    0 6px 16px rgba(220, 38, 38, 0.18);
+}
+
+.lifestyle-cancel-btn:active {
+  transform: translateY(1px) scale(0.98);
+  box-shadow:
+    inset 2px 2px 4px rgba(160, 175, 165, 0.4),
+    inset -2px -2px 4px #ffffff;
+}
+
+/* ── Submit / Save Buttons ── */
 .lifestyle-submit-btn {
   display: inline-flex;
   align-items: center;
@@ -712,24 +960,75 @@
   padding: 12px 28px;
   border-radius: var(--radius-xl);
   border: none;
-  background: linear-gradient(135deg, #2d5a3f 0%, #1e402c 100%);
   color: #ffffff;
   font-size: var(--text-sm);
   font-weight: 700;
+  letter-spacing: 0.2px;
   cursor: pointer;
-  box-shadow: 0 6px 20px -4px rgba(45, 90, 63, 0.4);
-  transition: all 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.lifestyle-submit-btn:hover:not(:disabled) {
+.lifestyle-submit-btn.seizure {
+  background: linear-gradient(145deg, #2d5a3f 0%, #1b4332 100%);
+  box-shadow:
+    -3px -3px 8px rgba(255, 255, 255, 0.8),
+    4px 4px 14px rgba(45, 90, 63, 0.4),
+    inset 0 1px 1px rgba(255, 255, 255, 0.3);
+}
+.lifestyle-submit-btn.seizure:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 10px 24px -4px rgba(45, 90, 63, 0.5);
-  background: linear-gradient(135deg, #376d4d 0%, #254e36 100%);
+  box-shadow:
+    -2px -2px 8px rgba(255, 255, 255, 0.7),
+    0 8px 22px rgba(27, 67, 50, 0.45);
+}
+
+.lifestyle-submit-btn.sleep {
+  background: linear-gradient(145deg, #4f46e5 0%, #3730a3 100%);
+  box-shadow:
+    -3px -3px 8px rgba(255, 255, 255, 0.8),
+    4px 4px 14px rgba(79, 70, 229, 0.4),
+    inset 0 1px 1px rgba(255, 255, 255, 0.3);
+}
+.lifestyle-submit-btn.sleep:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow:
+    -2px -2px 8px rgba(255, 255, 255, 0.7),
+    0 8px 22px rgba(79, 70, 229, 0.45);
+}
+
+.lifestyle-submit-btn.triggers {
+  background: linear-gradient(145deg, #d97706 0%, #b45309 100%);
+  box-shadow:
+    -3px -3px 8px rgba(255, 255, 255, 0.8),
+    4px 4px 14px rgba(217, 119, 6, 0.4),
+    inset 0 1px 1px rgba(255, 255, 255, 0.3);
+}
+.lifestyle-submit-btn.triggers:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow:
+    -2px -2px 8px rgba(255, 255, 255, 0.7),
+    0 8px 22px rgba(217, 119, 6, 0.45);
+}
+
+.lifestyle-submit-btn.habits {
+  background: linear-gradient(145deg, #059669 0%, #047857 100%);
+  box-shadow:
+    -3px -3px 8px rgba(255, 255, 255, 0.8),
+    4px 4px 14px rgba(5, 150, 105, 0.4),
+    inset 0 1px 1px rgba(255, 255, 255, 0.3);
+}
+.lifestyle-submit-btn.habits:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow:
+    -2px -2px 8px rgba(255, 255, 255, 0.7),
+    0 8px 22px rgba(5, 150, 105, 0.45);
 }
 
 .lifestyle-submit-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  transform: none !important;
 }
 
 /* ── Learn More & Clinical Guide ── */
