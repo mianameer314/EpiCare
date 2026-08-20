@@ -26,6 +26,7 @@ import {
   Check,
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
+import { useToast } from '../../providers/ToastProvider';
 import { apiClient } from '../../api/client';
 import { authApi } from '../../api/auth';
 import {
@@ -369,13 +370,13 @@ function computeProfileCompletion(
 export function ProfilePage() {
   const { user, setUser } = useAuth();
   const queryClient = useQueryClient();
+  const toast = useToast();
 
   // Password state
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isChangingPass, setIsChangingPass] = useState(false);
-  const [passSuccess, setPassSuccess] = useState('');
   const [passError, setPassError] = useState('');
 
   // Validation errors state
@@ -422,7 +423,6 @@ export function ProfilePage() {
   });
 
   const [customTriggerInput, setCustomTriggerInput] = useState('');
-  const [profileSuccess, setProfileSuccess] = useState('');
   const [profileError, setProfileError] = useState('');
 
   // Patient and doctor clinical profile editing state
@@ -450,7 +450,6 @@ export function ProfilePage() {
     full_name: user?.full_name || '',
     phone_number: user?.phone_number || '',
   });
-  const [bioSuccess, setBioSuccess] = useState('');
   const [bioError, setBioError] = useState('');
   const [sharedPhotoPreviewUrl, setSharedPhotoPreviewUrl] = useState<string | null>(null);
   const [doctorAccountPhotoPreviewUrl, setDoctorAccountPhotoPreviewUrl] = useState<string | null>(null);
@@ -550,9 +549,8 @@ export function ProfilePage() {
       setPendingSharedPhotoFile(null);
       setRemovePendingSharedPhoto(false);
       setSharedPhotoError('');
-      setBioSuccess('Account profile and photo updated successfully!');
+      toast.success('Account profile and photo updated successfully!');
       setIsEditingBio(false);
-      setTimeout(() => setBioSuccess(''), 4000);
     },
     onError: (err: any) => {
       setBioError(err?.response?.data?.detail || 'Failed to update account information');
@@ -885,11 +883,10 @@ export function ProfilePage() {
     mutationFn: (data: PatientProfileData) => usersApi.updatePatientProfile(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['profile', 'patient'] });
-      setProfileSuccess('Patient clinical profile saved successfully.');
+      toast.success('Patient clinical profile saved successfully!');
       setIsEditingPatient(false);
       setProfileError('');
       setErrors({});
-      setTimeout(() => setProfileSuccess(''), 4000);
     },
     onError: (err: any) => parseBackendError(err),
   });
@@ -912,12 +909,11 @@ export function ProfilePage() {
       setDoctorForm((prev) => ({ ...prev, ...profile }));
       setPendingCertificateFile(null);
       setRemovePendingCertificate(false);
-      setProfileSuccess('Doctor profile and uploaded files saved successfully.');
+      toast.success('Doctor profile and uploaded files saved successfully!');
       setProfileError('');
       setUploadError('');
       setErrors({});
       setIsEditingDoctor(false);
-      setTimeout(() => setProfileSuccess(''), 4000);
     },
     onError: (err: any) => setUploadError(err?.message || 'Unable to save the doctor profile and files.'),
   });
@@ -963,10 +959,9 @@ export function ProfilePage() {
     mutationFn: (data: CaretakerProfileData) => usersApi.updateCaretakerProfile(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['profile', 'caretaker'] });
-      setProfileSuccess('Caregiver details updated successfully.');
+      toast.success('Caregiver details updated successfully!');
       setProfileError('');
       setErrors({});
-      setTimeout(() => setProfileSuccess(''), 4000);
     },
     onError: (err: any) => parseBackendError(err),
   });
@@ -1096,7 +1091,6 @@ export function ProfilePage() {
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
     setPassError('');
-    setPassSuccess('');
     setErrors(prev => ({ ...prev, current_password: '', new_password: '', confirm_password: '' }));
 
     if (!currentPassword) {
@@ -1118,7 +1112,7 @@ export function ProfilePage() {
         current_password: currentPassword,
         new_password: newPassword,
       });
-      setPassSuccess('Password updated successfully.');
+      toast.success('Password updated successfully!');
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
@@ -1322,12 +1316,7 @@ export function ProfilePage() {
             </div>
           </div>
 
-          {bioSuccess && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ padding: 'var(--space-3)', background: 'var(--color-success-bg)', color: 'var(--color-success)', borderRadius: 'var(--radius-md)', fontSize: 'var(--text-sm)', marginBottom: 'var(--space-4)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <CheckCircle2 size={16} /> <span>{bioSuccess}</span>
-            </motion.div>
-          )}
-
+          
           {bioError && (
             <div className="auth-error-banner" style={{ marginBottom: 'var(--space-4)', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <AlertCircle size={16} style={{ flexShrink: 0 }} /> <span>{bioError}</span>
@@ -1501,12 +1490,7 @@ export function ProfilePage() {
               </div>
             </div>
 
-            {profileSuccess && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ padding: 'var(--space-3)', background: 'var(--color-success-bg)', color: 'var(--color-success)', borderRadius: 'var(--radius-md)', fontSize: 'var(--text-sm)', marginBottom: 'var(--space-4)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <CheckCircle2 size={16} /> <span>{profileSuccess}</span>
-              </motion.div>
-            )}
-
+            
             {profileError && (
               <div className="auth-error-banner" style={{ marginBottom: 'var(--space-4)', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <AlertCircle size={16} style={{ flexShrink: 0 }} /> <span>{profileError}</span>
@@ -1908,12 +1892,7 @@ export function ProfilePage() {
               </span>
             </div>
 
-            {profileSuccess && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ padding: 'var(--space-3)', background: 'var(--color-success-bg)', color: 'var(--color-success)', borderRadius: 'var(--radius-md)', fontSize: 'var(--text-sm)', marginBottom: 'var(--space-4)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <CheckCircle2 size={16} /> <span>{profileSuccess}</span>
-              </motion.div>
-            )}
-
+            
             {(profileError || uploadError) && (
               <div className="auth-error-banner" style={{ marginBottom: 'var(--space-4)', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <AlertCircle size={16} style={{ flexShrink: 0 }} /> <span>{profileError || uploadError}</span>
@@ -2043,12 +2022,7 @@ export function ProfilePage() {
               </div>
             </div>
 
-            {profileSuccess && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ padding: 'var(--space-3)', background: 'var(--color-success-bg)', color: 'var(--color-success)', borderRadius: 'var(--radius-md)', fontSize: 'var(--text-sm)', marginBottom: 'var(--space-4)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <CheckCircle2 size={16} /> <span>{profileSuccess}</span>
-              </motion.div>
-            )}
-
+            
             {profileError && (
               <div className="auth-error-banner" style={{ marginBottom: 'var(--space-4)', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <AlertCircle size={16} style={{ flexShrink: 0 }} /> <span>{profileError}</span>
@@ -2110,12 +2084,7 @@ export function ProfilePage() {
             </div>
           </div>
 
-          {passSuccess && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ padding: 'var(--space-3)', background: 'var(--color-success-bg)', color: 'var(--color-success)', borderRadius: 'var(--radius-md)', fontSize: 'var(--text-sm)', marginBottom: 'var(--space-4)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <CheckCircle2 size={16} /> <span>{passSuccess}</span>
-            </motion.div>
-          )}
-
+          
           {passError && (
             <div className="auth-error-banner" style={{ marginBottom: 'var(--space-4)', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <AlertCircle size={16} style={{ flexShrink: 0 }} /> <span>{passError}</span>

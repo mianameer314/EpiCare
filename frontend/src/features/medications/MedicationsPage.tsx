@@ -30,6 +30,7 @@ import {
   type MedicationCreate,
   type TodayScheduleSlot,
 } from '../../api/medications';
+import { useToast } from '../../providers/ToastProvider';
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
@@ -67,8 +68,9 @@ export function MedicationsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [formError, setFormError] = useState('');
   const [medToDelete, setMedToDelete] = useState<{ id: number; name: string } | null>(null);
-  const [loggedDoseSuccess, setLoggedDoseSuccess] = useState('');
   const [missedProtocolOpen, setMissedProtocolOpen] = useState(false);
+  const [loggedPrescriptionIds, setLoggedPrescriptionIds] = useState<Set<number>>(new Set());
+  const toast = useToast();
 
   // Form State
   const [formData, setFormData] = useState<MedicationCreate>({
@@ -114,8 +116,7 @@ export function MedicationsPage() {
       queryClient.invalidateQueries({ queryKey: ['medications'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       closeModal();
-      setLoggedDoseSuccess('Prescription saved to database and live schedules generated.');
-      setTimeout(() => setLoggedDoseSuccess(''), 4000);
+      toast.success('Prescription saved to database and live schedules generated.');
     },
     onError: (err: any) => {
       setFormError(err.message || 'Failed to add medication prescription.');
@@ -128,17 +129,21 @@ export function MedicationsPage() {
       queryClient.invalidateQueries({ queryKey: ['medications'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       setMedToDelete(null);
+      toast.info('Prescription removed.');
     },
   });
 
   const logDoseMutation = useMutation({
     mutationFn: (medId: number) =>
       medicationsApi.logMedicationDose(medId, { status: 'TAKEN' }),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['medications'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      setLoggedDoseSuccess('Dose recorded as taken! Daily adherence updated.');
-      setTimeout(() => setLoggedDoseSuccess(''), 4000);
+      
+      // Mark this specific prescription ID as locally logged for UI idempotency
+      setLoggedPrescriptionIds(prev => new Set(prev).add(variables));
+      
+      toast.success('Dose recorded as taken! Daily adherence updated.');
     },
   });
 
@@ -318,21 +323,6 @@ export function MedicationsPage() {
         </div>
       </div>
 
-      {/* ── Toast Banner ── */}
-      <AnimatePresence>
-        {loggedDoseSuccess && (
-          <motion.div
-            className="med-toast-banner"
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-          >
-            <CheckCircle2 size={16} />
-            <span>{loggedDoseSuccess}</span>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       {/* ══════════════════════════════════════════════════
           TAB 1: TODAY'S LIVE DOSING SCHEDULE (DB CALCULATED)
           ══════════════════════════════════════════════════ */}
@@ -456,7 +446,7 @@ export function MedicationsPage() {
                           )}
                         </div>
 
-                        {slot.status === 'TAKEN' ? (
+                        {slot.status === 'TAKEN' || loggedPrescriptionIds.has(slot.medication_id) ? (
                           <span className="glass-badge" style={{ color: 'var(--color-success)', fontSize: '11px' }}>
                             <CheckCircle2 size={12} /> Taken
                           </span>
@@ -464,7 +454,7 @@ export function MedicationsPage() {
                           <button
                             className="btn btn-primary btn-sm take-dose-btn"
                             onClick={() => logDoseMutation.mutate(slot.medication_id)}
-                            disabled={logDoseMutation.isPending}
+                            disabled={logDoseMutation.isPending && logDoseMutation.variables === slot.medication_id}
                           >
                             <Check size={14} />
                             <span>Mark Taken</span>
@@ -505,7 +495,7 @@ export function MedicationsPage() {
                           )}
                         </div>
 
-                        {slot.status === 'TAKEN' ? (
+                        {slot.status === 'TAKEN' || loggedPrescriptionIds.has(slot.medication_id) ? (
                           <span className="glass-badge" style={{ color: 'var(--color-success)', fontSize: '11px' }}>
                             <CheckCircle2 size={12} /> Taken
                           </span>
@@ -513,7 +503,7 @@ export function MedicationsPage() {
                           <button
                             className="btn btn-primary btn-sm take-dose-btn"
                             onClick={() => logDoseMutation.mutate(slot.medication_id)}
-                            disabled={logDoseMutation.isPending}
+                            disabled={logDoseMutation.isPending && logDoseMutation.variables === slot.medication_id}
                           >
                             <Check size={14} />
                             <span>Mark Taken</span>
@@ -554,7 +544,7 @@ export function MedicationsPage() {
                           )}
                         </div>
 
-                        {slot.status === 'TAKEN' ? (
+                        {slot.status === 'TAKEN' || loggedPrescriptionIds.has(slot.medication_id) ? (
                           <span className="glass-badge" style={{ color: 'var(--color-success)', fontSize: '11px' }}>
                             <CheckCircle2 size={12} /> Taken
                           </span>
@@ -562,7 +552,7 @@ export function MedicationsPage() {
                           <button
                             className="btn btn-primary btn-sm take-dose-btn"
                             onClick={() => logDoseMutation.mutate(slot.medication_id)}
-                            disabled={logDoseMutation.isPending}
+                            disabled={logDoseMutation.isPending && logDoseMutation.variables === slot.medication_id}
                           >
                             <Check size={14} />
                             <span>Mark Taken</span>
@@ -721,15 +711,21 @@ export function MedicationsPage() {
                           <CheckCircle2 size={12} /> Active Therapy
                         </span>
 
-                        <button
-                          className="btn btn-outline btn-sm"
-                          onClick={() => logDoseMutation.mutate(med.id)}
-                          disabled={logDoseMutation.isPending}
-                          style={{ fontSize: '12px', padding: '4px 10px' }}
-                        >
-                          <Check size={13} style={{ color: 'var(--color-success)' }} />
-                          <span>Log Dose</span>
-                        </button>
+                        {loggedPrescriptionIds.has(med.id) ? (
+                          <span className="glass-badge" style={{ color: 'var(--color-success)', fontSize: '11px' }}>
+                            <CheckCircle2 size={12} /> Logged Today
+                          </span>
+                        ) : (
+                          <button
+                            className="btn btn-outline btn-sm"
+                            onClick={() => logDoseMutation.mutate(med.id)}
+                            disabled={logDoseMutation.isPending && logDoseMutation.variables === med.id}
+                            style={{ fontSize: '12px', padding: '4px 10px' }}
+                          >
+                            <Check size={13} style={{ color: 'var(--color-success)' }} />
+                            <span>Log Dose</span>
+                          </button>
+                        )}
                       </div>
                     </motion.div>
                   ))}

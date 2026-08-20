@@ -32,6 +32,7 @@ import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { useUnsavedChanges } from '../../providers/UnsavedChangesProvider';
+import { useToast } from '../../providers/ToastProvider';
 import './LifestylePage.css';
 
 /* ────────────────────────────────────────────────────
@@ -113,7 +114,7 @@ export function LifestylePage() {
   const [activeTab, setActiveTab] = useState<TabType>('seizure');
   const [historyFilter, setHistoryFilter] = useState<HistoryFilterType>('all');
   const [historyPage, setHistoryPage] = useState<number>(1);
-  const [successMessage, setSuccessMessage] = useState('');
+  const toast = useToast();
   const [errorMessage, setErrorMessage] = useState('');
   const [showLearnMore, setShowLearnMore] = useState(false);
 
@@ -291,9 +292,8 @@ export function LifestylePage() {
   });
 
   const showSuccess = (msg: string) => {
-    setSuccessMessage(msg);
+    toast.success(msg);
     setErrorMessage('');
-    setTimeout(() => setSuccessMessage(''), 4000);
   };
 
   const handleSeizureSubmit = (e: React.FormEvent) => {
@@ -326,7 +326,7 @@ export function LifestylePage() {
 
   // Toggle Aura Chip
   const toggleAura = (auraText: string) => {
-    const current = seizureForm.auras_felt || [];
+    const current = Array.isArray(seizureForm.auras_felt) ? seizureForm.auras_felt : (seizureForm.auras_felt ? [seizureForm.auras_felt as string] : []);
     const exists = current.includes(auraText);
     const updated = exists ? current.filter((a) => a !== auraText) : [...current, auraText];
     setSeizureForm((p) => ({ ...p, auras_felt: updated }));
@@ -339,8 +339,9 @@ export function LifestylePage() {
     if (!customAuras.includes(trimmed) && !COMMON_AURAS.includes(trimmed)) {
       setCustomAuras((prev) => [...prev, trimmed]);
     }
-    if (!(seizureForm.auras_felt || []).includes(trimmed)) {
-      setSeizureForm((p) => ({ ...p, auras_felt: [...(p.auras_felt || []), trimmed] }));
+    const currentAuras = Array.isArray(seizureForm.auras_felt) ? seizureForm.auras_felt : (seizureForm.auras_felt ? [seizureForm.auras_felt as string] : []);
+    if (!currentAuras.includes(trimmed)) {
+      setSeizureForm((p) => { const auras = Array.isArray(p.auras_felt) ? p.auras_felt : (p.auras_felt ? [p.auras_felt as string] : []); return { ...p, auras_felt: [...auras, trimmed] }; });
     }
     setCustomAuraInput('');
     setShowCustomAuraInput(false);
@@ -348,12 +349,12 @@ export function LifestylePage() {
 
   const handleRemoveCustomAura = (auraToRemove: string) => {
     setCustomAuras((prev) => prev.filter((a) => a !== auraToRemove));
-    setSeizureForm((p) => ({ ...p, auras_felt: (p.auras_felt || []).filter((a) => a !== auraToRemove) }));
+    setSeizureForm((p) => { const auras = Array.isArray(p.auras_felt) ? p.auras_felt : (p.auras_felt ? [p.auras_felt as string] : []); return { ...p, auras_felt: auras.filter((a) => a !== auraToRemove) }; });
   };
 
   // Toggle Post-Ictal Chip
   const togglePostIctal = (symptomText: string) => {
-    const current = seizureForm.post_ictal_symptoms || [];
+    const current = Array.isArray(seizureForm.post_ictal_symptoms) ? seizureForm.post_ictal_symptoms : (seizureForm.post_ictal_symptoms ? [seizureForm.post_ictal_symptoms as string] : []);
     const exists = current.includes(symptomText);
     const updated = exists ? current.filter((s) => s !== symptomText) : [...current, symptomText];
     setSeizureForm((p) => ({ ...p, post_ictal_symptoms: updated }));
@@ -366,8 +367,9 @@ export function LifestylePage() {
     if (!customPostIctal.includes(trimmed) && !COMMON_POST_ICTAL.includes(trimmed)) {
       setCustomPostIctal((prev) => [...prev, trimmed]);
     }
-    if (!(seizureForm.post_ictal_symptoms || []).includes(trimmed)) {
-      setSeizureForm((p) => ({ ...p, post_ictal_symptoms: [...(p.post_ictal_symptoms || []), trimmed] }));
+    const currentPost = Array.isArray(seizureForm.post_ictal_symptoms) ? seizureForm.post_ictal_symptoms : (seizureForm.post_ictal_symptoms ? [seizureForm.post_ictal_symptoms as string] : []);
+    if (!currentPost.includes(trimmed)) {
+      setSeizureForm((p) => { const post = Array.isArray(p.post_ictal_symptoms) ? p.post_ictal_symptoms : (p.post_ictal_symptoms ? [p.post_ictal_symptoms as string] : []); return { ...p, post_ictal_symptoms: [...post, trimmed] }; });
     }
     setCustomPostIctalInput('');
     setShowCustomPostIctalInput(false);
@@ -375,7 +377,7 @@ export function LifestylePage() {
 
   const handleRemoveCustomPostIctal = (symToRemove: string) => {
     setCustomPostIctal((prev) => prev.filter((s) => s !== symToRemove));
-    setSeizureForm((p) => ({ ...p, post_ictal_symptoms: (p.post_ictal_symptoms || []).filter((s) => s !== symToRemove) }));
+    setSeizureForm((p) => { const post = Array.isArray(p.post_ictal_symptoms) ? p.post_ictal_symptoms : (p.post_ictal_symptoms ? [p.post_ictal_symptoms as string] : []); return { ...p, post_ictal_symptoms: post.filter((s) => s !== symToRemove) }; });
   };
 
   // Preset Duration Setter
@@ -401,7 +403,7 @@ export function LifestylePage() {
       }
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       setDeleteTarget(null);
-      showSuccess(`Deleted ${deleteTarget.name} record.`);
+      toast.delete(`Deleted ${deleteTarget.name} record.`);
     } catch (err: any) {
       setErrorMessage(err.message || 'Failed to delete record.');
     } finally {
@@ -532,28 +534,6 @@ export function LifestylePage() {
       </div>
 
       {/* ── Banners ── */}
-      {successMessage && (
-        <motion.div
-          initial={{ opacity: 0, y: -5 }}
-          animate={{ opacity: 1, y: 0 }}
-          style={{
-            padding: 'var(--space-3) var(--space-4)',
-            borderRadius: 'var(--radius-lg)',
-            background: 'var(--color-success-bg)',
-            color: 'var(--color-success)',
-            fontSize: 'var(--text-sm)',
-            marginBottom: 'var(--space-6)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 'var(--space-2)',
-            border: '1px solid rgba(26, 127, 55, 0.2)',
-          }}
-        >
-          <CheckCircle2 size={16} />
-          <span>{successMessage}</span>
-        </motion.div>
-      )}
-
       {errorMessage && (
         <div
           className="auth-error-banner"
