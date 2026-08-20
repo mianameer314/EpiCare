@@ -28,6 +28,7 @@ import { EmergencyContactsManager } from './components/EmergencyContactsManager'
 import { SeizureFirstAidGuide } from './components/SeizureFirstAidGuide';
 import { EmergencyProtocolOverlay } from './components/EmergencyProtocolOverlay';
 import { getAccurateLocation } from '../../utils/geolocation';
+import { useToast } from '../../providers/ToastProvider';
 import './EmergencyPage.css';
 
 /* ────────────────────────────────────────────────────
@@ -52,6 +53,7 @@ function getRelativeTimeString(dateStr: string): string {
 
 export function EmergencyPage() {
   const queryClient = useQueryClient();
+  const toast = useToast();
   const [activeProtocol, setActiveProtocol] = useState<SosEventCreateResponse | null>(null);
   const [triggerCoords, setTriggerCoords] = useState<{ lat: number | null; lng: number | null }>({ lat: null, lng: null });
   const [triggerError, setTriggerError] = useState('');
@@ -99,9 +101,11 @@ export function EmergencyPage() {
     onSuccess: (res) => {
       setActiveProtocol(res);
       queryClient.invalidateQueries({ queryKey: ['emergency', 'sos-history'] });
+      toast.error('Emergency SOS dispatched to response network.');
     },
     onError: (err: any) => {
       setTriggerError(err.message || 'Failed to trigger SOS dispatch.');
+      toast.error(err.message || 'Failed to trigger SOS dispatch.');
     },
   });
 

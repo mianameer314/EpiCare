@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Siren, Phone, X, Check, Loader2 } from 'lucide-react';
 import { emergencyApi } from '../../../api/emergency';
 import { getAccurateLocation } from '../../../utils/geolocation';
+import { useToast } from '../../../providers/ToastProvider';
 import './SOSButton.css';
 
 /* ────────────────────────────────────────────────────
@@ -18,6 +19,7 @@ export function SOSButton() {
   const [errorMessage, setErrorMessage] = useState('');
   const isSubmittingRef = useRef(false);
   const queryClient = useQueryClient();
+  const toast = useToast();
 
   const handleTrigger = () => {
     setState('confirming');
@@ -39,13 +41,16 @@ export function SOSButton() {
       queryClient.invalidateQueries({ queryKey: ['emergency', 'sos-history'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard', 'stats'] });
       setState('success');
+      toast.error('Emergency SOS dispatched to response network.');
       setTimeout(() => {
         setState('idle');
         isSubmittingRef.current = false;
       }, 3000);
     } catch (err: any) {
-      setErrorMessage(err.message || 'Failed to send SOS. Try calling emergency services directly.');
+      const msg = err.message || 'Failed to send SOS. Try calling emergency services directly.';
+      setErrorMessage(msg);
       setState('error');
+      toast.error(msg);
       setTimeout(() => {
         setState('idle');
         isSubmittingRef.current = false;

@@ -7,6 +7,7 @@ import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
 import { PhoneInput } from '../../../components/ui/PhoneInput';
 import { isValidPhoneNumber } from 'react-phone-number-input';
+import { useToast } from '../../../providers/ToastProvider';
 
 /* ────────────────────────────────────────────────────
    Emergency Contacts Manager — CRUD for up to 3 contacts
@@ -19,6 +20,7 @@ interface EmergencyContactsManagerProps {
 
 export function EmergencyContactsManager({ contacts, isLoading }: EmergencyContactsManagerProps) {
   const queryClient = useQueryClient();
+  const toast = useToast();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<EmergencyContact | null>(null);
   const [formError, setFormError] = useState('');
@@ -35,9 +37,11 @@ export function EmergencyContactsManager({ contacts, isLoading }: EmergencyConta
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['emergency', 'contacts'] });
       closeModal();
+      toast.success('Emergency contact added successfully.');
     },
     onError: (err: any) => {
       setFormError(err.message || 'Failed to add emergency contact.');
+      toast.error(err.message || 'Failed to add emergency contact.');
     },
   });
 
@@ -47,9 +51,11 @@ export function EmergencyContactsManager({ contacts, isLoading }: EmergencyConta
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['emergency', 'contacts'] });
       closeModal();
+      toast.success('Emergency contact updated successfully.');
     },
     onError: (err: any) => {
       setFormError(err.message || 'Failed to update contact.');
+      toast.error(err.message || 'Failed to update contact.');
     },
   });
 
@@ -57,6 +63,10 @@ export function EmergencyContactsManager({ contacts, isLoading }: EmergencyConta
     mutationFn: (id: number) => emergencyApi.deleteContact(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['emergency', 'contacts'] });
+      toast.delete('Emergency contact removed.');
+    },
+    onError: (err: any) => {
+      toast.error(err.message || 'Failed to remove contact.');
     },
   });
 

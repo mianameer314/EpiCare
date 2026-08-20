@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { eegApi, type EegSession } from '../../../api/eeg';
 import { ConfirmDialog } from '../../../components/ui/ConfirmDialog';
+import { useToast } from '../../../providers/ToastProvider';
 
 /* ────────────────────────────────────────────────────
    EEG Session Card — Single Recording item & Actions
@@ -41,6 +42,7 @@ export function EEGSessionCard({ session, onViewResults, onAnalysisComplete, onD
   const [isDeleting, setIsDeleting] = useState(false);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const toast = useToast();
 
   const status = statusConfig[session.status] || statusConfig.UPLOADED;
   const date = new Date(session.created_at);
@@ -53,6 +55,7 @@ export function EEGSessionCard({ session, onViewResults, onAnalysisComplete, onD
       await eegApi.analyzeSession(session.id);
       onAnalysisComplete();
       onViewResults(session.id);
+      toast.success('EEG neural analysis completed.');
     } catch (err: any) {
       const msg = err.message || '';
       if (
@@ -63,11 +66,12 @@ export function EEGSessionCard({ session, onViewResults, onAnalysisComplete, onD
         msg.includes('MODEL_NOT_TRAINED') ||
         msg.includes('unavailable')
       ) {
-        setErrorMessage(
-          'AI Seizure model weights pending (.onnx / .pt in models directory). Inference will automatically run once weights are dropped in.'
-        );
+        const fallbackMsg = 'AI Seizure model weights pending. Inference will run once weights are available.';
+        setErrorMessage(fallbackMsg);
+        toast.info(fallbackMsg);
       } else {
         setErrorMessage(msg || 'Analysis pipeline could not be executed.');
+        toast.error(msg || 'Analysis pipeline could not be executed.');
       }
     } finally {
       setIsAnalyzing(false);
@@ -79,11 +83,14 @@ export function EEGSessionCard({ session, onViewResults, onAnalysisComplete, onD
     try {
       await eegApi.deleteSession(session.id);
       setConfirmDeleteOpen(false);
+      toast.delete('EEG recording deleted.');
       if (onDeleted) {
         onDeleted();
       }
     } catch (err: any) {
-      setErrorMessage(err.message || 'Failed to delete EEG recording.');
+      const msg = err.message || 'Failed to delete EEG recording.';
+      setErrorMessage(msg);
+      toast.error(msg);
     } finally {
       setIsDeleting(false);
     }

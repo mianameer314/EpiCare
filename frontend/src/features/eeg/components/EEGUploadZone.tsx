@@ -9,6 +9,7 @@ import {
   FolderOpen,
 } from 'lucide-react';
 import { eegApi, type EegSession } from '../../../api/eeg';
+import { useToast } from '../../../providers/ToastProvider';
 
 /* ────────────────────────────────────────────────────
    EEG Upload Zone — Clean Drag & Drop EDF/CSV Uploader
@@ -27,6 +28,7 @@ export function EEGUploadZone({ onUploadSuccess, patientUserId }: EEGUploadZoneP
   const [errorMessage, setErrorMessage] = useState('');
   const [successSession, setSuccessSession] = useState<EegSession | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const toast = useToast();
 
   const validateFile = (file: File): string | null => {
     const ext = file.name.toLowerCase();
@@ -96,6 +98,7 @@ export function EEGUploadZone({ onUploadSuccess, patientUserId }: EEGUploadZoneP
       setUploadProgress(100);
       setSuccessSession(session);
       onUploadSuccess(session);
+      toast.success(`EEG recording "${selectedFile.name}" uploaded successfully.`);
 
       setTimeout(() => {
         setIsUploading(false);
@@ -104,9 +107,11 @@ export function EEGUploadZone({ onUploadSuccess, patientUserId }: EEGUploadZoneP
         setSuccessSession(null);
       }, 1800);
     } catch (err: any) {
-      setErrorMessage(err.message || 'Failed to upload EEG file. Please try again.');
+      const msg = err.message || 'Failed to upload EEG file. Please try again.';
+      setErrorMessage(msg);
       setIsUploading(false);
       setUploadProgress(0);
+      toast.error(msg);
     }
   };
 

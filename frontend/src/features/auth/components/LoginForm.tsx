@@ -5,6 +5,7 @@ import { authApi } from '../../../api/auth';
 import type { LoginPayload } from '../../../types/auth';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../hooks/useAuth';
+import { useToast } from '../../../providers/ToastProvider';
 
 type FormState = LoginPayload & {
   otp: string;
@@ -19,6 +20,8 @@ interface LoginFormProps {
 export function LoginForm({ onToggleMode }: LoginFormProps) {
   const navigate = useNavigate();
   const { login } = useAuth();
+  const toast = useToast();
+  const isSubmittingRef = useRef(false);
   const [isLoading, setIsLoading] = useState(false);
   const [globalError, setGlobalError] = useState('');
   const [globalSuccess, setGlobalSuccess] = useState('');
@@ -67,14 +70,20 @@ export function LoginForm({ onToggleMode }: LoginFormProps) {
       return;
     }
 
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
     setIsLoading(true);
     try {
       await login(formData.email, formData.password);
+      toast.success('Signed in successfully. Welcome back!');
       navigate('/dashboard');
     } catch (err: any) {
-      setGlobalError(err.message || 'Failed to sign in. Please try again.');
+      const msg = err.message || 'Failed to sign in. Please try again.';
+      setGlobalError(msg);
+      toast.error(msg);
     } finally {
       setIsLoading(false);
+      isSubmittingRef.current = false;
     }
   };
 
@@ -88,15 +97,21 @@ export function LoginForm({ onToggleMode }: LoginFormProps) {
       return;
     }
 
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
     setIsLoading(true);
     try {
       await authApi.forgotPassword({ email: formData.email });
       setGlobalSuccess('OTP sent successfully to your email address.');
       setForgotPasswordStep('otp');
+      toast.success('Verification code sent to your email.');
     } catch (err: any) {
-      setGlobalError(err.message || 'Failed to send OTP.');
+      const msg = err.message || 'Failed to send OTP.';
+      setGlobalError(msg);
+      toast.error(msg);
     } finally {
       setIsLoading(false);
+      isSubmittingRef.current = false;
     }
   };
 
@@ -161,6 +176,8 @@ export function LoginForm({ onToggleMode }: LoginFormProps) {
       return;
     }
 
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
     setIsLoading(true);
     try {
       await authApi.resetPassword({
@@ -171,10 +188,14 @@ export function LoginForm({ onToggleMode }: LoginFormProps) {
       setGlobalSuccess('Password reset successfully! You can now sign in.');
       setForgotPasswordStep('none');
       setFormData(prev => ({ ...prev, password: '', otp: '', new_password: '', confirm_password: '' }));
+      toast.success('Password reset successfully! You can now sign in.');
     } catch (err: any) {
-      setGlobalError(err.message || 'Failed to reset password.');
+      const msg = err.message || 'Failed to reset password.';
+      setGlobalError(msg);
+      toast.error(msg);
     } finally {
       setIsLoading(false);
+      isSubmittingRef.current = false;
     }
   };
 

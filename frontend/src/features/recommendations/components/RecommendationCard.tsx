@@ -4,6 +4,7 @@ import {
 } from 'lucide-react';
 import type { RecommendationOut } from '../api';
 import { recommendationsApi } from '../api';
+import { useToast } from '../../../providers/ToastProvider';
 import './RecommendationCard.css';
 import { useQuery } from '@tanstack/react-query';
 
@@ -17,6 +18,7 @@ export function RecommendationCard({ recommendation, onDismiss }: Recommendation
     (recommendation as any).user_feedback || null
   );
   const [showWhy, setShowWhy] = useState(false);
+  const toast = useToast();
   const isImportant = recommendation.priority === 'IMPORTANT';
 
   const { data: whyData } = useQuery({
@@ -29,8 +31,9 @@ export function RecommendationCard({ recommendation, onDismiss }: Recommendation
     try {
       await recommendationsApi.submitFeedback(recommendation.id, type);
       setFeedback(type);
-    } catch (err) {
-      console.error('Failed to submit feedback:', err);
+      toast.success(type === 'HELPFUL' ? 'Marked as helpful. Thank you!' : 'Feedback recorded.');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to submit feedback.');
     }
   };
 
@@ -38,8 +41,9 @@ export function RecommendationCard({ recommendation, onDismiss }: Recommendation
     try {
       await recommendationsApi.dismiss(recommendation.id);
       if (onDismiss) onDismiss(recommendation.id);
-    } catch (err) {
-      console.error('Failed to dismiss:', err);
+      toast.info('Insight dismissed.');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to dismiss.');
     }
   };
 

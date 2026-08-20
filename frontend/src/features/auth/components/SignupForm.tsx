@@ -7,6 +7,7 @@ import { isValidPhoneNumber } from 'react-phone-number-input';
 import { authApi } from '../../../api/auth';
 import type { RegisterPayload } from '../../../types/auth';
 import { motion } from 'framer-motion';
+import { useToast } from '../../../providers/ToastProvider';
 
 interface SignupFormProps {
   onToggleMode?: () => void;
@@ -16,6 +17,8 @@ export function SignupForm({ onToggleMode }: SignupFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [globalError, setGlobalError] = useState('');
   const [globalSuccess, setGlobalSuccess] = useState('');
+  const isSubmittingRef = useRef(false);
+  const toast = useToast();
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof RegisterPayload | 'confirm_password', string>>>({});
   
   // Steps: 'form' -> 'otp' -> 'verified'
@@ -129,6 +132,8 @@ export function SignupForm({ onToggleMode }: SignupFormProps) {
 
     if (!validate()) return;
 
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
     setIsLoading(true);
     try {
       const payload: RegisterPayload = {
@@ -149,6 +154,7 @@ export function SignupForm({ onToggleMode }: SignupFormProps) {
       setResendTimer(60);
       setCanResend(false);
       setGlobalSuccess('Registration successful! Verification code sent to your email.');
+      toast.success('Registration successful! Verification code sent to your email.');
     } catch (err: any) {
       const errData = err.response?.data;
       let errorMsg = 'Registration failed. Please check your information and try again.';
@@ -178,15 +184,18 @@ export function SignupForm({ onToggleMode }: SignupFormProps) {
 
       setFieldErrors(newFieldErrors);
       setGlobalError(errorMsg);
+      toast.error(errorMsg);
     } finally {
       setIsLoading(false);
+      isSubmittingRef.current = false;
     }
   };
 
   // Dedicated verification function with automatic feedback
   const submitVerification = async (otpCode: string) => {
-    if (otpCode.length !== 6 || isLoading) return;
+    if (otpCode.length !== 6 || isLoading || isSubmittingRef.current) return;
 
+    isSubmittingRef.current = true;
     setIsLoading(true);
     setGlobalError('');
     setOtpError(false);
@@ -194,6 +203,7 @@ export function SignupForm({ onToggleMode }: SignupFormProps) {
       await authApi.verifyEmail({ email: registeredEmail, otp: otpCode });
       setOtpSuccess(true);
       setGlobalSuccess('Verification successful! Redirecting...');
+      toast.success('Email verified successfully!');
       setTimeout(() => {
         setStep('verified');
       }, 700);
@@ -205,8 +215,10 @@ export function SignupForm({ onToggleMode }: SignupFormProps) {
         err.response?.data?.message ||
         'Invalid or expired verification code. Please try again.';
       setGlobalError(msg);
+      toast.error(msg);
     } finally {
       setIsLoading(false);
+      isSubmittingRef.current = false;
     }
   };
 
@@ -267,6 +279,7 @@ export function SignupForm({ onToggleMode }: SignupFormProps) {
     try {
       await authApi.resendOtp({ email: registeredEmail });
       setGlobalSuccess('A fresh verification code has been sent to your email.');
+      toast.success('New verification code sent to your email.');
       setResendTimer(60);
       setCanResend(false);
       setOtpArray(Array(6).fill(''));
@@ -278,6 +291,7 @@ export function SignupForm({ onToggleMode }: SignupFormProps) {
         err.response?.data?.message ||
         'Failed to resend verification code.';
       setGlobalError(msg);
+      toast.error(msg);
     } finally {
       setIsLoading(false);
     }

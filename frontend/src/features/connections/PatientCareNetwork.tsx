@@ -30,6 +30,7 @@ import {
 import { Input } from '../../components/ui/Input';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { Pagination } from '../../components/ui/Pagination';
+import { useToast } from '../../providers/ToastProvider';
 import './PatientCareNetwork.css';
 
 /* ────────────────────────────────────────────────────
@@ -58,6 +59,7 @@ export function PatientCareNetwork() {
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const [docToDisconnect, setDocToDisconnect] = useState<{ id: number; name: string; action: 'revoke' | 'cancel' | 'remove' } | null>(null);
   const [careToDisconnect, setCareToDisconnect] = useState<{ id: number; name: string } | null>(null);
+  const toast = useToast();
   const [actionSuccess, setActionSuccess] = useState('');
   const [actionError, setActionError] = useState('');
   const [selectedDoctor, setSelectedDoctor] = useState<DoctorSearchItem | null>(null);
@@ -220,12 +222,14 @@ export function PatientCareNetwork() {
   const showSuccess = (msg: string) => {
     setActionSuccess(msg);
     setActionError('');
+    toast.success(msg);
     setTimeout(() => setActionSuccess(''), 4000);
   };
 
   const showErr = (msg: string) => {
     setActionError(msg);
     setActionSuccess('');
+    toast.error(msg);
   };
 
   return (

@@ -4,11 +4,13 @@ import type { RecommendationOut } from './api';
 import { recommendationsApi } from './api';
 import { RecommendationCard } from './components/RecommendationCard';
 import { Lightbulb, Info, AlertTriangle, Loader2 } from 'lucide-react';
+import { useToast } from '../../providers/ToastProvider';
 import './RecommendationsDashboard.css';
 
 export function RecommendationsDashboard() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [historyPage, setHistoryPage] = useState(0);
+  const toast = useToast();
 
   const { data: activeRecs, isLoading: activeLoading, refetch } = useQuery({
     queryKey: ['recommendations', 'active'],
@@ -30,8 +32,9 @@ export function RecommendationsDashboard() {
       setIsGenerating(true);
       await recommendationsApi.regenerate();
       refetch();
-    } catch (e) {
-      console.error(e);
+      toast.success('Clinical recommendations updated with latest health data.');
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to analyze recent health data.');
     } finally {
       setIsGenerating(false);
     }
