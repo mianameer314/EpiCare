@@ -12,13 +12,17 @@ import {
   Activity,
   Moon,
   BrainCircuit,
+  ShieldCheck,
+  CalendarDays,
+  ClipboardCheck,
+  ArrowUpRight,
+  CheckCircle2,
   ClipboardPlus,
   MessageSquareText,
   ArrowRight,
   Zap,
   FileSearch,
   Pill,
-  Siren,
   HeartHandshake,
   Lightbulb,
 } from 'lucide-react';
@@ -130,15 +134,31 @@ export function PatientDashboard() {
 
   const greeting = getTimeGreeting();
   const displayName = user?.full_name?.toUpperCase() || 'PATIENT';
+  const medicationAdherence = stats?.medication_adherence_percent ?? 0;
+  const lastSeizureSummary = stats?.days_since_last_seizure == null
+    ? 'No event logged'
+    : stats.days_since_last_seizure === 0
+      ? 'Today'
+      : `${stats.days_since_last_seizure} days ago`;
+  const primaryRecommendation = stats?.recommendations?.find(
+    (recommendation) => recommendation.is_active && !recommendation.is_dismissed && Boolean(recommendation.action_url)
+  );
+  const recommendationIcon = primaryRecommendation?.action_url?.includes('/medications')
+    ? <Pill size={17} />
+    : primaryRecommendation?.action_url?.includes('/eeg')
+      ? <BrainCircuit size={17} />
+      : primaryRecommendation?.action_url?.includes('/insights')
+        ? <Lightbulb size={17} />
+        : <ClipboardCheck size={17} />;
 
   return (
     <div className="dashboard-page">
       {/* ── Push Notification Permission Prompt ── */}
       <NotificationPermissionBanner />
 
-      {/* ── Header ── */}
+      {/* ── Header / Care Pulse ── */}
       <motion.div
-        className="dashboard-header"
+        className="dashboard-hero-shell"
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
@@ -146,20 +166,57 @@ export function PatientDashboard() {
         <div className="dashboard-greeting">
           <div className="dashboard-pre-title">
             <span className="live-status-dot" />
-            <span>CLINICAL NEUROLOGY TELEMETRY · PATIENT CONSOLE</span>
+            <span>YOUR CARE CONSOLE · PRIVATE &amp; SECURE</span>
           </div>
           <h1>
             {greeting}, <span className="hero-patient-name">{displayName}</span>
           </h1>
           <p className="dashboard-hero-sub">
-            Your real-time neural bio-signals, automated seizure risk matrix, and clinical protocols are synchronized.
+            A calm overview of your recorded activity, medication routine, and care team support.
           </p>
+          <div className="dashboard-context-row" aria-label="Dashboard status">
+            <span className="dashboard-context-chip"><ShieldCheck size={14} /> Data protected</span>
+            <span className="dashboard-context-chip"><CalendarDays size={14} /> Updated today</span>
+            <span className="dashboard-context-chip"><CheckCircle2 size={14} /> Care plan active</span>
+          </div>
         </div>
-        <div className="dashboard-date glass-badge">
-          <Activity size={14} className="date-icon-pulse" />
-          <span>{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}</span>
-        </div>
+        <aside className="dashboard-care-pulse" aria-label="Care pulse summary">
+          <div className="care-pulse-orbit" aria-hidden="true"><Activity size={20} /></div>
+          <div className="care-pulse-copy">
+            <span className="care-pulse-eyebrow"><Activity size={13} /> Care pulse</span>
+            <strong>{statsLoading ? 'Preparing your view' : 'Your dashboard is up to date'}</strong>
+            <span className="care-pulse-caption">Based on your latest recorded activity</span>
+          </div>
+          <div className="care-pulse-metrics">
+            <div><span>Medication</span><strong>{medicationAdherence}%</strong></div>
+            <div><span>Last event</span><strong>{lastSeizureSummary}</strong></div>
+          </div>
+        </aside>
       </motion.div>
+
+      {primaryRecommendation && (
+        <motion.div
+          className="dashboard-next-step"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.12, duration: 0.35 }}
+        >
+          <div className="next-step-icon">{recommendationIcon}</div>
+          <div className="next-step-copy">
+            <span className="next-step-label">{primaryRecommendation.category}</span>
+            <strong>{primaryRecommendation.title}</strong>
+            <span>{primaryRecommendation.body}</span>
+          </div>
+          <button
+            type="button"
+            className="next-step-action"
+            onClick={() => primaryRecommendation.action_url && navigate(primaryRecommendation.action_url)}
+          >
+            <span>View action</span>
+            <ArrowUpRight size={15} />
+          </button>
+        </motion.div>
+      )}
 
       {/* ── AI Recommendation Bar (if available) ── */}
       {stats?.recommendations && stats.recommendations.length > 0 && (
@@ -183,8 +240,81 @@ export function PatientDashboard() {
         </motion.div>
       )}
 
-      {/* ── Bento Grid ── */}
+      {/* ── Unified Seizure & Sleep Telemetry Summary Card ── */}
       <motion.div
+        className="dashboard-unified-summary-card glass-card"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.15, duration: 0.4 }}
+      >
+        {/* Metric 1: Manual Seizures */}
+        <div className="dash-summary-item">
+          <div className="dash-stat-icon" style={{ background: 'var(--color-warning-bg)', color: 'var(--color-warning)' }}>
+            <ClipboardPlus size={20} />
+          </div>
+          <div className="dash-stat-content">
+            <span className="dash-stat-label">Manual Seizures</span>
+            <span className="dash-stat-value">{stats?.manual_seizures_all_time ?? 0}</span>
+            <span className="dash-stat-hint">Self-reported events</span>
+          </div>
+        </div>
+
+        <div className="dash-summary-divider" />
+
+        {/* Metric 2: EEG-Detected Seizures */}
+        <div className="dash-summary-item">
+          <div className="dash-stat-icon" style={{ background: 'var(--color-secondary-50)', color: 'var(--color-secondary)' }}>
+            <FileSearch size={20} />
+          </div>
+          <div className="dash-stat-content">
+            <span className="dash-stat-label">EEG Detected</span>
+            <span className="dash-stat-value">{stats?.detected_seizures_all_time ?? 0}</span>
+            <span className="dash-stat-hint">AI-classified from EEG</span>
+          </div>
+        </div>
+
+        <div className="dash-summary-divider" />
+
+        {/* Metric 3: Total Seizures */}
+        <div className="dash-summary-item dash-summary-highlight">
+          <div className="dash-stat-icon" style={{ background: 'var(--color-error-bg)', color: 'var(--color-error)' }}>
+            <Zap size={20} />
+          </div>
+          <div className="dash-stat-content">
+            <span className="dash-stat-label">Total Seizures</span>
+            <span className="dash-stat-value" style={{ color: 'var(--color-error)' }}>{stats?.total_seizures_all_time ?? 0}</span>
+            <span className="dash-stat-hint">All-time combined</span>
+          </div>
+        </div>
+
+        <div className="dash-summary-divider" />
+
+        {/* Metric 4: Avg Sleep */}
+        <div className="dash-summary-item">
+          <div className="dash-stat-icon" style={{ background: 'rgba(124, 58, 237, 0.08)', color: '#7c3aed' }}>
+            <Moon size={20} />
+          </div>
+          <div className="dash-stat-content">
+            <span className="dash-stat-label">Avg Sleep</span>
+            <span className="dash-stat-value">
+              {stats && stats.avg_sleep_hours > 0 ? `${stats.avg_sleep_hours}h` : '—'}
+            </span>
+            <span className="dash-stat-hint">Past 30 days / night</span>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* ── Care workspace ── */}
+      <div className="dashboard-section-heading">
+        <div>
+          <span className="dashboard-section-kicker">Care workspace</span>
+          <h2>See what matters, then choose your next move.</h2>
+        </div>
+        <span className="dashboard-section-note">Your records stay in your control.</span>
+      </div>
+
+      <motion.div
+
         className="bento-grid dashboard-grid"
         variants={staggerContainer}
         initial="hidden"
@@ -236,72 +366,16 @@ export function PatientDashboard() {
           <SOSButton />
         </motion.div>
 
-        {/* Module E (2×1): Seizure Frequency Chart */}
+        {/* Module E (4×1): Seizure Frequency Chart */}
         <motion.div
-          className="bento-feature bento-item glass-card"
+          className="bento-feature bento-item glass-card bento-full-width"
           variants={cardVariant}
         >
           <SeizureChart logs={seizureLogs || []} />
         </motion.div>
       </motion.div>
 
-      {/* ── Seizure & Lifestyle Stats Row ── */}
-      <motion.div
-        className="dashboard-stats-row"
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.25, duration: 0.4 }}
-      >
-        {/* Manual Seizures */}
-        <div className="dash-stat-card">
-          <div className="dash-stat-icon" style={{ background: 'var(--color-warning-bg)', color: 'var(--color-warning)' }}>
-            <ClipboardPlus size={20} />
-          </div>
-          <div className="dash-stat-content">
-            <span className="dash-stat-label">Manual Seizures</span>
-            <span className="dash-stat-value">{stats?.manual_seizures_all_time ?? 0}</span>
-            <span className="dash-stat-hint">Self-reported events</span>
-          </div>
-        </div>
 
-        {/* EEG-Detected Seizures */}
-        <div className="dash-stat-card">
-          <div className="dash-stat-icon" style={{ background: 'var(--color-secondary-50)', color: 'var(--color-secondary)' }}>
-            <FileSearch size={20} />
-          </div>
-          <div className="dash-stat-content">
-            <span className="dash-stat-label">EEG Detected</span>
-            <span className="dash-stat-value">{stats?.detected_seizures_all_time ?? 0}</span>
-            <span className="dash-stat-hint">AI-classified from EEG</span>
-          </div>
-        </div>
-
-        {/* Total Seizures */}
-        <div className="dash-stat-card dash-stat-total">
-          <div className="dash-stat-icon" style={{ background: 'var(--color-error-bg)', color: 'var(--color-error)' }}>
-            <Zap size={20} />
-          </div>
-          <div className="dash-stat-content">
-            <span className="dash-stat-label">Total Seizures</span>
-            <span className="dash-stat-value">{stats?.total_seizures_all_time ?? 0}</span>
-            <span className="dash-stat-hint">All-time combined</span>
-          </div>
-        </div>
-
-        {/* Avg Sleep */}
-        <div className="dash-stat-card">
-          <div className="dash-stat-icon" style={{ background: 'rgba(124, 58, 237, 0.08)', color: '#7c3aed' }}>
-            <Moon size={20} />
-          </div>
-          <div className="dash-stat-content">
-            <span className="dash-stat-label">Avg Sleep</span>
-            <span className="dash-stat-value">
-              {stats && stats.avg_sleep_hours > 0 ? `${stats.avg_sleep_hours}h` : '—'}
-            </span>
-            <span className="dash-stat-hint">Past 30 days / night</span>
-          </div>
-        </div>
-      </motion.div>
 
       {/* ── Quick Actions — Full-Width Horizontal Row at Bottom ── */}
       <motion.div
