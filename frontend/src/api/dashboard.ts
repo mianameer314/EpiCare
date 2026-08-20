@@ -9,6 +9,8 @@ import type { RecommendationOut } from '../features/recommendations/api';
 export interface DashboardStats {
   total_seizures_past_30_days: number;
   total_seizures_all_time: number;
+  manual_seizures_all_time: number;
+  detected_seizures_all_time: number;
   days_since_last_seizure: number | null;
   most_common_seizure_types: string[];
   recent_auras: string[];

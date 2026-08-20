@@ -6,10 +6,23 @@ import { RiskIndicator } from './components/RiskIndicator';
 import { MedicationCountdown } from './components/MedicationCountdown';
 import { SeizureChart } from './components/SeizureChart';
 import { SOSButton } from './components/SOSButton';
-import { QuickActions } from './components/QuickActions';
 import { SessionsPreview } from './components/SessionsPreview';
 import { useAuth } from '../../hooks/useAuth';
-import { Activity, Moon, BrainCircuit } from 'lucide-react';
+import {
+  Activity,
+  Moon,
+  BrainCircuit,
+  ClipboardPlus,
+  MessageSquareText,
+  ArrowRight,
+  Zap,
+  FileSearch,
+  Pill,
+  Siren,
+  HeartHandshake,
+  Lightbulb,
+} from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { NotificationPermissionBanner } from '../../components/shared/NotificationPermissionBanner';
 import { RecommendationCard } from '../recommendations/components/RecommendationCard';
 import './PatientDashboard.css';
@@ -37,8 +50,55 @@ const cardVariant: Variants = {
   },
 };
 
+/* ── Quick Actions Data ── */
+const quickActions = [
+  {
+    to: '/eeg',
+    icon: <BrainCircuit size={18} />,
+    label: 'Upload EEG',
+    color: 'var(--color-secondary)',
+    bg: 'var(--color-secondary-50)',
+  },
+  {
+    to: '/lifestyle',
+    icon: <ClipboardPlus size={18} />,
+    label: 'Log Seizure',
+    color: 'var(--color-warning)',
+    bg: 'var(--color-warning-bg)',
+  },
+  {
+    to: '/medications',
+    icon: <Pill size={18} />,
+    label: 'Medications',
+    color: 'var(--color-primary)',
+    bg: 'var(--color-primary-50)',
+  },
+  {
+    to: '/network',
+    icon: <HeartHandshake size={18} />,
+    label: 'Care Network',
+    color: '#7c3aed',
+    bg: 'rgba(124, 58, 237, 0.08)',
+  },
+  {
+    to: '/insights',
+    icon: <Lightbulb size={18} />,
+    label: 'Care Insights',
+    color: '#d97706',
+    bg: 'rgba(217, 119, 6, 0.08)',
+  },
+  {
+    to: '/chat',
+    icon: <MessageSquareText size={18} />,
+    label: 'AI Chat',
+    color: '#0969da',
+    bg: 'rgba(9, 105, 218, 0.08)',
+  },
+];
+
 export function PatientDashboard() {
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ['dashboard', 'stats'],
@@ -69,8 +129,7 @@ export function PatientDashboard() {
   };
 
   const greeting = getTimeGreeting();
-  const firstName = user?.full_name?.split(' ')[0] || '';
-  const displayName = user?.full_name?.toUpperCase() || firstName.toUpperCase() || 'PATIENT';
+  const displayName = user?.full_name?.toUpperCase() || 'PATIENT';
 
   return (
     <div className="dashboard-page">
@@ -116,9 +175,9 @@ export function PatientDashboard() {
           }}
         >
           {stats.recommendations.map(rec => (
-            <RecommendationCard 
-              key={rec.id} 
-              recommendation={rec} 
+            <RecommendationCard
+              key={rec.id}
+              recommendation={rec}
             />
           ))}
         </motion.div>
@@ -184,51 +243,96 @@ export function PatientDashboard() {
         >
           <SeizureChart logs={seizureLogs || []} />
         </motion.div>
-
-        {/* Module F (2×1): Quick Actions */}
-        <motion.div
-          className="bento-feature bento-item glass-card"
-          variants={cardVariant}
-        >
-          <QuickActions />
-        </motion.div>
       </motion.div>
 
-      {/* ── Lifestyle Stats Row ── */}
-      {stats && (stats.avg_sleep_hours > 0 || stats.avg_stress_level !== null) && (
-        <motion.div
-          className="dashboard-lifestyle-row"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-            gap: 'var(--space-4)',
-            marginTop: 'var(--space-6)',
-          }}
-        >
-          <div className="glass-card" style={{ padding: 'var(--space-4)', display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
-            <Moon size={22} style={{ color: 'var(--color-secondary)' }} />
-            <div>
-              <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>Avg Sleep (Past 30d)</div>
-              <div style={{ fontSize: 'var(--text-lg)', fontWeight: 'bold', color: 'var(--color-text-main)' }}>
-                {stats.avg_sleep_hours > 0 ? `${stats.avg_sleep_hours} hrs / night` : 'Not recorded'}
-              </div>
-            </div>
+      {/* ── Seizure & Lifestyle Stats Row ── */}
+      <motion.div
+        className="dashboard-stats-row"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.25, duration: 0.4 }}
+      >
+        {/* Manual Seizures */}
+        <div className="dash-stat-card">
+          <div className="dash-stat-icon" style={{ background: 'var(--color-warning-bg)', color: 'var(--color-warning)' }}>
+            <ClipboardPlus size={20} />
           </div>
+          <div className="dash-stat-content">
+            <span className="dash-stat-label">Manual Seizures</span>
+            <span className="dash-stat-value">{stats?.manual_seizures_all_time ?? 0}</span>
+            <span className="dash-stat-hint">Self-reported events</span>
+          </div>
+        </div>
 
-          <div className="glass-card" style={{ padding: 'var(--space-4)', display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
-            <BrainCircuit size={22} style={{ color: 'var(--color-primary)' }} />
-            <div>
-              <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>Total Recorded Seizures</div>
-              <div style={{ fontSize: 'var(--text-lg)', fontWeight: 'bold', color: 'var(--color-text-main)' }}>
-                {stats.total_seizures_all_time} total
-              </div>
-            </div>
+        {/* EEG-Detected Seizures */}
+        <div className="dash-stat-card">
+          <div className="dash-stat-icon" style={{ background: 'var(--color-secondary-50)', color: 'var(--color-secondary)' }}>
+            <FileSearch size={20} />
           </div>
-        </motion.div>
-      )}
+          <div className="dash-stat-content">
+            <span className="dash-stat-label">EEG Detected</span>
+            <span className="dash-stat-value">{stats?.detected_seizures_all_time ?? 0}</span>
+            <span className="dash-stat-hint">AI-classified from EEG</span>
+          </div>
+        </div>
+
+        {/* Total Seizures */}
+        <div className="dash-stat-card dash-stat-total">
+          <div className="dash-stat-icon" style={{ background: 'var(--color-error-bg)', color: 'var(--color-error)' }}>
+            <Zap size={20} />
+          </div>
+          <div className="dash-stat-content">
+            <span className="dash-stat-label">Total Seizures</span>
+            <span className="dash-stat-value">{stats?.total_seizures_all_time ?? 0}</span>
+            <span className="dash-stat-hint">All-time combined</span>
+          </div>
+        </div>
+
+        {/* Avg Sleep */}
+        <div className="dash-stat-card">
+          <div className="dash-stat-icon" style={{ background: 'rgba(124, 58, 237, 0.08)', color: '#7c3aed' }}>
+            <Moon size={20} />
+          </div>
+          <div className="dash-stat-content">
+            <span className="dash-stat-label">Avg Sleep</span>
+            <span className="dash-stat-value">
+              {stats && stats.avg_sleep_hours > 0 ? `${stats.avg_sleep_hours}h` : '—'}
+            </span>
+            <span className="dash-stat-hint">Past 30 days / night</span>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* ── Quick Actions — Full-Width Horizontal Row at Bottom ── */}
+      <motion.div
+        className="dashboard-quick-row"
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.35, duration: 0.4 }}
+      >
+        <div className="dash-quick-header">
+          <h3>Quick Actions</h3>
+        </div>
+        <div className="dash-quick-grid">
+          {quickActions.map((action) => (
+            <button
+              key={action.to}
+              className="dash-quick-btn"
+              onClick={() => navigate(action.to)}
+              aria-label={action.label}
+            >
+              <div
+                className="dash-quick-icon"
+                style={{ background: action.bg, color: action.color }}
+              >
+                {action.icon}
+              </div>
+              <span className="dash-quick-label">{action.label}</span>
+              <ArrowRight size={14} className="dash-quick-arrow" />
+            </button>
+          ))}
+        </div>
+      </motion.div>
     </div>
   );
 }

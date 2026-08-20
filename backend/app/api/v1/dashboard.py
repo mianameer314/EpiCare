@@ -23,6 +23,8 @@ class DashboardStatsOut(StrictModel):
     # Summary Metrics
     total_seizures_past_30_days: int
     total_seizures_all_time: int
+    manual_seizures_all_time: int
+    detected_seizures_all_time: int
     days_since_last_seizure: int | None
     
     # Seizure Details
@@ -226,6 +228,8 @@ async def get_dashboard_stats(db: DbDep, target_user_id: TargetPatientIdForRead)
     return DashboardStatsOut(
         total_seizures_past_30_days=total_seizures_past_30_days,
         total_seizures_all_time=total_seizures_all_time,
+        manual_seizures_all_time=manual_seizures_all,
+        detected_seizures_all_time=eeg_seizures_all,
         days_since_last_seizure=days_since_last_seizure,
         most_common_seizure_types=most_common_seizure_types,
         recent_auras=recent_auras,
