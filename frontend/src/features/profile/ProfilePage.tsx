@@ -709,7 +709,7 @@ export function ProfilePage() {
   // Check if Doctor form has unsaved modifications
   const isDoctorDirty = useMemo(() => {
     if (!doctorProfile) return false;
-    const sameList = (a?: string[], b?: string[]) => JSON.stringify(a || []) === JSON.stringify(b || []);
+    const sameList = (a?: string[] | null, b?: string[] | null) => JSON.stringify(a || []) === JSON.stringify(b || []);
     return (
       (doctorProfile.specialty || 'Neurologist') !== (doctorForm.specialty || 'Neurologist') ||
       (doctorProfile.gender || '') !== (doctorForm.gender || '') ||
@@ -1966,8 +1966,8 @@ export function ProfilePage() {
                   <Input id="doc_exp" label="Years of Experience" type="number" min="0" max="80" value={doctorForm.years_of_experience ?? ''} onChange={(e) => setDoctorForm(p => ({ ...p, years_of_experience: e.target.value === '' ? undefined : Number(e.target.value) }))} />
                   <Input id="doc_fee" label="Consultation Fee (PKR)" type="number" min="0" step="0.01" placeholder="e.g. 3000" value={doctorForm.consultation_fee ?? ''} onChange={(e) => setDoctorForm(p => ({ ...p, consultation_fee: e.target.value }))} />
                   <Input id="doc_languages" label="Languages Spoken" placeholder="Urdu, English, Punjabi" value={(doctorForm.languages_spoken || []).join(', ')} onChange={(e) => setDoctorForm(p => ({ ...p, languages_spoken: e.target.value.split(',').map(v => v.trim()).filter(Boolean) }))} />
-                  <NeumorphicRangeSelect id="doc_days" label="Available Days" startValue={doctorForm.available_day_start} endValue={doctorForm.available_day_end} options={DOCTOR_DAY_OPTIONS} startPlaceholder="Start day" endPlaceholder="End day" onChange={(startValue, endValue) => setDoctorForm(p => ({ ...p, available_day_start: startValue, available_day_end: endValue, available_days: startValue && endValue ? [startValue, endValue] : [] }))} />
-                  <NeumorphicRangeSelect id="doc_times" label="Available Times" startValue={doctorForm.available_time_start} endValue={doctorForm.available_time_end} options={DOCTOR_TIME_OPTIONS} startPlaceholder="Start time" endPlaceholder="End time" onChange={(startValue, endValue) => setDoctorForm(p => ({ ...p, available_time_start: startValue, available_time_end: endValue, available_times: startValue && endValue ? [startValue, endValue] : [] }))} />
+                  <NeumorphicRangeSelect id="doc_days" label="Available Days" startValue={doctorForm.available_day_start || undefined} endValue={doctorForm.available_day_end || undefined} options={DOCTOR_DAY_OPTIONS} startPlaceholder="Start day" endPlaceholder="End day" onChange={(startValue, endValue) => setDoctorForm(p => ({ ...p, available_day_start: startValue, available_day_end: endValue, available_days: startValue && endValue ? [startValue, endValue] : [] }))} />
+                  <NeumorphicRangeSelect id="doc_times" label="Available Times" startValue={doctorForm.available_time_start || undefined} endValue={doctorForm.available_time_end || undefined} options={DOCTOR_TIME_OPTIONS} startPlaceholder="Start time" endPlaceholder="End time" onChange={(startValue, endValue) => setDoctorForm(p => ({ ...p, available_time_start: startValue, available_time_end: endValue, available_times: startValue && endValue ? [startValue, endValue] : [] }))} />
                   <NeumorphicMultiSelect id="doc_types" label="Consultation Types" placeholder="Select consultation types" values={doctorForm.consultation_types || []} options={DOCTOR_CONSULTATION_OPTIONS} onChange={(values) => setDoctorForm(p => ({ ...p, consultation_types: values }))} />
                 </div>
                 <Input id="doc_bio" label="Professional Bio" placeholder="Tell patients about your clinical experience and approach." value={doctorForm.bio || ''} onChange={(e) => setDoctorForm(p => ({ ...p, bio: e.target.value }))} />
