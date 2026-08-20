@@ -52,7 +52,7 @@ RULES: list[RecommendationRule] = [
         body="Over the past week, your average sleep was below 7 hours. Most adults benefit from 7–9 hours of regular sleep. Consider reviewing your bedtime routine and logging your sleep consistently.",
         rationale="Triggered because average sleep < 7h over 7 days.",
         action_url="/lifestyle",
-        cooldown_hours=48,
+        cooldown_hours=12,
         search_query="importance of sleep duration for epilepsy management",
     ),
     RecommendationRule(
@@ -65,7 +65,7 @@ RULES: list[RecommendationRule] = [
         body="Your sleep times have varied by more than 2 hours this week. A consistent sleep routine may support your wellbeing. Try going to bed and waking up at similar times each day.",
         rationale="Triggered because sleep standard deviation > 2h over 7 days.",
         action_url="/lifestyle",
-        cooldown_hours=48,
+        cooldown_hours=12,
         search_query="sleep consistency and routine for epilepsy",
     ),
     RecommendationRule(
@@ -93,7 +93,7 @@ RULES: list[RecommendationRule] = [
         body="Your medication logging rate is below 80% this week. Take your medication exactly as prescribed by your clinician. If you're having difficulty with your routine, please contact your healthcare professional.",
         rationale="Triggered because medication adherence < 80% over 7 days.",
         action_url="/medications",
-        cooldown_hours=48,
+        cooldown_hours=12,
         search_query="medication adherence strategies for epilepsy",
     ),
     RecommendationRule(
@@ -106,7 +106,7 @@ RULES: list[RecommendationRule] = [
         body="It looks like you haven't logged your medication for 3 or more scheduled times. If you've been taking your medication but forgot to log, you can backfill in the Medications page. If you're having trouble with your medication routine, please reach out to your clinician.",
         rationale="Triggered because >=3 consecutive medication logs were missed.",
         action_url="/medications",
-        cooldown_hours=48,
+        cooldown_hours=12,
         search_query="managing missed medication doses safely",
     ),
     RecommendationRule(
@@ -190,7 +190,7 @@ RULES: list[RecommendationRule] = [
         body="You don't have any emergency contacts set up yet. Adding a trusted person ensures they can be reached quickly if you ever need help. This is an important part of your personal safety plan.",
         rationale="Triggered because user has 0 emergency contacts.",
         action_url="/emergency",
-        cooldown_hours=48,
+        cooldown_hours=12,
         search_query="creating an epilepsy safety plan",
     ),
 
