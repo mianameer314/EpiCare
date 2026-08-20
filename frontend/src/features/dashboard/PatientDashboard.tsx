@@ -175,9 +175,26 @@ export function PatientDashboard() {
             A calm overview of your recorded activity, medication routine, and care team support.
           </p>
           <div className="dashboard-context-row" aria-label="Dashboard status">
-            <span className="dashboard-context-chip"><ShieldCheck size={14} /> Data protected</span>
-            <span className="dashboard-context-chip"><CalendarDays size={14} /> Updated today</span>
-            <span className="dashboard-context-chip"><CheckCircle2 size={14} /> Care plan active</span>
+            <span className="dashboard-context-chip">
+              <ShieldCheck size={14} /> 
+              {statsLoading || sessionsLoading ? 'Syncing securely...' : 'Data synchronized'}
+            </span>
+            <span className="dashboard-context-chip">
+              <CalendarDays size={14} /> 
+              {stats?.days_since_last_seizure === 0 
+                ? 'Event logged today' 
+                : stats?.days_since_last_seizure 
+                  ? `${stats.days_since_last_seizure} days seizure-free` 
+                  : 'Monitoring active'}
+            </span>
+            <span className="dashboard-context-chip">
+              <CheckCircle2 size={14} /> 
+              {stats?.recommendations && stats.recommendations.length > 0 
+                ? `${stats.recommendations.length} insights available` 
+                : stats?.medication_streak && stats.medication_streak > 0 
+                  ? `${stats.medication_streak}-day med streak` 
+                  : 'Care plan active'}
+            </span>
           </div>
         </div>
         <aside className="dashboard-care-pulse" aria-label="Care pulse summary">
