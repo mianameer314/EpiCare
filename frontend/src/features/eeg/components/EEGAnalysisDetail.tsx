@@ -79,6 +79,9 @@ export function EEGAnalysisDetail({ sessionId, onClose }: EEGAnalysisDetailProps
         justifyContent: 'center',
         padding: 'var(--space-4)',
         zIndex: 1000,
+        backdropFilter: 'none',
+        WebkitBackdropFilter: 'none',
+        backgroundColor: 'rgba(18, 38, 26, 0.8)',
       }}
     >
       <motion.div
@@ -92,9 +95,11 @@ export function EEGAnalysisDetail({ sessionId, onClose }: EEGAnalysisDetailProps
           maxWidth: '860px',
           maxHeight: '92vh',
           overflowY: 'auto',
+          WebkitOverflowScrolling: 'touch',
           padding: 'var(--space-6)',
           borderRadius: 'var(--radius-2xl)',
           position: 'relative',
+          background: 'rgba(255, 255, 255, 0.98)',
         }}
       >
         {/* ── Modal Header ── */}
@@ -254,9 +259,8 @@ export function EEGAnalysisDetail({ sessionId, onClose }: EEGAnalysisDetailProps
                     padding: 'var(--space-5) var(--space-6)',
                     borderRadius: 'var(--radius-xl)',
                     background: isSeizure ? 'var(--color-error-bg)' : 'var(--color-success-bg)',
-                    border: `1px solid ${
-                      isSeizure ? 'rgba(207, 34, 46, 0.25)' : 'rgba(26, 127, 55, 0.25)'
-                    }`,
+                    border: `1px solid ${isSeizure ? 'rgba(207, 34, 46, 0.25)' : 'rgba(26, 127, 55, 0.25)'
+                      }`,
                     display: 'flex',
                     alignItems: 'center',
                     gap: 'var(--space-4)',
@@ -546,9 +550,8 @@ export function EEGAnalysisDetail({ sessionId, onClose }: EEGAnalysisDetailProps
                     padding: 'var(--space-4) var(--space-6)',
                     borderRadius: 'var(--radius-xl)',
                     background: isSeizure ? 'var(--color-error-bg)' : 'var(--color-success-bg)',
-                    border: `1px solid ${
-                      isSeizure ? 'rgba(207, 34, 46, 0.2)' : 'rgba(26, 127, 55, 0.2)'
-                    }`,
+                    border: `1px solid ${isSeizure ? 'rgba(207, 34, 46, 0.2)' : 'rgba(26, 127, 55, 0.2)'
+                      }`,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
