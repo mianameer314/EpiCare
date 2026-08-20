@@ -3,13 +3,14 @@ import { useQuery } from '@tanstack/react-query';
 import type { RecommendationOut } from './api';
 import { recommendationsApi } from './api';
 import { RecommendationCard } from './components/RecommendationCard';
+import { Pagination } from '../../components/ui/Pagination';
 import { Lightbulb, Info, AlertTriangle, Loader2 } from 'lucide-react';
 import { useToast } from '../../providers/ToastProvider';
 import './RecommendationsDashboard.css';
 
 export function RecommendationsDashboard() {
   const [isGenerating, setIsGenerating] = useState(false);
-  const [historyPage, setHistoryPage] = useState(0);
+  const [historyPage, setHistoryPage] = useState(1);
   const toast = useToast();
 
   const { data: activeRecs, isLoading: activeLoading, refetch } = useQuery({
@@ -19,7 +20,7 @@ export function RecommendationsDashboard() {
 
   const { data: historyRecs, isLoading: historyLoading } = useQuery({
     queryKey: ['recommendations', 'history', historyPage],
-    queryFn: () => recommendationsApi.getHistory(historyPage * 5, 5),
+    queryFn: () => recommendationsApi.getHistory((historyPage - 1) * 5, 5),
   });
 
   const { data: stats } = useQuery({
@@ -133,27 +134,23 @@ export function RecommendationsDashboard() {
               ))}
             </div>
             
-            <div className="pagination-controls">
-              <button 
-                onClick={() => setHistoryPage(p => Math.max(0, p - 1))}
-                disabled={historyPage === 0}
-                className="pagination-btn"
-              >
-                Previous
-              </button>
-              <span className="pagination-info">Page {historyPage + 1}</span>
-              <button 
-                onClick={() => setHistoryPage(p => p + 1)}
-                disabled={historyRecs.length < 5}
-                className="pagination-btn"
-              >
-                Next
-              </button>
+            <div style={{ marginTop: 'var(--space-6)' }}>
+              <Pagination
+                currentPage={historyPage}
+                totalPages={historyPage + (historyRecs.length < 5 ? 0 : 1)}
+                pageSize={5}
+                itemName="insights"
+                onPageChange={setHistoryPage}
+              />
             </div>
           </>
         ) : (
           <div className="empty-state">No history found on this page.
-             {historyPage > 0 && <button className="pagination-btn" onClick={() => setHistoryPage(0)}>Go back to start</button>}
+             {historyPage > 1 && (
+                <div style={{ marginTop: 'var(--space-4)' }}>
+                  <button className="btn btn-secondary" onClick={() => setHistoryPage(1)}>Go back to start</button>
+                </div>
+             )}
           </div>
         )}
       </section>

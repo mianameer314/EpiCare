@@ -14,8 +14,6 @@ import {
   ChevronDown,
   ChevronUp,
   Trash2,
-  ChevronLeft,
-  ChevronRight,
   Clock,
   BellRing,
   Star,
@@ -33,6 +31,7 @@ import { lifestyleApi, type SleepLogCreate, type TriggerLogCreate } from '../../
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
+import { Pagination } from '../../components/ui/Pagination';
 import { useUnsavedChanges } from '../../providers/UnsavedChangesProvider';
 import { useToast } from '../../providers/ToastProvider';
 import './LifestylePage.css';
@@ -1935,32 +1934,15 @@ export function LifestylePage() {
 
           {/* ── Pagination Navigation Bar ── */}
           {filteredHistory.length > pageSize && (
-            <div className="lifestyle-pagination-bar">
-              <span>
-                Page {historyPage} of {totalPages} ({filteredHistory.length} items)
-              </span>
-
-              <div style={{ display: 'flex', gap: '6px' }}>
-                <button
-                  type="button"
-                  className="lifestyle-page-btn"
-                  onClick={() => setHistoryPage((p) => Math.max(1, p - 1))}
-                  disabled={historyPage <= 1}
-                >
-                  <ChevronLeft size={13} />
-                  <span>Previous</span>
-                </button>
-
-                <button
-                  type="button"
-                  className="lifestyle-page-btn"
-                  onClick={() => setHistoryPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={historyPage >= totalPages}
-                >
-                  <span>Next</span>
-                  <ChevronRight size={13} />
-                </button>
-              </div>
+            <div style={{ marginTop: 'var(--space-6)' }}>
+              <Pagination
+                currentPage={historyPage}
+                totalPages={totalPages}
+                totalItems={filteredHistory.length}
+                pageSize={pageSize}
+                itemName="Logs"
+                onPageChange={setHistoryPage}
+              />
             </div>
           )}
         </div>

@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Pagination } from '../../components/ui/Pagination';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Siren,
@@ -12,8 +13,6 @@ import {
   XCircle,
   ExternalLink,
   Search,
-  ChevronLeft,
-  ChevronRight,
   Eye,
   RefreshCw,
   Clock,
@@ -60,7 +59,7 @@ export function EmergencyPage() {
   const [isLocating, setIsLocating] = useState(false);
 
   // Pagination & Filtering state for logs (default 5 items per page)
-  const [page, setPage] = useState(0);
+  const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -80,7 +79,7 @@ export function EmergencyPage() {
     queryKey: ['emergency', 'sos-history', page, pageSize, statusFilter],
     queryFn: () =>
       emergencyApi.getSOSEvents({
-        skip: page * pageSize,
+        skip: (page - 1) * pageSize,
         limit: pageSize,
         status: statusFilter === 'ALL' ? undefined : statusFilter,
       }),
@@ -131,8 +130,6 @@ export function EmergencyPage() {
       return idMatch || statusMatch || contactMatch || registeredContactMatch;
     });
   }, [sosHistory, searchTerm, contacts]);
-
-  const totalPages = sosHistory ? Math.ceil(sosHistory.total / pageSize) : 1;
 
   return (
     <div className="emergency-page">
@@ -454,56 +451,33 @@ export function EmergencyPage() {
 
         {/* ── Pagination Footer ── */}
         {sosHistory && sosHistory.total > 0 && (
-          <div className="sos-pagination-footer">
-            <div className="pagination-info">
-              Showing <strong>{page * pageSize + 1}</strong> –{' '}
-              <strong>{Math.min((page + 1) * pageSize, sosHistory.total)}</strong> of{' '}
-              <strong>{sosHistory.total}</strong> Incidents
-            </div>
-
-            <div className="pagination-controls">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'var(--space-6)', flexWrap: 'wrap', gap: 'var(--space-4)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+              <span style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)', fontWeight: 500 }}>Rows per page:</span>
               <select
                 value={pageSize}
                 onChange={(e) => {
                   setPageSize(Number(e.target.value));
-                  setPage(0);
+                  setPage(1);
                 }}
-                className="pagination-pagesize-select"
+                className="input-field"
+                style={{ width: 'auto', padding: 'var(--space-1) var(--space-2)', fontSize: 'var(--text-sm)' }}
                 aria-label="Events per page"
               >
-                <option value={5}>5 per page</option>
-                <option value={10}>10 per page</option>
-                <option value={20}>20 per page</option>
+                <option value={5}>5</option>
+                <option value={10}>10</option>
+                <option value={20}>20</option>
               </select>
-
-              <div className="pagination-nav-btns">
-                <button
-                  type="button"
-                  className="pagination-btn"
-                  onClick={() => setPage((p) => Math.max(0, p - 1))}
-                  disabled={page === 0 || historyLoading}
-                  aria-label="Previous page"
-                >
-                  <ChevronLeft size={16} />
-                  <span>Previous</span>
-                </button>
-
-                <span className="pagination-page-indicator">
-                  Page {page + 1} of {Math.max(1, totalPages)}
-                </span>
-
-                <button
-                  type="button"
-                  className="pagination-btn"
-                  onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-                  disabled={page >= totalPages - 1 || historyLoading}
-                  aria-label="Next page"
-                >
-                  <span>Next</span>
-                  <ChevronRight size={16} />
-                </button>
-              </div>
             </div>
+
+            <Pagination
+              currentPage={page}
+              totalPages={Math.ceil(sosHistory.total / pageSize)}
+              totalItems={sosHistory.total}
+              pageSize={pageSize}
+              itemName="Incidents"
+              onPageChange={setPage}
+            />
           </div>
         )}
       </div>
