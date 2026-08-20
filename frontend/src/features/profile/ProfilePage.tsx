@@ -578,7 +578,7 @@ export function ProfilePage() {
     updateBioMutation.mutate({
       data: {
         full_name: bioForm.full_name.trim(),
-        phone_number: bioForm.phone_number.trim(),
+        phone_number: bioForm.phone_number.trim() || null,
       },
       photo: pendingSharedPhotoFile,
       removePhoto: removePendingSharedPhoto && !pendingSharedPhotoFile && Boolean(user?.profile_photo_path),

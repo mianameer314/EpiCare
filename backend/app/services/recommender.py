@@ -319,6 +319,11 @@ class RuleEngine:
             on_cooldown = False
             for r in recent_recs:
                 if r.rule_id == rule.rule_id:
+                    if r.is_active:
+                        # If it's already active, we want to regenerate it based on the latest snapshot, 
+                        # so we bypass the cooldown check.
+                        continue
+
                     delta_hours = (now - r.created_at).total_seconds() / 3600
                     if delta_hours < rule.cooldown_hours:
                         on_cooldown = True
