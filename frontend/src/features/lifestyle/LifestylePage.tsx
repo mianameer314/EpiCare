@@ -25,6 +25,8 @@ import {
   Check,
   FileText,
   X,
+  Eye,
+  Utensils,
 } from 'lucide-react';
 import { seizuresApi, type ManualSeizureLogCreate } from '../../api/seizures';
 import { lifestyleApi, type SleepLogCreate, type TriggerLogCreate } from '../../api/lifestyle';
@@ -41,7 +43,20 @@ import './LifestylePage.css';
    ──────────────────────────────────────────────────── */
 
 type TabType = 'seizure' | 'sleep' | 'triggers' | 'habits';
-type HistoryFilterType = 'all' | 'seizures' | 'sleep' | 'triggers';
+type HistoryFilterType = 'all' | 'seizures' | 'sleep' | 'triggers' | 'habits';
+
+
+export interface UnifiedHistoryItem {
+  id: string;
+  rawId: number;
+  type: 'seizure' | 'sleep' | 'trigger' | 'diet' | 'habits';
+  title: string;
+  subtitle: string;
+  badgeText: string;
+  date: Date;
+  notes?: string | null;
+  rawDetails?: any;
+}
 
 interface SeizureClassificationInfo {
   name: string;
@@ -114,6 +129,8 @@ export function LifestylePage() {
   const [activeTab, setActiveTab] = useState<TabType>('seizure');
   const [historyFilter, setHistoryFilter] = useState<HistoryFilterType>('all');
   const [historyPage, setHistoryPage] = useState<number>(1);
+  const [dateFilter, setDateFilter] = useState('');
+  const [selectedLogDetails, setSelectedLogDetails] = useState<UnifiedHistoryItem | null>(null);
   const toast = useToast();
   const [errorMessage, setErrorMessage] = useState('');
   const [showLearnMore, setShowLearnMore] = useState(false);
@@ -129,7 +146,7 @@ export function LifestylePage() {
   } | null>(null);
 
   // Delete modal state
-  const [deleteTarget, setDeleteTarget] = useState<{ id: number; type: 'seizure' | 'sleep' | 'trigger'; name: string } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: number; type: 'seizure' | 'sleep' | 'trigger' | 'diet' | 'habits'; name: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
   // Seizure form state
@@ -221,6 +238,11 @@ export function LifestylePage() {
   const { data: triggerLogs } = useQuery({
     queryKey: ['lifestyle', 'triggers'],
     queryFn: () => lifestyleApi.getTriggerLogs({ limit: 50 }),
+  });
+
+  const { data: genericLogs } = useQuery({
+    queryKey: ['lifestyle', 'generic'],
+    queryFn: () => lifestyleApi.getGenericLogs({ limit: 100 }),
   });
 
   // Mutations
@@ -458,9 +480,16 @@ export function LifestylePage() {
       } else if (deleteTarget.type === 'trigger') {
         await lifestyleApi.deleteTriggerLog(deleteTarget.id);
         queryClient.invalidateQueries({ queryKey: ['lifestyle', 'triggers'] });
+      } else if (deleteTarget.type === 'diet' || deleteTarget.type === 'habits') {
+        await lifestyleApi.deleteGenericLog(deleteTarget.id);
+        queryClient.invalidateQueries({ queryKey: ['lifestyle', 'generic'] });
       }
+      queryClient.invalidateQueries({ queryKey: ['lifestyle'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       setDeleteTarget(null);
+      if (selectedLogDetails && selectedLogDetails.rawId === deleteTarget.id) {
+        setSelectedLogDetails(null);
+      }
       toast.delete(`Deleted ${deleteTarget.name} record.`);
     } catch (err: any) {
       setErrorMessage(err.message || 'Failed to delete record.');
@@ -471,19 +500,12 @@ export function LifestylePage() {
 
   // Combined Unified History List
   const unifiedHistory = useMemo(() => {
-    const list: Array<{
-      id: string;
-      rawId: number;
-      type: 'seizure' | 'sleep' | 'trigger';
-      title: string;
-      subtitle: string;
-      badgeText: string;
-      date: Date;
-      notes?: string | null;
-    }> = [];
+    const list: UnifiedHistoryItem[] = [];
 
-    // Seizures
+    // 1. Seizures
     seizureLogs.forEach((s) => {
+      const auras = Array.isArray(s.auras_felt) ? s.auras_felt : (s.auras_felt ? [s.auras_felt as string] : []);
+      const recovery = Array.isArray(s.post_ictal_symptoms) ? s.post_ictal_symptoms : (s.post_ictal_symptoms ? [s.post_ictal_symptoms as string] : []);
       list.push({
         id: `seizure-${s.id}`,
         rawId: s.id,
@@ -493,10 +515,17 @@ export function LifestylePage() {
         badgeText: `${s.duration_seconds}s`,
         date: new Date(s.occurred_at),
         notes: s.notes,
+        rawDetails: {
+          seizure_type: s.seizure_type,
+          duration_seconds: s.duration_seconds,
+          auras_felt: auras,
+          post_ictal_symptoms: recovery,
+          occurred_at: s.occurred_at,
+        },
       });
     });
 
-    // Sleep
+    // 2. Sleep
     (sleepLogs?.items || []).forEach((sl) => {
       list.push({
         id: `sleep-${sl.id}`,
@@ -507,10 +536,16 @@ export function LifestylePage() {
         badgeText: `${(sl.duration_minutes / 60).toFixed(1)}h`,
         date: new Date(sl.woke_at),
         notes: sl.notes,
+        rawDetails: {
+          slept_at: sl.slept_at,
+          woke_at: sl.woke_at,
+          duration_minutes: sl.duration_minutes,
+          quality: sl.quality,
+        },
       });
     });
 
-    // Triggers
+    // 3. Triggers
     (triggerLogs?.items || []).forEach((tr) => {
       list.push({
         id: `trigger-${tr.id}`,
@@ -521,21 +556,98 @@ export function LifestylePage() {
         badgeText: `Level ${tr.severity || 1}/5`,
         date: new Date(tr.occurred_at),
         notes: tr.notes,
+        rawDetails: {
+          trigger_name: tr.trigger_name,
+          severity: tr.severity,
+          occurred_at: tr.occurred_at,
+        },
       });
+    });
+
+    // 4. Generic Lifestyle Logs (Diet & Screen Time)
+    (genericLogs?.items || []).forEach((gl) => {
+      const logTypeUpper = (gl.log_type || '').toUpperCase();
+      if (logTypeUpper === 'DIET') {
+        const isKeto = gl.metadata_dict?.keto_compliant;
+        const hadAlcohol = gl.metadata_dict?.alcohol_consumed;
+        list.push({
+          id: `diet-${gl.id}`,
+          rawId: gl.id,
+          type: 'diet',
+          title: 'Diet & Nutrition',
+          subtitle: `${isKeto ? 'Keto compliant: Yes' : 'Standard diet'}${hadAlcohol ? ', Alcohol consumed' : ''}`,
+          badgeText: isKeto ? 'Keto Diet' : 'Diet Log',
+          date: new Date(gl.occurred_at),
+          notes: gl.notes,
+          rawDetails: {
+            log_type: 'DIET',
+            keto_compliant: isKeto,
+            alcohol_consumed: hadAlcohol,
+            metadata_dict: gl.metadata_dict,
+          },
+        });
+      } else if (logTypeUpper === 'SCREEN_TIME') {
+        const hours = gl.metadata_dict?.duration_hours ?? 0;
+        const night = gl.metadata_dict?.night_exposure;
+        list.push({
+          id: `habits-${gl.id}`,
+          rawId: gl.id,
+          type: 'habits',
+          title: `Screen Time (${hours}h)`,
+          subtitle: night ? 'Late night screen in darkness' : 'Standard daytime usage',
+          badgeText: `${hours}h Screen`,
+          date: new Date(gl.occurred_at),
+          notes: gl.notes,
+          rawDetails: {
+            log_type: 'SCREEN_TIME',
+            duration_hours: hours,
+            night_exposure: night,
+            metadata_dict: gl.metadata_dict,
+          },
+        });
+      } else {
+        list.push({
+          id: `lifestyle-${gl.id}`,
+          rawId: gl.id,
+          type: 'habits',
+          title: `Lifestyle: ${gl.log_type}`,
+          subtitle: gl.notes || 'Logged habit telemetry',
+          badgeText: gl.log_type,
+          date: new Date(gl.occurred_at),
+          notes: gl.notes,
+          rawDetails: {
+            log_type: gl.log_type,
+            metadata_dict: gl.metadata_dict,
+          },
+        });
+      }
     });
 
     // Sort newest first
     list.sort((a, b) => b.date.getTime() - a.date.getTime());
     return list;
-  }, [seizureLogs, sleepLogs, triggerLogs]);
+  }, [seizureLogs, sleepLogs, triggerLogs, genericLogs]);
 
   // Filtered History
   const filteredHistory = useMemo(() => {
-    if (historyFilter === 'seizures') return unifiedHistory.filter((item) => item.type === 'seizure');
-    if (historyFilter === 'sleep') return unifiedHistory.filter((item) => item.type === 'sleep');
-    if (historyFilter === 'triggers') return unifiedHistory.filter((item) => item.type === 'trigger');
-    return unifiedHistory;
-  }, [unifiedHistory, historyFilter]);
+    let result = unifiedHistory;
+
+    // Filter by Category
+    if (historyFilter === 'seizures') result = result.filter((item) => item.type === 'seizure');
+    else if (historyFilter === 'sleep') result = result.filter((item) => item.type === 'sleep');
+    else if (historyFilter === 'triggers') result = result.filter((item) => item.type === 'trigger');
+    else if (historyFilter === 'habits') result = result.filter((item) => item.type === 'diet' || item.type === 'habits');
+
+    // Filter by Date
+    if (dateFilter) {
+      result = result.filter((item) => {
+        const itemDateStr = item.date.toLocaleDateString('en-CA');
+        return itemDateStr === dateFilter;
+      });
+    }
+
+    return result;
+  }, [unifiedHistory, historyFilter, dateFilter]);
 
   // Pagination (6 items per page)
   const pageSize = 6;
@@ -1580,48 +1692,90 @@ export function LifestylePage() {
               </p>
             </div>
 
-            {/* Filter Pills */}
-            <div className="lifestyle-filter-pills">
-              <button
-                type="button"
-                className={`lifestyle-filter-pill ${historyFilter === 'all' ? 'active' : ''}`}
-                onClick={() => {
-                  setHistoryFilter('all');
-                  setHistoryPage(1);
-                }}
-              >
-                All ({unifiedHistory.length})
-              </button>
-              <button
-                type="button"
-                className={`lifestyle-filter-pill ${historyFilter === 'seizures' ? 'active' : ''}`}
-                onClick={() => {
-                  setHistoryFilter('seizures');
-                  setHistoryPage(1);
-                }}
-              >
-                ⚡ Seizures ({seizureLogs.length})
-              </button>
-              <button
-                type="button"
-                className={`lifestyle-filter-pill ${historyFilter === 'sleep' ? 'active' : ''}`}
-                onClick={() => {
-                  setHistoryFilter('sleep');
-                  setHistoryPage(1);
-                }}
-              >
-                🌙 Sleep ({sleepLogs?.items?.length || 0})
-              </button>
-              <button
-                type="button"
-                className={`lifestyle-filter-pill ${historyFilter === 'triggers' ? 'active' : ''}`}
-                onClick={() => {
-                  setHistoryFilter('triggers');
-                  setHistoryPage(1);
-                }}
-              >
-                ⚠️ Triggers ({triggerLogs?.items?.length || 0})
-              </button>
+            {/* History Filter Toolbar */}
+            <div className="lifestyle-history-toolbar">
+              <div className="lifestyle-filter-pills">
+                <button
+                  type="button"
+                  className={`lifestyle-filter-pill ${historyFilter === 'all' ? 'active' : ''}`}
+                  onClick={() => {
+                    setHistoryFilter('all');
+                    setHistoryPage(1);
+                  }}
+                >
+                  All ({unifiedHistory.length})
+                </button>
+                <button
+                  type="button"
+                  className={`lifestyle-filter-pill ${historyFilter === 'seizures' ? 'active' : ''}`}
+                  onClick={() => {
+                    setHistoryFilter('seizures');
+                    setHistoryPage(1);
+                  }}
+                >
+                  ⚡ Seizures ({seizureLogs.length})
+                </button>
+                <button
+                  type="button"
+                  className={`lifestyle-filter-pill ${historyFilter === 'sleep' ? 'active' : ''}`}
+                  onClick={() => {
+                    setHistoryFilter('sleep');
+                    setHistoryPage(1);
+                  }}
+                >
+                  🌙 Sleep ({sleepLogs?.items?.length || 0})
+                </button>
+                <button
+                  type="button"
+                  className={`lifestyle-filter-pill ${historyFilter === 'triggers' ? 'active' : ''}`}
+                  onClick={() => {
+                    setHistoryFilter('triggers');
+                    setHistoryPage(1);
+                  }}
+                >
+                  ⚠️ Triggers ({triggerLogs?.items?.length || 0})
+                </button>
+                <button
+                  type="button"
+                  className={`lifestyle-filter-pill ${historyFilter === 'habits' ? 'active' : ''}`}
+                  onClick={() => {
+                    setHistoryFilter('habits');
+                    setHistoryPage(1);
+                  }}
+                >
+                  🥗 Habits ({genericLogs?.items?.length || 0})
+                </button>
+              </div>
+
+              {/* Date Filter Picker */}
+              <div className="lifestyle-date-filter-wrap">
+                <div className="lifestyle-date-input-box">
+                  <Calendar size={14} className="lifestyle-date-icon" />
+                  <input
+                    type="date"
+                    value={dateFilter}
+                    onChange={(e) => {
+                      setDateFilter(e.target.value);
+                      setHistoryPage(1);
+                    }}
+                    className="lifestyle-date-picker"
+                    title="Filter records by date"
+                  />
+                  {dateFilter && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDateFilter('');
+                        setHistoryPage(1);
+                      }}
+                      className="lifestyle-date-clear-btn"
+                      title="Clear date filter"
+                    >
+                      <X size={13} />
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
 
@@ -1631,14 +1785,27 @@ export function LifestylePage() {
               <div
                 key={item.id}
                 className={`lifestyle-history-card ${
-                  item.type === 'seizure' ? 'seizure-type' : item.type === 'sleep' ? 'sleep-type' : 'trigger-type'
+                  item.type === 'seizure'
+                    ? 'seizure-type'
+                    : item.type === 'sleep'
+                    ? 'sleep-type'
+                    : item.type === 'trigger'
+                    ? 'trigger-type'
+                    : item.type === 'diet'
+                    ? 'diet-type'
+                    : 'habits-type'
                 }`}
+                onClick={() => setSelectedLogDetails(item)}
+                title="Click to view full medical details"
+                style={{ cursor: 'pointer' }}
               >
                 <div className="lifestyle-card-top">
                   <span className={`lifestyle-card-title ${item.type}`}>
                     {item.type === 'seizure' && '⚡ '}
                     {item.type === 'sleep' && '🌙 '}
                     {item.type === 'trigger' && '⚠️ '}
+                    {item.type === 'diet' && '🥗 '}
+                    {item.type === 'habits' && '💻 '}
                     {item.title}
                   </span>
 
@@ -1650,7 +1817,16 @@ export function LifestylePage() {
                         padding: '3px 9px',
                         background: '#ffffff',
                         fontWeight: 700,
-                        color: item.type === 'seizure' ? '#dc2626' : item.type === 'sleep' ? '#4f46e5' : '#d97706',
+                        color:
+                          item.type === 'seizure'
+                            ? '#dc2626'
+                            : item.type === 'sleep'
+                            ? '#4f46e5'
+                            : item.type === 'trigger'
+                            ? '#d97706'
+                            : item.type === 'diet'
+                            ? '#16a34a'
+                            : '#059669',
                         border: '1px solid rgba(0,0,0,0.08)',
                       }}
                     >
@@ -1659,13 +1835,26 @@ export function LifestylePage() {
 
                     <button
                       type="button"
-                      onClick={() =>
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedLogDetails(item);
+                      }}
+                      className="lifestyle-card-view-btn"
+                      title="Inspect full log details"
+                    >
+                      <Eye size={13} />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
                         setDeleteTarget({
                           id: item.rawId,
                           type: item.type,
                           name: item.title,
-                        })
-                      }
+                        });
+                      }}
                       title="Delete entry"
                       style={{
                         background: 'none',
@@ -1776,6 +1965,269 @@ export function LifestylePage() {
           )}
         </div>
       </div>
+
+
+      {/* ── Detailed Telemetry Log Viewer Modal ── */}
+      {selectedLogDetails && (
+        <div
+          className="glass-backdrop lifestyle-detail-modal-overlay"
+          onClick={() => setSelectedLogDetails(null)}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div
+            className="lifestyle-detail-modal-box"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="lifestyle-detail-modal-header">
+              <div className="lifestyle-detail-header-left">
+                <div className={`lifestyle-detail-icon-pill ${selectedLogDetails.type}`}>
+                  {selectedLogDetails.type === 'seizure' && <Activity size={20} />}
+                  {selectedLogDetails.type === 'sleep' && <Moon size={20} />}
+                  {selectedLogDetails.type === 'trigger' && <Zap size={20} />}
+                  {selectedLogDetails.type === 'diet' && <Utensils size={20} />}
+                  {selectedLogDetails.type === 'habits' && <Monitor size={20} />}
+                </div>
+                <div>
+                  <span className={`lifestyle-detail-tag ${selectedLogDetails.type}`}>
+                    {selectedLogDetails.type === 'seizure' && '⚡ Clinical Seizure Telemetry'}
+                    {selectedLogDetails.type === 'sleep' && '🌙 Sleep Telemetry Entry'}
+                    {selectedLogDetails.type === 'trigger' && '⚠️ Environmental Trigger'}
+                    {selectedLogDetails.type === 'diet' && '🥗 Diet & Nutrition'}
+                    {selectedLogDetails.type === 'habits' && '💻 Digital & Lifestyle Habit'}
+                  </span>
+                  <h3 className="lifestyle-detail-title">{selectedLogDetails.title}</h3>
+                  <p className="lifestyle-detail-timestamp">
+                    <Clock size={12} style={{ display: 'inline', marginRight: '4px' }} />
+                    {selectedLogDetails.date.toLocaleDateString('en-US', {
+                      weekday: 'long',
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric',
+                      hour: 'numeric',
+                      minute: '2-digit',
+                    })}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                className="lifestyle-detail-close-btn"
+                onClick={() => setSelectedLogDetails(null)}
+                title="Close dialog"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Modal Content Bento */}
+            <div className="lifestyle-detail-modal-body">
+              {/* 1. Seizure Details */}
+              {selectedLogDetails.type === 'seizure' && (
+                <div className="lifestyle-detail-bento-grid">
+                  <div className="lifestyle-detail-metric-card">
+                    <span className="metric-label">Duration</span>
+                    <span className="metric-value">
+                      {Math.floor((selectedLogDetails.rawDetails?.duration_seconds || 0) / 60)}m{' '}
+                      {(selectedLogDetails.rawDetails?.duration_seconds || 0) % 60}s
+                    </span>
+                  </div>
+                  <div className="lifestyle-detail-metric-card">
+                    <span className="metric-label">Classification</span>
+                    <span className="metric-value small">
+                      {selectedLogDetails.rawDetails?.seizure_type || 'Unknown'}
+                    </span>
+                  </div>
+
+                  {/* Pre-Ictal Auras */}
+                  <div className="lifestyle-detail-full-card">
+                    <span className="detail-section-title">
+                      <Flame size={14} style={{ color: '#d97706' }} /> Pre-Ictal Warning Signs (Auras Felt)
+                    </span>
+                    {selectedLogDetails.rawDetails?.auras_felt && selectedLogDetails.rawDetails.auras_felt.length > 0 ? (
+                      <div className="lifestyle-detail-chips">
+                        {selectedLogDetails.rawDetails.auras_felt.map((a: string) => (
+                          <span key={a} className="lifestyle-detail-chip amber">
+                            {a}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="lifestyle-detail-empty-text">No warning signs or auras reported for this episode.</p>
+                    )}
+                  </div>
+
+                  {/* Post-Ictal Recovery */}
+                  <div className="lifestyle-detail-full-card">
+                    <span className="detail-section-title">
+                      <Clock size={14} style={{ color: '#4f46e5' }} /> Post-Ictal Recovery Symptoms
+                    </span>
+                    {selectedLogDetails.rawDetails?.post_ictal_symptoms &&
+                    selectedLogDetails.rawDetails.post_ictal_symptoms.length > 0 ? (
+                      <div className="lifestyle-detail-chips">
+                        {selectedLogDetails.rawDetails.post_ictal_symptoms.map((sym: string) => (
+                          <span key={sym} className="lifestyle-detail-chip indigo">
+                            {sym}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="lifestyle-detail-empty-text">No recovery symptoms reported for this episode.</p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* 2. Sleep Details */}
+              {selectedLogDetails.type === 'sleep' && (
+                <div className="lifestyle-detail-bento-grid">
+                  <div className="lifestyle-detail-metric-card">
+                    <span className="metric-label">Total Sleep</span>
+                    <span className="metric-value">
+                      {((selectedLogDetails.rawDetails?.duration_minutes || 0) / 60).toFixed(1)} hrs
+                    </span>
+                  </div>
+                  <div className="lifestyle-detail-metric-card">
+                    <span className="metric-label">Quality Score</span>
+                    <span className="metric-value">
+                      ⭐ {selectedLogDetails.rawDetails?.quality || 3} / 5
+                    </span>
+                  </div>
+                  <div className="lifestyle-detail-full-card">
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                      <div>
+                        <span className="metric-label">Bedtime</span>
+                        <span className="metric-sub-value">
+                          {selectedLogDetails.rawDetails?.slept_at
+                            ? new Date(selectedLogDetails.rawDetails.slept_at).toLocaleTimeString('en-US', {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })
+                            : 'Not recorded'}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="metric-label">Wakeup Time</span>
+                        <span className="metric-sub-value">
+                          {selectedLogDetails.rawDetails?.woke_at
+                            ? new Date(selectedLogDetails.rawDetails.woke_at).toLocaleTimeString('en-US', {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })
+                            : 'Not recorded'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 3. Trigger Details */}
+              {selectedLogDetails.type === 'trigger' && (
+                <div className="lifestyle-detail-bento-grid">
+                  <div className="lifestyle-detail-metric-card">
+                    <span className="metric-label">Trigger Name</span>
+                    <span className="metric-value small">
+                      {selectedLogDetails.rawDetails?.trigger_name || selectedLogDetails.title}
+                    </span>
+                  </div>
+                  <div className="lifestyle-detail-metric-card">
+                    <span className="metric-label">Severity Level</span>
+                    <span className="metric-value" style={{ color: '#d97706' }}>
+                      Level {selectedLogDetails.rawDetails?.severity || 1} / 5
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* 4. Diet Details */}
+              {selectedLogDetails.type === 'diet' && (
+                <div className="lifestyle-detail-bento-grid">
+                  <div className="lifestyle-detail-metric-card">
+                    <span className="metric-label">Keto / Medical Diet</span>
+                    <span
+                      className="metric-value"
+                      style={{ color: selectedLogDetails.rawDetails?.keto_compliant ? '#16a34a' : '#d97706' }}
+                    >
+                      {selectedLogDetails.rawDetails?.keto_compliant ? '✅ Compliant' : 'Standard Diet'}
+                    </span>
+                  </div>
+                  <div className="lifestyle-detail-metric-card">
+                    <span className="metric-label">Alcohol / Stimulants</span>
+                    <span
+                      className="metric-value"
+                      style={{ color: selectedLogDetails.rawDetails?.alcohol_consumed ? '#dc2626' : '#16a34a' }}
+                    >
+                      {selectedLogDetails.rawDetails?.alcohol_consumed ? '⚠️ Consumed' : 'None'}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* 5. Habits / Screen Time Details */}
+              {selectedLogDetails.type === 'habits' && (
+                <div className="lifestyle-detail-bento-grid">
+                  <div className="lifestyle-detail-metric-card">
+                    <span className="metric-label">Screen Time</span>
+                    <span className="metric-value">
+                      {selectedLogDetails.rawDetails?.duration_hours || 0} Hours
+                    </span>
+                  </div>
+                  <div className="lifestyle-detail-metric-card">
+                    <span className="metric-label">Late Night Exposure</span>
+                    <span
+                      className="metric-value"
+                      style={{ color: selectedLogDetails.rawDetails?.night_exposure ? '#dc2626' : '#16a34a' }}
+                    >
+                      {selectedLogDetails.rawDetails?.night_exposure ? '⚠️ Yes in Dark Room' : '✅ Day / Lit Room'}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Observation & Clinical Notes */}
+              {selectedLogDetails.notes && (
+                <div className="lifestyle-detail-notes-card">
+                  <span className="detail-section-title">
+                    <FileText size={14} /> Clinical Notes & Observations
+                  </span>
+                  <p className="lifestyle-detail-notes-text">"{selectedLogDetails.notes}"</p>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer Actions */}
+            <div className="lifestyle-detail-modal-footer">
+              <button
+                type="button"
+                className="lifestyle-cancel-btn"
+                onClick={() => {
+                  setDeleteTarget({
+                    id: selectedLogDetails.rawId,
+                    type: selectedLogDetails.type,
+                    name: selectedLogDetails.title,
+                  });
+                }}
+                style={{ color: '#dc2626', borderColor: 'rgba(220, 38, 38, 0.3)' }}
+              >
+                <Trash2 size={14} />
+                <span>Delete Log</span>
+              </button>
+
+              <button
+                type="button"
+                className="lifestyle-submit-btn seizure"
+                onClick={() => setSelectedLogDetails(null)}
+                style={{ padding: '10px 24px', fontSize: '13px' }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Delete Confirmation Dialog ── */}
       <ConfirmDialog

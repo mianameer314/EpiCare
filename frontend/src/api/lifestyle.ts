@@ -130,12 +130,17 @@ export const lifestyleApi = {
     apiClient.post<LifestyleLog>('/lifestyle/illness', data),
 
   // Generic lifestyle list
-  getGenericLogs: (params?: { skip?: number; limit?: number; log_type?: string }) => {
+  getGenericLogs: (params?: { skip?: number; limit?: number; log_type?: string; start_date?: string; end_date?: string }) => {
     const sp = new URLSearchParams();
     if (params?.skip !== undefined) sp.set('skip', String(params.skip));
     if (params?.limit !== undefined) sp.set('limit', String(params.limit));
     if (params?.log_type) sp.set('log_type', params.log_type);
+    if (params?.start_date) sp.set('start_date', params.start_date);
+    if (params?.end_date) sp.set('end_date', params.end_date);
     const qs = sp.toString();
-    return apiClient.get<PaginatedLifestyleLogs>(`/lifestyle/generic${qs ? `?${qs}` : ''}`);
+    return apiClient.get<PaginatedLifestyleLogs>(`/lifestyle/logs${qs ? `?${qs}` : ''}`);
   },
+
+  deleteGenericLog: (id: number) =>
+    apiClient.delete<void>(`/lifestyle/logs/${id}`),
 };
