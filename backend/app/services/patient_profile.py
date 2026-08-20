@@ -34,7 +34,7 @@ async def create_profile(db: AsyncSession, user_id: int, data: PatientProfileCre
 async def upsert_profile(db: AsyncSession, user_id: int, data: PatientProfileUpdate) -> PatientProfile:
     """Create or update the profile for a user."""
     profile = await get_profile_for_user(db, user_id)
-    update_data = data.model_dump(exclude_unset=True, exclude_none=True)
+    update_data = data.model_dump(exclude_unset=True)
 
     if profile is None:
         profile = PatientProfile(user_id=user_id, **update_data)

@@ -26,7 +26,7 @@ export const authApi = {
   getMe: () => 
     apiClient.get<User>('/auth/me'),
 
-  updateProfile: (data: { full_name?: string; phone_number?: string }) =>
+  updateProfile: (data: { full_name?: string; phone_number?: string | null }) =>
     apiClient.patch<User>('/auth/me', data),
 
   uploadProfilePhoto: (file: File) => {

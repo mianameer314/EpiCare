@@ -276,7 +276,7 @@ async def reset_user_password(db: AsyncSession, user: User, otp: str, new_passwo
 
 async def update_profile(db: AsyncSession, user: User, data: UserProfileUpdate) -> User:
     """Update the current user's own profile fields."""
-    update_data = data.model_dump(exclude_unset=True, exclude_none=True)
+    update_data = data.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(user, field, value)
     await db.commit()

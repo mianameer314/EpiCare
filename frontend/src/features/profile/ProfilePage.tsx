@@ -561,8 +561,8 @@ export function ProfilePage() {
   const isBioDirty = useMemo(() => {
     if (!user) return false;
     return (
-      bioForm.full_name.trim() !== (user.full_name || '') ||
-      bioForm.phone_number.trim() !== (user.phone_number || '') ||
+      (bioForm.full_name || '').trim() !== (user.full_name || '').trim() ||
+      (bioForm.phone_number || '').trim() !== (user.phone_number || '').trim() ||
       Boolean(pendingSharedPhotoFile) ||
       removePendingSharedPhoto
     );
@@ -668,26 +668,26 @@ export function ProfilePage() {
   // Check if Patient form has unsaved modifications
   const isPatientDirty = useMemo(() => {
     if (!patientProfile) return false;
-    const initialDob = patientProfile.date_of_birth || '';
-    const currentDob = patientForm.date_of_birth || '';
-    const initialBlood = patientProfile.blood_type || '';
-    const currentBlood = patientForm.blood_type || '';
-    const initialCity = patientProfile.city || '';
-    const currentCity = patientForm.city || '';
-    const initialDiag = patientProfile.primary_diagnosis || '';
-    const currentDiag = patientForm.primary_diagnosis || '';
-    const initialEmName = patientProfile.emergency_contact_name || '';
-    const currentEmName = patientForm.emergency_contact_name || '';
-    const initialEmPhone = patientProfile.emergency_contact_phone || '';
-    const currentEmPhone = patientForm.emergency_contact_phone || '';
-    const initialEmRel = patientProfile.emergency_contact_relation || '';
-    const currentEmRel = patientForm.emergency_contact_relation || '';
-    const initialGender = patientProfile.gender || 'Male';
-    const currentGender = patientForm.gender || 'Male';
-    const initialNotes = patientProfile.notes || '';
-    const currentNotes = patientForm.notes || '';
-    const initialTz = patientProfile.timezone || '';
-    const currentTz = patientForm.timezone || '';
+    const initialDob = (patientProfile.date_of_birth || '').trim();
+    const currentDob = (patientForm.date_of_birth || '').trim();
+    const initialBlood = (patientProfile.blood_type || '').trim();
+    const currentBlood = (patientForm.blood_type || '').trim();
+    const initialCity = (patientProfile.city || '').trim();
+    const currentCity = (patientForm.city || '').trim();
+    const initialDiag = (patientProfile.primary_diagnosis || '').trim();
+    const currentDiag = (patientForm.primary_diagnosis || '').trim();
+    const initialEmName = (patientProfile.emergency_contact_name || '').trim();
+    const currentEmName = (patientForm.emergency_contact_name || '').trim();
+    const initialEmPhone = (patientProfile.emergency_contact_phone || '').trim();
+    const currentEmPhone = (patientForm.emergency_contact_phone || '').trim();
+    const initialEmRel = (patientProfile.emergency_contact_relation || '').trim();
+    const currentEmRel = (patientForm.emergency_contact_relation || '').trim();
+    const initialGender = (patientProfile.gender || 'Male').trim();
+    const currentGender = (patientForm.gender || 'Male').trim();
+    const initialNotes = (patientProfile.notes || '').trim();
+    const currentNotes = (patientForm.notes || '').trim();
+    const initialTz = (patientProfile.timezone || '').trim();
+    const currentTz = (patientForm.timezone || '').trim();
     const initialTriggers = JSON.stringify(patientProfile.known_triggers || []);
     const currentTriggers = JSON.stringify(patientForm.known_triggers || []);
 
@@ -755,9 +755,7 @@ export function ProfilePage() {
     if (user?.role === 'CARETAKER') return isCaretakerDirty || baseDirty;
     return baseDirty;
   }, [user?.role, isPatientDirty, isDoctorDirty, isCaretakerDirty, isBioDirty, isPasswordDirty]);
-
   useUnsavedChanges(isFormDirty, "You have unsaved changes in your profile. Are you sure you want to leave without saving?");
-
   // ── Field-Level Validation Rules ──
   const validateField = (fieldName: keyof ValidationErrors, value: string): string => {
     const trimmed = value ? value.trim() : '';
@@ -881,7 +879,8 @@ export function ProfilePage() {
   // Mutations
   const updatePatientMutation = useMutation({
     mutationFn: (data: PatientProfileData) => usersApi.updatePatientProfile(data),
-    onSuccess: () => {
+    onSuccess: (updatedProfile) => {
+      queryClient.setQueryData(['profile', 'patient'], updatedProfile);
       queryClient.invalidateQueries({ queryKey: ['profile', 'patient'] });
       toast.success('Patient clinical profile saved successfully!');
       setIsEditingPatient(false);
@@ -955,9 +954,9 @@ export function ProfilePage() {
   };
 
   const updateCaretakerMutation = useMutation({
-
     mutationFn: (data: CaretakerProfileData) => usersApi.updateCaretakerProfile(data),
-    onSuccess: () => {
+    onSuccess: (updatedProfile) => {
+      queryClient.setQueryData(['profile', 'caretaker'], updatedProfile);
       queryClient.invalidateQueries({ queryKey: ['profile', 'caretaker'] });
       toast.success('Caregiver details updated successfully!');
       setProfileError('');
@@ -1000,13 +999,13 @@ export function ProfilePage() {
     setErrors({});
     updatePatientMutation.mutate({
       ...patientForm,
-      blood_type: normalizedBlood || undefined,
-      city: patientForm.city?.trim() || undefined,
-      primary_diagnosis: patientForm.primary_diagnosis?.trim() || undefined,
-      emergency_contact_name: patientForm.emergency_contact_name?.trim() || undefined,
-      emergency_contact_relation: patientForm.emergency_contact_relation?.trim() || undefined,
-      emergency_contact_phone: patientForm.emergency_contact_phone?.trim() || undefined,
-      notes: patientForm.notes?.trim() || undefined,
+      blood_type: normalizedBlood || null,
+      city: patientForm.city?.trim() || null,
+      primary_diagnosis: patientForm.primary_diagnosis?.trim() || null,
+      emergency_contact_name: patientForm.emergency_contact_name?.trim() || null,
+      emergency_contact_relation: patientForm.emergency_contact_relation?.trim() || null,
+      emergency_contact_phone: patientForm.emergency_contact_phone?.trim() || null,
+      notes: patientForm.notes?.trim() || null,
     });
   };
 
@@ -1045,19 +1044,19 @@ export function ProfilePage() {
     setErrors({});
     saveDoctorMutation.mutate({
       data: {
-        specialty: doctorForm.specialty?.trim() || undefined,
-        gender: doctorForm.gender || undefined,
-        hospital_affiliation: doctorForm.hospital_affiliation?.trim() || undefined,
+        specialty: doctorForm.specialty?.trim() || null,
+        gender: doctorForm.gender || null,
+        hospital_affiliation: doctorForm.hospital_affiliation?.trim() || null,
         years_of_experience: doctorForm.years_of_experience,
-        consultation_fee: doctorForm.consultation_fee === '' ? undefined : doctorForm.consultation_fee,
+        consultation_fee: doctorForm.consultation_fee === '' ? null : doctorForm.consultation_fee,
         available_days: doctorForm.available_day_start && doctorForm.available_day_end ? [doctorForm.available_day_start, doctorForm.available_day_end] : [],
-        available_day_start: doctorForm.available_day_start || undefined,
-        available_day_end: doctorForm.available_day_end || undefined,
+        available_day_start: doctorForm.available_day_start || null,
+        available_day_end: doctorForm.available_day_end || null,
         available_times: doctorForm.available_time_start && doctorForm.available_time_end ? [doctorForm.available_time_start, doctorForm.available_time_end] : [],
-        available_time_start: doctorForm.available_time_start || undefined,
-        available_time_end: doctorForm.available_time_end || undefined,
+        available_time_start: doctorForm.available_time_start || null,
+        available_time_end: doctorForm.available_time_end || null,
         languages_spoken: doctorForm.languages_spoken || [],
-        bio: doctorForm.bio?.trim() || undefined,
+        bio: doctorForm.bio?.trim() || null,
         consultation_types: doctorForm.consultation_types || [],
       },
       certificate: pendingCertificateFile,
@@ -1083,8 +1082,8 @@ export function ProfilePage() {
 
     setErrors({});
     updateCaretakerMutation.mutate({
-      relationship_to_patient: caretakerForm.relationship_to_patient?.trim() || undefined,
-      crisis_phone_number: caretakerForm.crisis_phone_number?.trim() || undefined,
+      relationship_to_patient: caretakerForm.relationship_to_patient?.trim() || null,
+      crisis_phone_number: caretakerForm.crisis_phone_number?.trim() || null,
     });
   };
 

@@ -326,6 +326,10 @@ export function LifestylePage() {
       showSuccess('Daily diet & digital habits saved.');
       setIsFormOpen(false);
       setConfirmSaveData(null);
+      setScreenHours(4);
+      setNightExposure(false);
+      setKetoCompliant(true);
+      setAlcoholConsumed(false);
     },
     onError: (err: any) => setErrorMessage(err.message || 'Failed to log habits.'),
   });
