@@ -14,8 +14,6 @@ import {
   BrainCircuit,
   ShieldCheck,
   CalendarDays,
-  ClipboardCheck,
-  ArrowUpRight,
   CheckCircle2,
   ClipboardPlus,
   MessageSquareText,
