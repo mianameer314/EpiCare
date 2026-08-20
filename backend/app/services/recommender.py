@@ -346,17 +346,34 @@ class RuleEngine:
 
         # 4. Cap at max 3
         final_rules = unique_candidates[:3]
+        final_rule_ids = [r.rule_id for r in final_rules]
         
-        # 5. Expire old active ones
-        await db.execute(
-            update(Recommendation)
-            .where(Recommendation.user_id == user_id, Recommendation.is_active == True)
-            .values(is_active=False)
+        # Find which ones are currently active
+        current_active_stmt = select(Recommendation).where(
+            Recommendation.user_id == user_id, 
+            Recommendation.is_active == True
         )
+        current_active = (await db.execute(current_active_stmt)).scalars().all()
+        current_active_rule_ids = {r.rule_id: r for r in current_active}
 
-        # 6. Build and persist new recommendations
+        # 5. Expire old active ones that are NO LONGER in final_rules
+        rules_to_expire = [r.id for r in current_active if r.rule_id not in final_rule_ids]
+        if rules_to_expire:
+            await db.execute(
+                update(Recommendation)
+                .where(Recommendation.id.in_(rules_to_expire))
+                .values(is_active=False)
+            )
+
+        # 6. Build and persist new recommendations ONLY for rules that aren't already active
         new_recs = []
         for rule in final_rules:
+            if rule.rule_id in current_active_rule_ids:
+                existing_rec = current_active_rule_ids[rule.rule_id]
+                existing_rec.feature_snapshot_id = snapshot.id
+                new_recs.append(existing_rec)
+                continue
+
             # Graceful RAG fetch
             evidence = await RuleEngine._fetch_rag_evidence(db, rule.search_query)
             

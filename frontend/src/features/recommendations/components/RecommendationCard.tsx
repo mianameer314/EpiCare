@@ -14,7 +14,7 @@ interface RecommendationCardProps {
 }
 
 export function RecommendationCard({ recommendation, onDismiss }: RecommendationCardProps) {
-  const [feedback, setFeedback] = useState<'HELPFUL' | 'NOT_HELPFUL' | null>(
+  const [feedback, setFeedback] = useState<'HELPFUL' | 'NOT_HELPFUL' | 'CLICKED_ACTION' | null>(
     (recommendation as any).user_feedback || null
   );
   const [showWhy, setShowWhy] = useState(false);
@@ -32,6 +32,9 @@ export function RecommendationCard({ recommendation, onDismiss }: Recommendation
       await recommendationsApi.submitFeedback(recommendation.id, type);
       setFeedback(type);
       toast.success(type === 'HELPFUL' ? 'Marked as helpful. Thank you!' : 'Feedback recorded.');
+      if (type === 'NOT_HELPFUL' && onDismiss) {
+        onDismiss(recommendation.id);
+      }
     } catch (err: any) {
       toast.error(err.message || 'Failed to submit feedback.');
     }
