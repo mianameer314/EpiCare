@@ -162,6 +162,13 @@ async def submit_feedback(
                 existing.event_type = feedback_in.event_type
                 if feedback_in.feedback_text:
                     existing.feedback_text = feedback_in.feedback_text
+            
+            # If it's a victory card, conclude the victory lap upon feedback
+            if rec.priority == "VICTORY" and feedback_in.event_type in ["HELPFUL", "NOT_HELPFUL"]:
+                rec.is_active = False
+                rec.is_dismissed = True
+                rec.dismissed_at = func.now()
+                
             await db.commit()
             return {"status": "ok"}
             
@@ -179,6 +186,13 @@ async def submit_feedback(
         rule_version=rec.rule_version
     )
     db.add(feedback)
+    
+    # If it's a victory card, conclude the victory lap upon feedback
+    if rec.priority == "VICTORY" and feedback_in.event_type in ["HELPFUL", "NOT_HELPFUL"]:
+        rec.is_active = False
+        rec.is_dismissed = True
+        rec.dismissed_at = func.now()
+        
     await db.commit()
     return {"status": "ok"}
 

@@ -358,7 +358,24 @@ class RuleEngine:
 
         # 5. Expire old active ones that are NO LONGER in final_rules, or handle Victory Lap
         expired_recs = [r for r in current_active if r.rule_id not in final_rule_ids]
+        
+        # Check which expired/victory recs already have user feedback recorded
+        feedback_given_ids: set[int] = set()
+        if expired_recs:
+            from app.models.recommendation_feedback import RecommendationFeedback
+            feedback_check_stmt = select(RecommendationFeedback.recommendation_id).where(
+                RecommendationFeedback.recommendation_id.in_([r.id for r in expired_recs]),
+                RecommendationFeedback.event_type.in_(["HELPFUL", "NOT_HELPFUL"])
+            )
+            feedback_given_ids = set((await db.execute(feedback_check_stmt)).scalars().all())
+
         for r in expired_recs:
+            # If user already provided feedback on this victory/resolved card, deactivate it immediately
+            if r.id in feedback_given_ids:
+                r.is_active = False
+                r.is_dismissed = True
+                continue
+
             if r.priority != "VICTORY":
                 # Transition to Victory Lap!
                 r.priority = "VICTORY"
@@ -371,6 +388,7 @@ class RuleEngine:
                 # If expires_at is somehow missing, or it's past the expiration time, deactivate it.
                 if not r.expires_at or now >= r.expires_at:
                     r.is_active = False
+                    r.is_dismissed = True
 
         # 6. Build and persist new recommendations ONLY for rules that aren't already active
         new_recs = []

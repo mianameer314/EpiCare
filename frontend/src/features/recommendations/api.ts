@@ -13,7 +13,7 @@ export interface RecommendationOut {
   is_dismissed: boolean;
   evidence_tags?: any[];
   created_at: string;
-  user_feedback?: 'HELPFUL' | 'NOT_HELPFUL' | null;
+  user_feedback?: 'HELPFUL' | 'NOT_HELPFUL' | 'CLICKED_ACTION' | null;
 }
 
 export interface RecommendationWhyOut {

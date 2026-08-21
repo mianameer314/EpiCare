@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { 
-  Lightbulb, AlertCircle, ThumbsUp, ThumbsDown, X, ArrowRight
+  Lightbulb, AlertCircle, CheckCircle2, ThumbsUp, ThumbsDown, X, ArrowRight
 } from 'lucide-react';
 import type { RecommendationOut } from '../api';
 import { recommendationsApi } from '../api';
@@ -21,6 +21,7 @@ export function RecommendationCard({ recommendation, onDismiss }: Recommendation
   const toast = useToast();
   const isImportant = recommendation.priority === 'IMPORTANT';
   const isVictoryLap = recommendation.priority === 'VICTORY';
+  const hasAction = !isVictoryLap && Boolean(recommendation.action_url);
 
   const { data: whyData } = useQuery({
     queryKey: ['recommendationWhy', recommendation.id],
@@ -77,7 +78,7 @@ export function RecommendationCard({ recommendation, onDismiss }: Recommendation
       <div className="recommendation-header">
         <div className="recommendation-title-area">
           <div className={`recommendation-icon ${isImportant ? 'icon-important' : ''} ${isVictoryLap ? 'icon-victory' : ''}`}>
-            {isImportant ? <AlertCircle size={20} /> : <Lightbulb size={20} />}
+            {isVictoryLap ? <CheckCircle2 size={20} /> : isImportant ? <AlertCircle size={20} /> : <Lightbulb size={20} />}
           </div>
           <div>
             <div className="recommendation-category">{recommendation.category.replace('_', ' ')}</div>
@@ -122,26 +123,28 @@ export function RecommendationCard({ recommendation, onDismiss }: Recommendation
         </button>
       )}
 
-      <div className="recommendation-footer">
-        <div className="recommendation-feedback">
-          <span>Was this helpful?</span>
-          <button 
-            className={`feedback-btn ${feedback === 'HELPFUL' ? 'active-helpful' : ''}`}
-            onClick={() => handleFeedback('HELPFUL')}
-            title="Yes"
-          >
-            <ThumbsUp size={14} />
-          </button>
-          <button 
-            className={`feedback-btn ${feedback === 'NOT_HELPFUL' ? 'active-unhelpful' : ''}`}
-            onClick={() => handleFeedback('NOT_HELPFUL')}
-            title="No"
-          >
-            <ThumbsDown size={14} />
-          </button>
-        </div>
+      <div className={`recommendation-footer ${hasAction ? 'footer-action-only' : ''}`}>
+        {!hasAction && (
+          <div className="recommendation-feedback">
+            <span>{isVictoryLap ? 'Was this reminder helpful?' : 'Was this helpful?'}</span>
+            <button 
+              className={`feedback-btn ${feedback === 'HELPFUL' ? 'active-helpful' : ''}`}
+              onClick={() => handleFeedback('HELPFUL')}
+              title="Yes"
+            >
+              <ThumbsUp size={14} />
+            </button>
+            <button 
+              className={`feedback-btn ${feedback === 'NOT_HELPFUL' ? 'active-unhelpful' : ''}`}
+              onClick={() => handleFeedback('NOT_HELPFUL')}
+              title="No"
+            >
+              <ThumbsDown size={14} />
+            </button>
+          </div>
+        )}
         
-        {!isVictoryLap && recommendation.action_url && (
+        {hasAction && (
           <a 
             href={recommendation.action_url} 
             className="action-link"
