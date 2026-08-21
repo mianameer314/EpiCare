@@ -933,6 +933,7 @@ export function MedicationsPage() {
                     type="date"
                     label="Prescription Start Date"
                     required
+                    min={new Date().toISOString().split('T')[0]}
                     value={formData.start_date}
                     onChange={(e) => setFormData(p => ({ ...p, start_date: e.target.value }))}
                   />
