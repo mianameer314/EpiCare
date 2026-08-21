@@ -10,7 +10,8 @@ import {
   Moon,
   Activity,
   ShieldAlert,
-  Pill
+  Pill,
+  Award
 } from 'lucide-react';
 import type { RecommendationOut } from '../api';
 import { recommendationsApi } from '../api';
@@ -90,8 +91,8 @@ export function RecommendationCard({ recommendation, onDismiss }: Recommendation
       return (
         <div className="card-metric-container victory-metric-container">
           <div className="metric-header-row">
-            <span className="metric-label"><CheckCircle2 size={13} /> Resolution Status</span>
-            <span className="metric-chip victory-chip">Target Achieved ✓</span>
+            <span className="metric-label"><Award size={13} /> Resolution Status</span>
+            <span className="metric-chip victory-chip"><CheckCircle2 size={11} /> Target Achieved</span>
           </div>
         </div>
       );
@@ -205,11 +206,11 @@ export function RecommendationCard({ recommendation, onDismiss }: Recommendation
       <div className="recommendation-header">
         <div className="recommendation-title-area">
           <div className={`recommendation-icon ${isImportant ? 'icon-important' : ''} ${isVictoryLap ? 'icon-victory' : ''}`}>
-            {isVictoryLap ? <CheckCircle2 size={20} /> : isImportant ? <AlertCircle size={20} /> : <Lightbulb size={20} />}
+            {isVictoryLap ? <Award size={20} /> : isImportant ? <AlertCircle size={20} /> : <Lightbulb size={20} />}
           </div>
           <div>
             <div className="recommendation-category">{recommendation.category.replace('_', ' ')}</div>
-            <h4 className="recommendation-title">{recommendation.title}</h4>
+            <h4 className="recommendation-title">{recommendation.title.replace(/^✅\s*/, '')}</h4>
           </div>
         </div>
         {!isVictoryLap && (

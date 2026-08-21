@@ -331,6 +331,33 @@
   border: 1px solid #c7d2fe;
 }
 
+.history-action-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #1e3d2b;
+  background: #f7f9f8;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  text-decoration: none;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 
+    -2px -2px 6px #ffffff,
+    2px 2px 6px #d2ded5;
+}
+
+.history-action-chip:hover {
+  background: #e6ece8;
+  color: #059669;
+  transform: translateY(-1px);
+  box-shadow: 
+    -3px -3px 8px #ffffff,
+    3px 3px 8px #c8d4cd;
+}
+
 .history-date-stamp {
   display: inline-flex;
   align-items: center;

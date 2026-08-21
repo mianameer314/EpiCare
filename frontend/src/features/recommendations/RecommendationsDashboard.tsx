@@ -8,7 +8,6 @@ import {
   Lightbulb, 
   AlertTriangle, 
   Loader2, 
-  CheckCircle2, 
   Clock, 
   XCircle, 
   CircleDot, 
@@ -21,7 +20,9 @@ import {
   ShieldAlert, 
   Activity, 
   Pill, 
-  BookOpen
+  BookOpen,
+  Award,
+  ArrowUpRight
 } from 'lucide-react';
 import { useToast } from '../../providers/ToastProvider';
 import './RecommendationsDashboard.css';
@@ -105,11 +106,21 @@ export function RecommendationsDashboard() {
     return <BookOpen size={13} />;
   };
 
+  const getActionLabel = (url?: string) => {
+    if (!url) return null;
+    if (url.includes('lifestyle')) return 'Lifestyle Journal';
+    if (url.includes('emergency')) return 'Emergency Plan';
+    if (url.includes('medication')) return 'Prescriptions';
+    if (url.includes('eeg')) return 'EEG Diagnostics';
+    if (url.includes('dashboard')) return 'Overview Dashboard';
+    return 'View Resource';
+  };
+
   const getStatusBadge = (rec: RecommendationOut) => {
     if (rec.priority === 'VICTORY') {
       return (
         <span className="history-status-badge status-resolved">
-          <CheckCircle2 size={12} /> Action Completed & Resolved
+          <Award size={12} /> Target Achieved & Resolved
         </span>
       );
     }
@@ -261,7 +272,7 @@ export function RecommendationsDashboard() {
                   </div>
 
                   <div className="history-card-main">
-                    <h4 className="history-card-title">{rec.title}</h4>
+                    <h4 className="history-card-title">{rec.title.replace(/^✅\s*/, '')}</h4>
                     <p className="history-card-body">{rec.body}</p>
                   </div>
 
@@ -283,9 +294,14 @@ export function RecommendationsDashboard() {
                         </span>
                       )}
                       {rec.action_url && (
-                        <span style={{ fontSize: '0.72rem', color: '#6b7c72' }}>
-                          Target: <code style={{ background: '#eef2ef', padding: '2px 6px', borderRadius: '4px' }}>{rec.action_url}</code>
-                        </span>
+                        <a 
+                          href={rec.action_url} 
+                          className="history-action-chip"
+                          title={`Navigate to ${getActionLabel(rec.action_url)}`}
+                        >
+                          <span>{getActionLabel(rec.action_url)}</span>
+                          <ArrowUpRight size={11} />
+                        </a>
                       )}
                     </div>
 
