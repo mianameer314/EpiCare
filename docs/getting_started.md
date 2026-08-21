@@ -5,9 +5,11 @@
 - Python 3.12+ 
 - PostgreSQL 15 running locally on port 5432
 - (Optional) Redis on 6379 — falls back to in-memory rate limiting
-- Node.js 20+ for the frontend (not yet built)
+- Node.js 20+ for the live React/Vite frontend
 
 ## 2. Backend setup (Windows / PowerShell)
+
+> The backend and frontend are implemented separately. Start the backend first, then use a second terminal for the frontend commands below. RAG retrieval and VLM report generation are intentionally not enabled until their future implementation milestones are completed.
 
 ```powershell
 # 1. Create venv + install deps
@@ -30,7 +32,17 @@ python -m venv .venv
 
 Interactive API docs: **http://127.0.0.1:8000/docs**
 
-## 3. Manual End-to-End Smoke Test
+## 3. Frontend setup (second terminal)
+
+```powershell
+cd frontend
+npm install
+npm run dev
+```
+
+Open **http://localhost:5173** after the backend is available on port `8000`.
+
+## 4. Manual End-to-End Smoke Test
 
 ```powershell
 # 1. Health

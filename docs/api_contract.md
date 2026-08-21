@@ -1,6 +1,8 @@
 # EpiCare API Contract
 
-This document is  the 100% matched to the FastAPI codebase.
+> **Status note — 21 August 2026:** This document is a maintained API reference, but it is not a generated OpenAPI snapshot and must be reconciled against `backend/app/api/v1/` when routes change. The live FastAPI app is the source of truth. The verified completion matrix is [`implementation_status.md`](implementation_status.md).
+>
+> The current repository includes additional profile-photo, doctor-profile, recommendation, dashboard, chat, and network routes beyond older sections of this document. Do not use the phrase “100% matched” unless the contract has been regenerated and checked against the running application.
 
 ## System health & status
 

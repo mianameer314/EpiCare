@@ -2,15 +2,16 @@
 
 > Source material: EpiCare proposal (EEG seizure detection + AI reports + RAG chatbot + lifestyle management).
 > Code standard reference: O2Geeks Branding System (`BRANDING-SYSTEM` backend, `BRANDING-SYSTEM-FRONTEND` frontend).
+> **Verified status — 21 August 2026:** The current repository is the source of truth. RAG retrieval and VLM report generation remain future work; see [`implementation_status.md`](implementation_status.md).
 
 ## 1. System Overview
 
 EpiCare is a full-stack AI web application for epilepsy detection and daily management:
 
-- Upload EEG (EDF/CSV) → validate → preprocess → dual-domain CNN inference → structured AI report → history dashboard.
-- Supporting modules: RAG medical chatbot, medication tracker, lifestyle/trigger logging, recommendations, emergency contacts + SOS, patient profile.
+- Upload EEG (EDF/CSV) → validate → preprocess → frozen ONNX inference → prediction/history dashboard; VLM reporting is an optional future step.
+- Supporting modules: chat persistence with deterministic clinical fallback, medication tracker, lifestyle/trigger logging, recommendations, emergency contacts + SOS, patient/doctor/caretaker/admin profiles, and care networks.
 
-Out of scope for the FYP: doctor portal, community, wearable EEG, hospital integration, pre-ictal prediction, MRI/fMRI, real emergency services, mobile app.
+Future AI work: production RAG retrieval and VLM report generation. Out of scope for the FYP: community features, wearable EEG, hospital integration, pre-ictal prediction, MRI/fMRI, guaranteed real emergency dispatch, and native mobile apps.
 
 ## 2. Technology Stack (Frozen)
 
@@ -22,12 +23,12 @@ Out of scope for the FYP: doctor portal, community, wearable EEG, hospital integ
 | Auth | JWT access + refresh tokens, bcrypt password hashing |
 | ML training | PyTorch, MNE, SciPy, NumPy, scikit-learn |
 | ML inference | ONNX Runtime (model artifact = `model.onnx`) |
-| RAG | pgvector + embeddings + LLM API (LangChain or direct implementation) |
-| Reports | Structured, grounded generation with strict output validation (no free-form diagnosis) |
+| RAG | pgvector and embedding infrastructure; production ingestion/retrieval/citations pending |
+| Reports | Structured report boundary; VLM inference pending; no free-form diagnosis |
 | Recommender | Rules + KNN / Random Forest |
-| SOS | Browser Geolocation + Twilio SMS (simulated alerts for FYP) |
-| Background jobs | APScheduler (initial); Celery + Redis only if needed |
-| Storage | Local filesystem during FYP; S3-compatible later via `StorageService` abstraction |
+| SOS | Browser Geolocation with Email/Firebase/WhatsApp/Twilio providers and development fallbacks |
+| Background jobs | APScheduler with best-effort startup |
+| Storage | Local filesystem and boto3 S3-compatible provider through `StorageService` |
 | Deployment | Docker Compose; frontend can also deploy to Vercel |
 
 ## 3. High-Level Architecture
@@ -168,6 +169,6 @@ Error shape (consistent): `{ "error": { "code": "...", "message": "...", "detail
 ## 9. Conventions Inherited from the Branding System
 
 - Backend layering, `DbDep`/`CurrentUser` dependency aliases, service modules with query/action sections, `PaginatedResponse[T]` generic.
-- Storage abstraction: `StorageService` (save/get/delete) with provider plugins (Local now, S3 later) + pending-upload rollback.
+- Storage abstraction: `StorageService` (save/get/delete) with Local and S3-compatible providers plus pending-upload rollback.
 - Frontend feature-based modules (`types.ts` / `api.ts` / `hooks.ts` / pages), centralized `endpoints.ts`, env validation in `config/env.ts`, axios refresh queue, `QueryProvider` defaults (30s staleTime, retry 1, no refetch on window focus).
 - Tailwind v4 design tokens via `@theme` mapping to CSS variables.

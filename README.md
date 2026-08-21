@@ -1,6 +1,8 @@
 # EpiCare — AI-Powered Epilepsy Care Platform
 
 > **Complete Engineering Handbook** — architecture, RBAC, profiles, connections, auth (OTP), EEG pipeline, model registry, configuration, and testing.
+>
+> **Verified status — 21 August 2026:** The core platform is substantially implemented. The two major unfinished AI areas are **RAG retrieval** and **VLM report generation**. The repository is **not yet 100% release-complete** because four backend tests fail, several SOS providers simulate success when credentials are absent, frontend lint warnings remain, and documentation is being synchronized. See [`docs/implementation_status.md`](docs/implementation_status.md) for the evidence-based matrix and future-session memory.
 
 EpiCare is a full-stack AI web application for **epilepsy detection and daily management**:
 
@@ -69,11 +71,12 @@ EpiCare is an end-to-end epilepsy care platform built for a final-year project (
 | **Auth** | PyJWT (access + refresh), passlib/bcrypt, email OTP via `fastapi-mail` |
 | **EEG processing** | MNE, NumPy, SciPy (bandpass, notch, STFT) |
 | **ML inference** | ONNX Runtime (`model.onnx` artifact) |
-| **AI / RAG (planned)** | OpenAI-compatible API, pgvector embeddings, LangChain core |
+| **AI / RAG** | Deterministic clinical knowledge engine is present; production retrieval, embeddings, citations, and guarded generation remain pending |
+| **VLM reports** | Service boundary is present; model/inference implementation remains pending |
 | **Scheduling** | APScheduler (PostgreSQL job store) |
 | **Rate limiting** | Redis-backed with in-memory fallback |
-| **Storage** | Local filesystem (S3-compatible later via `StorageService` abstraction) |
-| **Frontend (not yet built)** | React + Vite + TypeScript + Tailwind CSS v4, React Router v7, TanStack Query, Axios |
+| **Storage** | Local filesystem plus boto3 S3-compatible provider |
+| **Frontend** | React + Vite + TypeScript + React Router, TanStack Query, Axios, Framer Motion, Recharts |
 | **Deployment** | Docker Compose (`postgres`, `backend`, `frontend`) |
 
 ---
@@ -105,15 +108,15 @@ EpiCare/
 │   │   ├── rate_limit/           # sliding-window limiter
 │   │   ├── scheduler/            # APScheduler wrapper
 │   │   └── templates/email/      # OTP email template
-│   ├── alembic/                  # migrations (3 revisions)
+│   ├── alembic/                  # additive Alembic migration history
 │   ├── tests/                    # pytest suite
 │   ├── .env                      # local secrets (never commit)
 │   ├── requirements.txt
 │   ├── Dockerfile
 │   └── Procfile
-├── frontend/                     # empty skeleton (M4 not started)
+├── frontend/                     # live React/Vite application with role-based routes
 ├── models/seizure_detector/      # versioned model artifacts + current.json
-├── rag/documents/                # RAG corpus (gitignored contents)
+├── rag/documents/                # future RAG corpus; ingestion/retrieval pipeline pending
 ├── training/                     # training code (future)
 ├── scripts/                      # helper scripts
 └── storage/                      # uploaded files (gitignored contents)
@@ -519,7 +522,7 @@ models/seizure_detector/
     ├── preprocessing.json           # preprocess contract (windows, STFT)
     ├── metrics.json                 # eval metrics
     ├── checksum.txt                 # artifact checksum
-    └── model.onnx                   # ❌ MISSING (placeholder only)
+    └── model.onnx                   # serving artifact present in v1 package
 ```
 
 ### 10.2 Behavior
@@ -527,7 +530,7 @@ models/seizure_detector/
 - `app/ml/model_registry.py` resolves `current.json` → `ModelPackage`.
 - `app/ml/model_loader.py` loads the ONNX session, validates inputs, runs a warm-up.
 - If anything is missing (or ONNX Runtime is absent), **the server still boots**; `/system/model` reports `status: "unavailable"` and EEG analyze returns **503**.
-- The placeholder currently has **no `model.onnx`**, so inference is unavailable until a real artifact is dropped in.
+- The current v1 package includes `model.onnx` and the serving contracts. If the registry reports unavailable, inspect `/api/v1/system/model` and package integrity before troubleshooting.
 ---
 
 ## 11. API Reference
@@ -655,7 +658,7 @@ All settings live in `backend/app/core/config.py` (pydantic-settings), overridde
 - Python 3.12+ (project developed on 3.14)
 - PostgreSQL 15 running locally on port 5432
 - (Optional) Redis on 6379 — falls back to in-memory rate limiting
-- Node.js 20+ for the frontend (not yet built)
+- Node.js 20+ for the live React/Vite frontend
 
 ### 13.2 Backend setup (Windows / PowerShell)
 
@@ -762,7 +765,7 @@ psql -U postgres -c "CREATE DATABASE epicare_test OWNER epicare;"
 
 The test suite covers the new RBAC architecture, OTP verification, robust profile validation, connection requests between patients and doctors, the entire EEG processing pipeline, and the comprehensive Admin Dashboard operations.
 
-All **59 tests are passing successfully**.
+The latest audit found four failing backend tests; see [`docs/testing.md`](docs/testing.md) and [`docs/implementation_status.md`](docs/implementation_status.md) for the exact names and current status.
 
 ---
 
@@ -808,30 +811,30 @@ RequestContextMiddleware → SecurityHeadersMiddleware → TwilioSignatureMiddle
 
 | # | Issue | Impact | Fix direction |
 | --- | --- | --- | --- |
-| 1 | `rag_chunks` skipped locally (no pgvector extension) | RAG/chatbot unavailable | Install pgvector into local Postgres or use Docker image with pgvector |
-| 2 | No `model.onnx` artifact | `/eeg/.../analyze` returns 503 | Train/export a model into `models/seizure_detector/versions/v1/` |
-| 3 | `users.role` default applies to new rows only; legacy rows may lack profiles | Old test users have no role-specific profile | Re-register users or backfill |
-| 4 | Patient `date_of_birth` placeholder = today at registration | Wrong DOB until user updates | Collect DOB during registration or update via profile endpoint |
-| 5 | SMS OTP is a debug print | No real SMS | Swap in Twilio/Lifetimesms call in `services/user.py` |
-| 6 | Frontend is an empty skeleton | No UI yet | Build M4 (React/Vite) mirroring BRANDING-SYSTEM-FRONTEND |
-| 7 | Redis not installed in venv | Rate limiter always falls back to memory | Add `redis` package + Redis server |
+| 1 | RAG ingestion/retrieval is scaffolded only | Uploaded documents remain `PENDING_AI_TEAM`; chat uses a deterministic fallback instead of vector retrieval | Implement PDF extraction, chunking, embeddings, pgvector search, citations, and guardrails |
+| 2 | VLM report service is a stub | EEG predictions can complete without an AI report; VLM reports are unavailable or dummy | Implement the VLM adapter, structured validation, model versioning, and regression tests |
+| 3 | Four backend tests fail | The release test suite is not clean | Reconcile channel-mapping/preprocessing assertions and medication authorization behavior |
+| 4 | SOS providers simulate `SENT` when credentials are absent | Development may appear successful without real delivery | Return explicit configuration status and test configured providers |
+| 5 | Local profile/notification/email behavior depends on environment variables | Uploads, email, Firebase, WhatsApp, Twilio, and S3 cannot be verified without valid credentials | Maintain clear `.env.example` values and deployment smoke tests |
+| 6 | Frontend lint reports warnings | Build passes, but code-quality checks are not warning-free | Resolve Fast Refresh exports, hook dependencies, and the no-unused-expression warning |
+| 7 | Some historical documentation is stale | Developers may follow obsolete routes, schema fields, model status, or milestone claims | Treat `docs/implementation_status.md` as canonical and synchronize the older docs |
 
 ---
 
 ## 18. Roadmap
 
-Progress tracking lives in `progress.md`. Milestone summary:
+The detailed, evidence-based status is maintained in [`docs/implementation_status.md`](docs/implementation_status.md). The current roadmap is:
 
-| Milestone | Status |
+| Area | Status |
 | --- | --- |
-| M1 — Architecture & guardrails | ✅ done (docs exist) |
-| M2 — Backend & DB foundation | ✅ largely done (config, models, auth, migrations) |
-| M3 — EEG upload → inference | ✅ backend done (pipeline + services + tests) |
-| M4 — Core frontend (upload → result) | ⬜ not started (empty `frontend/`) |
-| M5 — AI report + RAG chatbot | ⬜ planned (services stubs, no pgvector locally) |
-| M6 — Medication, lifestyle, recommendations | ✅ done (all trackers, scheduling, and recommender built) |
-| M7 — SOS + dashboard + background jobs | ✅ done (endpoints live, background tasks active) |
-| M8 — Security, testing, deployment | ✅ done (all tests passing, Docker compose present) |
+| Architecture, backend foundation, database, migrations, authentication | ✅ Implemented |
+| EEG upload, preprocessing, frozen model serving, prediction history | ✅ Implemented for serving; clinical readiness is not claimed |
+| Frontend application and role-based workspaces | ✅ Implemented; lint warnings remain |
+| Profiles, doctor verification, networks, shared photos, staged uploads | ✅ Implemented |
+| Medications, lifestyle, recommendations, dashboard, admin, emergency flows | ✅ Implemented with the documented test/provider qualifications |
+| Production RAG ingestion and retrieval | ⬜ Future implementation |
+| Production VLM report generation | ⬜ Future implementation |
+| Release hardening and clean test suite | [~] In progress |
 
 ---
 
@@ -847,13 +850,13 @@ A: Yes — `patient_doctor_networks` is a junction table; multiple rows per pati
 A: `is_pmdc_verified` defaults to `False`; an admin must set it to `True` using the Admin Dashboard API before login/approve flows unlock.
 
 **Q: How do I get the OTP in development?**
-A: If SMTP is configured, it's emailed; otherwise the server console prints `DEBUG (SMS Gateway Skipped): Sending OTP <code> ...` from `services/user.py`. When email settings are absent, `email.py` logs "Would have sent OTP ...".
+A: If Gmail API or SMTP is configured, the OTP is emailed. If no delivery transport is configured, the email service logs or suppresses delivery for development; this is not a production notification path.
 
 **Q: What happens if I don't have Redis?**
 A: Nothing breaks — the rate limiter logs a warning and uses the in-memory fallback.
 
-**Q: Why is EEG analysis returning 503?**
-A: The active model (`v1`) has no `model.onnx` artifact. Add one and it will load automatically.
+**Q: Why might EEG analysis return 503?**
+A: The model registry returns 503 when the serving package is unavailable or fails integrity validation. The current v1 repository package includes `model.onnx`; check `/api/v1/system/model` and the package manifest before troubleshooting.
 
 **Q: Where do migrations get the database URL?**
 A: From `backend/.env` → `DATABASE_URL`; `alembic/env.py` swaps `+asyncpg` → sync psycopg2 automatically.

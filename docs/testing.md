@@ -31,6 +31,13 @@ psql -U postgres -c "CREATE DATABASE epicare_test OWNER epicare;"
 
 ## 3. Current Status
 
-The test suite covers the new RBAC architecture, OTP verification, robust profile validation, connection requests between patients and doctors, the entire EEG processing pipeline, and the comprehensive Admin Dashboard operations.
+The test suite covers the RBAC architecture, OTP verification, profile validation, patient-doctor connection requests, EEG processing, medication workflows, and Admin Dashboard operations.
 
-All tests are expected to pass successfully on the current main branch.
+The latest audit run compiled the backend successfully but reported four failing tests:
+
+- `test_channel_mapper.py::test_bipolar_graph_reconstruction_recovers_zero_mean_potentials`
+- `test_eeg_preprocessing.py::test_common_average_reference_zeroes_instantaneous_channel_mean`
+- `test_medications_api.py::test_patient_cannot_prescribe`
+- `test_medications_api.py::test_doctor_creates_schedule_patient_logs_dose`
+
+Do not describe the suite as fully passing until these failures are classified and resolved. The frontend production build passes; frontend lint still reports warnings. See [`implementation_status.md`](implementation_status.md) for the complete release audit.

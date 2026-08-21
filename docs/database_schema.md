@@ -1,6 +1,6 @@
 # EpiCare Database Schema
 
-This document is 100% matched to the SQLAlchemy models.
+> **Status note — 21 August 2026:** This is a maintained schema reference, not an automatically generated snapshot. The live SQLAlchemy models, Alembic migrations, and current database are the source of truth. The doctor profile now also includes gender, certificate metadata, profile-photo metadata, experience, fee, day/time ranges, languages, biography, and consultation types; shared user profile-photo columns are also present. See [`implementation_status.md`](implementation_status.md) for the verified audit and update this document whenever the models or migrations change.
 
 ## Table: `users`
 
