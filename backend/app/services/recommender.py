@@ -236,7 +236,20 @@ RULES: list[RecommendationRule] = [
         get_victory_body=lambda f: "Your emergency safety contact is now registered for crisis SOS broadcasts. Was this reminder helpful?",
     ),
 
-    # --- DIAGNOSTICS ---
+    # --- DIAGNOSTICS & AI EEG DETECTION ---
+    RecommendationRule(
+        rule_id="DIAGNOSTICS_EEG_SEIZURE_DETECTED",
+        rule_version="1.0",
+        category="DIAGNOSTICS_TRACKING",
+        priority="IMPORTANT",
+        condition=lambda f: f.get("eeg_seizure_detections_30d", 0) > 0,
+        title=lambda f: f"AI EEG Analysis: {f.get('eeg_seizure_detections_30d', 1)} seizure pattern(s) identified in diagnostic recordings",
+        body=lambda f: f"Our deep learning seizure detector identified {f.get('eeg_seizure_detections_30d', 1)} epileptiform discharge event(s) across your recent EEG diagnostic sessions. We recommend reviewing the waveform analysis on the EEG Diagnostics page and discussing these findings with your neurologist.",
+        rationale=lambda f: f"Triggered because the AI neural network detected {f.get('eeg_seizure_detections_30d', 1)} seizure/epileptiform pattern(s) in EEG recordings over the last 30 days.",
+        action_url="/eeg",
+        cooldown_hours=24,
+        search_query="epileptiform discharges on EEG and clinical management",
+    ),
     RecommendationRule(
         rule_id="DIAGNOSTICS_REVIEW_REPORT",
         rule_version="1.0",
