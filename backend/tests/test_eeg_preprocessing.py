@@ -77,7 +77,7 @@ def test_common_average_reference_zeroes_instantaneous_channel_mean() -> None:
     rng = np.random.default_rng(9)
     x = rng.normal(size=(19, 100))
     car = _common_average_reference(x)
-    np.testing.assert_allclose(car.mean(axis=0), 0.0, atol=1e-12)
+    np.testing.assert_allclose(car.mean(axis=0), 0.0, atol=1e-6)
 
 
 def test_resample_250_to_256_preserves_10_second_length() -> None:

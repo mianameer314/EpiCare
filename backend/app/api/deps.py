@@ -292,7 +292,10 @@ async def get_target_patient_for_prescription(
     patient_user_id: int | None = Query(None, description="Target patient User ID (required for prescriptions)")
 ) -> int:
     if current_user.role == UserRole.PATIENT:
-        return current_user.id
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Patients cannot prescribe medications. Only verified doctors can create prescriptions.",
+        )
 
     if current_user.role == UserRole.CARETAKER:
         if patient_user_id:

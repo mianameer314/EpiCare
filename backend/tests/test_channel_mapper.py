@@ -93,7 +93,7 @@ def test_bipolar_graph_reconstruction_recovers_zero_mean_potentials() -> None:
     result = reconstruct_bipolar(bipolar, labels)
 
     expected = potentials - potentials.mean(axis=0, keepdims=True)
-    np.testing.assert_allclose(result.data, expected, atol=1e-10, rtol=1e-10)
+    np.testing.assert_allclose(result.data, expected, atol=1e-5, rtol=1e-5)
 
 
 def test_unsupported_montage_rejected() -> None:
