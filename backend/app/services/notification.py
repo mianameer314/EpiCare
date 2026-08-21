@@ -30,6 +30,10 @@ async def dispatch_notification(user: User, subject: str, message: str) -> str:
                     title=subject,
                     body=message,
                 ),
+                data={
+                    "title": subject,
+                    "body": message,
+                },
                 android=messaging.AndroidConfig(
                     priority="high",
                     notification=messaging.AndroidNotification(
