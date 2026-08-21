@@ -9,6 +9,7 @@ from firebase_admin.exceptions import FirebaseError
 from app.models.user import User
 from app.core.config import settings
 from app.services.email import send_email
+from app.services.sos_provider import ensure_firebase_initialized
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +22,7 @@ async def dispatch_notification(user: User, subject: str, message: str) -> str:
     """
     
     # 1. Firebase Cloud Messaging (Push Notifications)
-    if settings.FIREBASE_CREDENTIALS_PATH and user.fcm_token:
+    if user.fcm_token and ensure_firebase_initialized():
         logger.info(f"Dispatching Firebase push notification to user {user.id}")
         try:
             msg = messaging.Message(
