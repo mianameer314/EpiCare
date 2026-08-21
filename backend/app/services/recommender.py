@@ -28,12 +28,38 @@ class RecommendationRule:
     category: str
     priority: str
     condition: Callable[[dict[str, Any]], bool]
-    title: str
-    body: str
-    rationale: str
+    title: str | Callable[[dict[str, Any]], str]
+    body: str | Callable[[dict[str, Any]], str]
+    rationale: str | Callable[[dict[str, Any]], str]
     action_url: str | None
     cooldown_hours: int
     search_query: str  # for RAG
+    get_victory_title: Callable[[dict[str, Any], str], str] | None = None
+    get_victory_body: Callable[[dict[str, Any]], str] | None = None
+
+    def get_title(self, features: dict[str, Any]) -> str:
+        if callable(self.title):
+            try:
+                return self.title(features)
+            except Exception:
+                return "Care Insight"
+        return self.title
+
+    def get_body(self, features: dict[str, Any]) -> str:
+        if callable(self.body):
+            try:
+                return self.body(features)
+            except Exception:
+                return "Please review your latest health logs."
+        return self.body
+
+    def get_rationale(self, features: dict[str, Any]) -> str:
+        if callable(self.rationale):
+            try:
+                return self.rationale(features)
+            except Exception:
+                return "Clinical safety guideline."
+        return self.rationale
 
 
 # -----------------------------------------------------------------------------
@@ -44,16 +70,18 @@ RULES: list[RecommendationRule] = [
     # --- SLEEP ---
     RecommendationRule(
         rule_id="SLEEP_LOW_AVG_7D",
-        rule_version="1.0",
+        rule_version="1.1",
         category="SLEEP",
         priority="IMPORTANT",
-        condition=lambda f: f.get("sleep_log_count_7d", 0) >= 3 and f.get("avg_sleep_hours_7d", 99) < 7.0,
-        title="Your sleep average is below recommended levels",
-        body="Over the past week, your average sleep was below 7 hours. Most adults benefit from 7–9 hours of regular sleep. Consider reviewing your bedtime routine and logging your sleep consistently.",
+        condition=lambda f: f.get("sleep_log_count_7d", 0) >= 1 and f.get("avg_sleep_hours_7d", 99) < 7.0 and (f.get("last_sleep_hours") is None or f.get("last_sleep_hours", 0) < 7.0),
+        title=lambda f: f"Your sleep average is {f.get('avg_sleep_hours_7d', 0):.1f}h (Target: 7.0h+)" if f.get("avg_sleep_hours_7d", 0) > 0 else "Your sleep duration is below recommended levels",
+        body=lambda f: f"Over the past 7 days, your average sleep was {f.get('avg_sleep_hours_7d', 0):.1f} hours" + (f" (last night: {f.get('last_sleep_hours')}h)" if f.get("last_sleep_hours") is not None else "") + ". Most adults benefit from 7–9 hours of regular sleep. Consider reviewing your bedtime routine and logging your sleep consistently.",
         rationale="Triggered because average sleep < 7h over 7 days.",
         action_url="/lifestyle",
         cooldown_hours=12,
         search_query="importance of sleep duration for epilepsy management",
+        get_victory_title=lambda f, prev: f"✅ Resolved: Logged {f.get('last_sleep_hours', 8.0)}h sleep last night!" if (f.get("last_sleep_hours") is not None and f.get("last_sleep_hours", 0) >= 7.0) else f"✅ Resolved: Sleep average reached {f.get('avg_sleep_hours_7d', 7.2):.1f}h!",
+        get_victory_body=lambda f: f"Great job! Your recent sleep of {f.get('last_sleep_hours', 8.0)}h reached the 7.0h+ clinical target. Was this reminder helpful?" if (f.get("last_sleep_hours") is not None and f.get("last_sleep_hours", 0) >= 7.0) else f"Your 7-day average sleep reached {f.get('avg_sleep_hours_7d', 7.2):.1f}h. Was this reminder helpful?",
     ),
     RecommendationRule(
         rule_id="SLEEP_INCONSISTENT_7D",
@@ -67,6 +95,8 @@ RULES: list[RecommendationRule] = [
         action_url="/lifestyle",
         cooldown_hours=12,
         search_query="sleep consistency and routine for epilepsy",
+        get_victory_title=lambda f, prev: "✅ Resolved: Sleep consistency stabilized!",
+        get_victory_body=lambda f: "Your sleep schedule has stabilized over recent logs. Was this reminder helpful?",
     ),
     RecommendationRule(
         rule_id="SLEEP_LOG_ENCOURAGE",
@@ -80,21 +110,25 @@ RULES: list[RecommendationRule] = [
         action_url="/lifestyle",
         cooldown_hours=72,
         search_query="benefits of health tracking for epilepsy",
+        get_victory_title=lambda f, prev: "✅ Resolved: Sleep diary updated!",
+        get_victory_body=lambda f: "You've resumed regular sleep logging. Was this reminder helpful?",
     ),
 
     # --- MEDICATION ---
     RecommendationRule(
         rule_id="MED_LOW_ADHERENCE_7D",
-        rule_version="1.0",
+        rule_version="1.1",
         category="MEDICATION_ROUTINE",
         priority="IMPORTANT",
         condition=lambda f: f.get("active_medication_count", 0) > 0 and f.get("med_adherence_rate_7d", 100) < 80.0,
-        title="Some medication logs are missing this week",
-        body="Your medication logging rate is below 80% this week. Take your medication exactly as prescribed by your clinician. If you're having difficulty with your routine, please contact your healthcare professional.",
+        title=lambda f: f"Medication adherence is {f.get('med_adherence_rate_7d', 0):.0f}% (Target: 80%+)",
+        body=lambda f: f"Your medication logging rate is {f.get('med_adherence_rate_7d', 0):.0f}% this week. Take your medication exactly as prescribed by your clinician. If you're having difficulty with your routine, please contact your healthcare professional.",
         rationale="Triggered because medication adherence < 80% over 7 days.",
         action_url="/medications",
         cooldown_hours=12,
         search_query="medication adherence strategies for epilepsy",
+        get_victory_title=lambda f, prev: f"✅ Resolved: Medication adherence reached {f.get('med_adherence_rate_7d', 100):.0f}%!",
+        get_victory_body=lambda f: "You logged your recent medication doses consistently. Was this reminder helpful?",
     ),
     RecommendationRule(
         rule_id="MED_MISSED_STREAK",
@@ -108,6 +142,8 @@ RULES: list[RecommendationRule] = [
         action_url="/medications",
         cooldown_hours=12,
         search_query="managing missed medication doses safely",
+        get_victory_title=lambda f, prev: "✅ Resolved: Medication logs caught up!",
+        get_victory_body=lambda f: "Your medication schedule is back on track. Was this reminder helpful?",
     ),
     RecommendationRule(
         rule_id="MED_PERFECT_WEEK",
@@ -136,6 +172,8 @@ RULES: list[RecommendationRule] = [
         action_url="/lifestyle",
         cooldown_hours=72,
         search_query="stress management techniques for epilepsy",
+        get_victory_title=lambda f, prev: "✅ Resolved: Stress levels stabilized!",
+        get_victory_body=lambda f: "Your recorded stress levels have decreased over recent entries. Was this reminder helpful?",
     ),
     RecommendationRule(
         rule_id="STRESS_LOG_ENCOURAGE",
@@ -154,16 +192,18 @@ RULES: list[RecommendationRule] = [
     # --- TRIGGERS ---
     RecommendationRule(
         rule_id="TRIGGER_REPEATED",
-        rule_version="1.0",
+        rule_version="1.1",
         category="TRIGGER_TRACKING",
         priority="INFORMATIONAL",
         condition=lambda f: f.get("trigger_count_7d", 0) >= 3 and f.get("most_common_trigger_7d") is not None,
-        title="You've logged a specific trigger frequently",
-        body="You've recorded a specific trigger multiple times this week. Consistent tracking helps identify patterns. Consider discussing these observations with your clinician at your next visit.",
+        title=lambda f: f"Frequent Trigger: '{f.get('most_common_trigger_7d')}' logged {f.get('most_common_trigger_count_7d', f.get('trigger_count_7d', 3))} times this week" if f.get('most_common_trigger_7d') else "You've logged a specific trigger frequently",
+        body=lambda f: f"You've recorded '{f.get('most_common_trigger_7d')}' {f.get('most_common_trigger_count_7d', f.get('trigger_count_7d', 3))} times in the past 7 days. Consistent tracking helps identify patterns. Consider discussing mitigation strategies with your clinician at your next visit." if f.get('most_common_trigger_7d') else "You've recorded a specific trigger multiple times this week. Consistent tracking helps identify patterns.",
         rationale="Triggered because the same trigger was logged >=3 times in 7 days.",
         action_url="/lifestyle",
         cooldown_hours=72,
         search_query="identifying and managing seizure triggers",
+        get_victory_title=lambda f, prev: f"✅ Resolved: '{f.get('most_common_trigger_7d', 'Trigger')}' trigger managed!" if f.get('most_common_trigger_7d') else "✅ Resolved: Trigger pattern managed!",
+        get_victory_body=lambda f: f"You reviewed and addressed your frequent trigger '{f.get('most_common_trigger_7d', 'trigger')}'. Was this reminder helpful?" if f.get('most_common_trigger_7d') else "You successfully addressed this insight! Was this reminder helpful?",
     ),
     RecommendationRule(
         rule_id="TRIGGER_LOG_ENCOURAGE",
@@ -192,6 +232,8 @@ RULES: list[RecommendationRule] = [
         action_url="/emergency",
         cooldown_hours=12,
         search_query="creating an epilepsy safety plan",
+        get_victory_title=lambda f, prev: "✅ Resolved: Emergency contact added!",
+        get_victory_body=lambda f: "Your emergency safety contact is now registered for crisis SOS broadcasts. Was this reminder helpful?",
     ),
 
     # --- DIAGNOSTICS ---
@@ -379,8 +421,18 @@ class RuleEngine:
             if r.priority != "VICTORY":
                 # Transition to Victory Lap!
                 r.priority = "VICTORY"
-                r.title = f"✅ Resolved: {r.title}"
-                r.body = "You successfully addressed this insight! Was this reminder helpful?"
+                rule_obj = next((x for x in RULES if x.rule_id == r.rule_id), None)
+                if rule_obj and rule_obj.get_victory_title:
+                    r.title = rule_obj.get_victory_title(features, r.title)
+                else:
+                    clean_title = r.title.replace("✅ Resolved: ", "")
+                    r.title = f"✅ Resolved: {clean_title}"
+
+                if rule_obj and rule_obj.get_victory_body:
+                    r.body = rule_obj.get_victory_body(features)
+                else:
+                    r.body = "You successfully addressed this insight! Was this reminder helpful?"
+
                 r.expires_at = now + timedelta(hours=24)
                 # Remains active so it shows on dashboard
             else:
@@ -396,6 +448,9 @@ class RuleEngine:
             if rule.rule_id in current_active_rule_ids:
                 existing_rec = current_active_rule_ids[rule.rule_id]
                 existing_rec.feature_snapshot_id = snapshot.id
+                existing_rec.title = rule.get_title(features)
+                existing_rec.body = rule.get_body(features)
+                existing_rec.rationale = rule.get_rationale(features)
                 new_recs.append(existing_rec)
                 continue
 
@@ -405,9 +460,9 @@ class RuleEngine:
             rec = Recommendation(
                 user_id=user_id,
                 category=rule.category,
-                title=rule.title,
-                body=rule.body,
-                rationale=rule.rationale,
+                title=rule.get_title(features),
+                body=rule.get_body(features),
+                rationale=rule.get_rationale(features),
                 evidence_tags=evidence if evidence else None,
                 rule_id=rule.rule_id,
                 rule_version=rule.rule_version,

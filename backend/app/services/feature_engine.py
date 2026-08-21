@@ -74,13 +74,18 @@ class FeatureEngine:
         sleep_7d = (await db.execute(select(SleepLog).where(SleepLog.user_id == user_id, SleepLog.created_at >= d7))).scalars().all()
         sleep_30d = (await db.execute(select(SleepLog).where(SleepLog.user_id == user_id, SleepLog.created_at >= d30))).scalars().all()
         
+        last_sleep = (await db.execute(
+            select(SleepLog).where(SleepLog.user_id == user_id).order_by(SleepLog.created_at.desc()).limit(1)
+        )).scalar_one_or_none()
+        features["last_sleep_hours"] = round(last_sleep.duration_minutes / 60.0, 1) if last_sleep else None
+
         features["sleep_log_count_7d"] = len(sleep_7d)
         if len(sleep_7d) > 0:
-            features["avg_sleep_hours_7d"] = sum(s.duration_minutes for s in sleep_7d) / 60.0 / len(sleep_7d)
-            features["avg_sleep_quality_7d"] = sum(s.quality for s in sleep_7d) / len(sleep_7d)
+            features["avg_sleep_hours_7d"] = round(sum(s.duration_minutes for s in sleep_7d) / 60.0 / len(sleep_7d), 1)
+            features["avg_sleep_quality_7d"] = round(sum(s.quality for s in sleep_7d) / len(sleep_7d), 1)
             if len(sleep_7d) >= 2:
                 durations = [s.duration_minutes / 60.0 for s in sleep_7d]
-                features["sleep_consistency_7d"] = statistics.stdev(durations)
+                features["sleep_consistency_7d"] = round(statistics.stdev(durations), 2)
             else:
                 features["sleep_consistency_7d"] = 0.0
         else:
@@ -90,7 +95,7 @@ class FeatureEngine:
             missing_data_fields.extend(["avg_sleep_hours_7d", "avg_sleep_quality_7d", "sleep_consistency_7d"])
 
         if len(sleep_30d) > 0:
-            features["avg_sleep_hours_30d"] = sum(s.duration_minutes for s in sleep_30d) / 60.0 / len(sleep_30d)
+            features["avg_sleep_hours_30d"] = round(sum(s.duration_minutes for s in sleep_30d) / 60.0 / len(sleep_30d), 1)
         else:
             features["avg_sleep_hours_30d"] = 0.0
             missing_data_fields.append("avg_sleep_hours_30d")
@@ -147,8 +152,10 @@ class FeatureEngine:
             trigger_names = [t.trigger_name for t in triggers_7d]
             most_common = max(set(trigger_names), key=trigger_names.count)
             features["most_common_trigger_7d"] = most_common
+            features["most_common_trigger_count_7d"] = trigger_names.count(most_common)
         else:
             features["most_common_trigger_7d"] = None
+            features["most_common_trigger_count_7d"] = 0
             missing_data_fields.append("most_common_trigger_7d")
 
         # --- SEIZURE FEATURES ---

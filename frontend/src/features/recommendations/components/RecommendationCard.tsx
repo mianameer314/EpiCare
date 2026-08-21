@@ -1,6 +1,16 @@
 import { useState } from 'react';
 import { 
-  Lightbulb, AlertCircle, CheckCircle2, ThumbsUp, ThumbsDown, X, ArrowRight
+  Lightbulb, 
+  AlertCircle, 
+  CheckCircle2, 
+  ThumbsUp, 
+  ThumbsDown, 
+  X, 
+  ArrowRight,
+  Moon,
+  Activity,
+  ShieldAlert,
+  Pill
 } from 'lucide-react';
 import type { RecommendationOut } from '../api';
 import { recommendationsApi } from '../api';
@@ -71,6 +81,119 @@ export function RecommendationCard({ recommendation, onDismiss }: Recommendation
     recommendationsApi.submitFeedback(recommendation.id, 'CLICKED_ACTION').catch(console.error);
   };
 
+  const renderMetricPill = () => {
+    if (isVictoryLap) {
+      return (
+        <div className="card-metric-container victory-metric-container">
+          <div className="metric-header-row">
+            <span className="metric-label"><CheckCircle2 size={13} /> Resolution Status</span>
+            <span className="metric-chip victory-chip">Target Achieved ✓</span>
+          </div>
+        </div>
+      );
+    }
+
+    const cat = recommendation.category.toUpperCase();
+
+    if (cat.includes('SLEEP')) {
+      const avgMatch = recommendation.title.match(/(\d+\.?\d*)h/) || recommendation.body.match(/average was (\d+\.?\d*) hours/);
+      const lastNightMatch = recommendation.body.match(/last night: (\d+\.?\d*)h/);
+      const currentHours = avgMatch ? parseFloat(avgMatch[1]) : null;
+      const lastNight = lastNightMatch ? parseFloat(lastNightMatch[1]) : null;
+      const percent = currentHours ? Math.min(100, Math.round((currentHours / 7.0) * 100)) : null;
+
+      return (
+        <div className="card-metric-container sleep-metric-container">
+          <div className="metric-header-row">
+            <span className="metric-label"><Moon size={13} /> 7-Day Sleep Trend</span>
+            {currentHours !== null ? (
+              <span className="metric-value-highlight">
+                {currentHours}h <span className="metric-target">/ 7.0h target</span>
+              </span>
+            ) : (
+              <span className="metric-chip sleep-chip">Below 7.0h</span>
+            )}
+          </div>
+          {percent !== null && (
+            <div className="metric-progress-bar-track" title={`${percent}% of 7.0h target`}>
+              <div 
+                className="metric-progress-bar-fill sleep-fill" 
+                style={{ width: `${percent}%` }} 
+              />
+            </div>
+          )}
+          {lastNight !== null && (
+            <div className="metric-sub-detail">
+              <span>Last Logged Night: <strong>{lastNight}h</strong></span>
+              <span className={lastNight >= 7.0 ? 'metric-status-good' : 'metric-status-warn'}>
+                {lastNight >= 7.0 ? '✓ Reached Target' : '⚠ Below Target'}
+              </span>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    if (cat.includes('TRIGGER')) {
+      const triggerMatch = recommendation.title.match(/Frequent Trigger: '([^']+)'/) || recommendation.body.match(/recorded '([^']+)'/);
+      const triggerName = triggerMatch ? triggerMatch[1] : null;
+
+      return (
+        <div className="card-metric-container trigger-metric-container">
+          <div className="metric-header-row">
+            <span className="metric-label"><Activity size={13} /> Pattern Frequency</span>
+            <span className="metric-chip trigger-chip">High Frequency</span>
+          </div>
+          {triggerName && (
+            <div className="metric-sub-detail">
+              <span>Primary Trigger: <strong>{triggerName}</strong></span>
+              <span className="metric-status-warn">≥ 3 logs this week</span>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    if (cat.includes('MED')) {
+      const medMatch = recommendation.title.match(/(\d+)%/);
+      const percent = medMatch ? parseInt(medMatch[1], 10) : null;
+
+      return (
+        <div className="card-metric-container med-metric-container">
+          <div className="metric-header-row">
+            <span className="metric-label"><Pill size={13} /> 7-Day Adherence</span>
+            {percent !== null && (
+              <span className="metric-value-highlight">
+                {percent}% <span className="metric-target">/ 80% min</span>
+              </span>
+            )}
+          </div>
+          {percent !== null && (
+            <div className="metric-progress-bar-track">
+              <div 
+                className="metric-progress-bar-fill med-fill" 
+                style={{ width: `${Math.min(100, percent)}%` }} 
+              />
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    if (cat.includes('EMERGENCY')) {
+      return (
+        <div className="card-metric-container emergency-metric-container">
+          <div className="metric-header-row">
+            <span className="metric-label"><ShieldAlert size={13} /> Emergency Safety Plan</span>
+            <span className="metric-chip emergency-chip">0 Contacts</span>
+          </div>
+        </div>
+      );
+    }
+
+    return null;
+  };
+
   return (
     <div className={`recommendation-card ${isVictoryLap ? 'victory-lap' : ''}`}>
       <div className={`recommendation-priority-indicator ${isImportant ? 'priority-important' : ''} ${isVictoryLap ? 'priority-victory' : ''}`} />
@@ -93,6 +216,8 @@ export function RecommendationCard({ recommendation, onDismiss }: Recommendation
       </div>
 
       <p className="recommendation-body">{recommendation.body}</p>
+
+      {renderMetricPill()}
       
       {recommendation.evidence_tags && recommendation.evidence_tags.length > 0 && (
         <div className="recommendation-why">
