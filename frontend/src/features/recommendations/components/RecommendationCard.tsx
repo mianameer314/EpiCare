@@ -20,6 +20,7 @@ export function RecommendationCard({ recommendation, onDismiss }: Recommendation
   const [showWhy, setShowWhy] = useState(false);
   const toast = useToast();
   const isImportant = recommendation.priority === 'IMPORTANT';
+  const isVictoryLap = recommendation.priority === 'VICTORY';
 
   const { data: whyData } = useQuery({
     queryKey: ['recommendationWhy', recommendation.id],
@@ -27,16 +28,31 @@ export function RecommendationCard({ recommendation, onDismiss }: Recommendation
     enabled: showWhy,
   });
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const handleFeedback = async (type: 'HELPFUL' | 'NOT_HELPFUL') => {
+    if (isSubmitting) return;
+    
+    const isRemoving = feedback === type;
+    const finalType = isRemoving ? 'REMOVE' : type;
+
+    setIsSubmitting(true);
     try {
-      await recommendationsApi.submitFeedback(recommendation.id, type);
-      setFeedback(type);
-      toast.success(type === 'HELPFUL' ? 'Marked as helpful. Thank you!' : 'Feedback recorded.');
-      if (type === 'NOT_HELPFUL' && onDismiss) {
-        onDismiss(recommendation.id);
+      await recommendationsApi.submitFeedback(recommendation.id, finalType);
+      setFeedback(isRemoving ? null : type);
+      
+      if (isRemoving) {
+        toast.success('Feedback removed.');
+      } else {
+        toast.success('Thanks for your feedback!');
+        if ((type === 'NOT_HELPFUL' || isVictoryLap) && onDismiss) {
+          onDismiss(recommendation.id);
+        }
       }
     } catch (err: any) {
       toast.error(err.message || 'Failed to submit feedback.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -55,12 +71,12 @@ export function RecommendationCard({ recommendation, onDismiss }: Recommendation
   };
 
   return (
-    <div className="recommendation-card">
-      <div className={`recommendation-priority-indicator ${isImportant ? 'priority-important' : ''}`} />
+    <div className={`recommendation-card ${isVictoryLap ? 'victory-lap' : ''}`}>
+      <div className={`recommendation-priority-indicator ${isImportant ? 'priority-important' : ''} ${isVictoryLap ? 'priority-victory' : ''}`} />
       
       <div className="recommendation-header">
         <div className="recommendation-title-area">
-          <div className={`recommendation-icon ${isImportant ? 'icon-important' : ''}`}>
+          <div className={`recommendation-icon ${isImportant ? 'icon-important' : ''} ${isVictoryLap ? 'icon-victory' : ''}`}>
             {isImportant ? <AlertCircle size={20} /> : <Lightbulb size={20} />}
           </div>
           <div>
@@ -68,9 +84,11 @@ export function RecommendationCard({ recommendation, onDismiss }: Recommendation
             <h4 className="recommendation-title">{recommendation.title}</h4>
           </div>
         </div>
-        <button className="recommendation-dismiss" onClick={handleDismiss} aria-label="Dismiss">
-          <X size={18} />
-        </button>
+        {!isVictoryLap && (
+          <button className="recommendation-dismiss" onClick={handleDismiss} aria-label="Dismiss">
+            <X size={18} />
+          </button>
+        )}
       </div>
 
       <p className="recommendation-body">{recommendation.body}</p>
@@ -123,7 +141,7 @@ export function RecommendationCard({ recommendation, onDismiss }: Recommendation
           </button>
         </div>
         
-        {recommendation.action_url && (
+        {!isVictoryLap && recommendation.action_url && (
           <a 
             href={recommendation.action_url} 
             className="action-link"

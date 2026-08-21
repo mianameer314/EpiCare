@@ -41,6 +41,12 @@ async def get_active_recommendations(
     db: DbDep,
 ):
     """Get active recommendations. Automatically tracks a SHOWN event if not read."""
+    from app.services.feature_engine import FeatureEngine
+    from app.services.recommender import RuleEngine
+    # Auto-regenerate so the user always sees fresh state (e.g. victory laps) without manual refresh
+    snapshot = await FeatureEngine.compute_snapshot(db, current_user.id, force_recompute=True)
+    await RuleEngine.generate_recommendations(db, snapshot)
+    
     stmt = select(Recommendation).where(
         Recommendation.user_id == current_user.id,
         Recommendation.is_active == True
@@ -141,7 +147,7 @@ async def submit_feedback(
         raise HTTPException(status_code=404, detail="Recommendation not found")
         
     # Check for existing feedback of the same group to ensure idempotency
-    if feedback_in.event_type in ["HELPFUL", "NOT_HELPFUL"]:
+    if feedback_in.event_type in ["HELPFUL", "NOT_HELPFUL", "REMOVE"]:
         stmt = select(RecommendationFeedback).where(
             RecommendationFeedback.recommendation_id == id,
             RecommendationFeedback.user_id == current_user.id,
@@ -150,11 +156,16 @@ async def submit_feedback(
         existing = (await db.execute(stmt)).scalars().first()
         
         if existing:
-            # Update the existing record instead of spamming new rows
-            existing.event_type = feedback_in.event_type
-            if feedback_in.feedback_text:
-                existing.feedback_text = feedback_in.feedback_text
+            if feedback_in.event_type == "REMOVE":
+                await db.delete(existing)
+            else:
+                existing.event_type = feedback_in.event_type
+                if feedback_in.feedback_text:
+                    existing.feedback_text = feedback_in.feedback_text
             await db.commit()
+            return {"status": "ok"}
+            
+        if feedback_in.event_type == "REMOVE":
             return {"status": "ok"}
             
     feedback = RecommendationFeedback(

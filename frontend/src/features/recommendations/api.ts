@@ -7,7 +7,7 @@ export interface RecommendationOut {
   body: string;
   rationale?: string;
   action_url?: string;
-  priority: 'IMPORTANT' | 'INFORMATIONAL';
+  priority: 'IMPORTANT' | 'INFORMATIONAL' | 'VICTORY';
   source: string;
   is_active: boolean;
   is_dismissed: boolean;

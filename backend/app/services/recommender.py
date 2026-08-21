@@ -356,14 +356,21 @@ class RuleEngine:
         current_active = (await db.execute(current_active_stmt)).scalars().all()
         current_active_rule_ids = {r.rule_id: r for r in current_active}
 
-        # 5. Expire old active ones that are NO LONGER in final_rules
-        rules_to_expire = [r.id for r in current_active if r.rule_id not in final_rule_ids]
-        if rules_to_expire:
-            await db.execute(
-                update(Recommendation)
-                .where(Recommendation.id.in_(rules_to_expire))
-                .values(is_active=False)
-            )
+        # 5. Expire old active ones that are NO LONGER in final_rules, or handle Victory Lap
+        expired_recs = [r for r in current_active if r.rule_id not in final_rule_ids]
+        for r in expired_recs:
+            if r.priority != "VICTORY":
+                # Transition to Victory Lap!
+                r.priority = "VICTORY"
+                r.title = f"✅ Resolved: {r.title}"
+                r.body = "You successfully addressed this insight! Was this reminder helpful?"
+                r.expires_at = now + timedelta(hours=24)
+                # Remains active so it shows on dashboard
+            else:
+                # It is already in Victory Lap. Check if it expired.
+                # If expires_at is somehow missing, or it's past the expiration time, deactivate it.
+                if not r.expires_at or now >= r.expires_at:
+                    r.is_active = False
 
         # 6. Build and persist new recommendations ONLY for rules that aren't already active
         new_recs = []
