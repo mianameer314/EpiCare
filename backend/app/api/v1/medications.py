@@ -316,8 +316,11 @@ async def create_medication(
     prescriber_id = None
     if current_user.role == UserRole.DOCTOR:
         prescriber_id = current_user.id
-    elif med_in.prescribed_by_doctor_id:
-        prescriber_id = med_in.prescribed_by_doctor_id
+    elif med_in.prescribed_by_doctor_id is not None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only a verified doctor may assign a prescriber.",
+        )
 
     new_med = Medication(
         user_id=target_user_id,

@@ -243,7 +243,7 @@ async def process_sos_in_background(event_id: int, user_id: int):
 
             # 6. Log deliveries for contacts
             for contact in contacts:
-                status_str = delivery_results.get(f"contact_{contact.id}", "SENT")
+                status_str = delivery_results.get(f"contact_{contact.id}", "NOT_ATTEMPTED")
                 delivery = SosDelivery(
                     sos_event_id=event.id,
                     contact_id=contact.id,
@@ -251,9 +251,16 @@ async def process_sos_in_background(event_id: int, user_id: int):
                 )
                 db.add(delivery)
 
-            event.status = "COMPLETED"
+            # 7. Derive overall event status strictly from delivery confirmation
+            statuses = list(delivery_results.values())
+            if any(s in ("SENT", "DELIVERED") for s in statuses):
+                event.status = "COMPLETED"
+                logger.info(f"[SOS] Event {event_id} completed successfully (confirmed deliveries: {statuses})")
+            else:
+                event.status = "FAILED"
+                logger.warning(f"[SOS] Event {event_id} marked as FAILED - no delivery channels succeeded: {statuses}")
+
             await db.commit()
-            logger.info(f"[SOS] Event {event_id} completed successfully")
 
     except Exception as e:
         logger.error(f"[SOS] Background task FAILED for event {event_id}: {e}", exc_info=True)
@@ -318,7 +325,7 @@ async def get_sos_events(
     "/fcm-diagnostic",
     tags=['🤒 Patient - Emergency SOS'],
     summary="FCM Push Notification Diagnostic",
-    description="Shows FCM token status for the current user and their connected caretakers. Use this to verify push notifications are configured correctly.",
+    description="Shows sanitized push notification readiness status for the current patient and active caretakers without leaking PHI or credential metadata.",
 )
 async def fcm_diagnostic(
     db: DbDep,
@@ -326,12 +333,11 @@ async def fcm_diagnostic(
 ):
     from app.core.config import settings
     from app.services.sos_provider import ensure_firebase_initialized
-    from sqlalchemy.orm import selectinload
 
     patient_user = await db.get(User, target_user_id)
     fb_ready = ensure_firebase_initialized()
 
-    # Check connected caretakers' FCM status
+    # Check connected caretakers' FCM status safely without exposing emails or token fragments
     caretaker_info = []
     patient_prof_res = await db.execute(
         select(PatientProfile).where(PatientProfile.user_id == target_user_id)
@@ -350,25 +356,24 @@ async def fcm_diagnostic(
         for ct in ct_query.scalars().all():
             caretaker_info.append({
                 "name": ct.full_name,
-                "email": ct.email,
                 "has_fcm_token": bool(ct.fcm_token),
-                "fcm_token_preview": (ct.fcm_token[:20] + "...") if ct.fcm_token else None,
             })
+
+    is_provider_firebase = settings.SOS_PROVIDER.lower() == "firebase"
+    push_ready = bool(fb_ready and is_provider_firebase)
 
     return {
         "firebase_admin_initialized": fb_ready,
-        "sos_provider": settings.SOS_PROVIDER,
-        "firebase_credentials_path": settings.FIREBASE_CREDENTIALS_PATH or "NOT SET",
+        "push_ready": push_ready,
         "patient": {
             "name": patient_user.full_name if patient_user else None,
             "has_fcm_token": bool(patient_user.fcm_token) if patient_user else False,
         },
         "connected_caretakers": caretaker_info,
         "diagnosis": (
-            "OK — Firebase is configured and SOS_PROVIDER is set to firebase."
-            if fb_ready and settings.SOS_PROVIDER.lower() == "firebase"
-            else f"ISSUE — firebase_initialized={fb_ready}, SOS_PROVIDER={settings.SOS_PROVIDER}. "
-            + ("Check FIREBASE_CREDENTIALS_PATH in .env" if not fb_ready else "Change SOS_PROVIDER to 'firebase' in .env")
+            "OK — Push notifications are operational and ready."
+            if push_ready
+            else "Push notifications are currently not active or waiting for configuration."
         ),
     }
 

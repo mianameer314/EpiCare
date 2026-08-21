@@ -22,6 +22,7 @@ CHAT_LIMIT = RateLimit(prefix="chat", limit=30, window_seconds=60)
 SOS_LIMIT = RateLimit(prefix="sos", limit=5, window_seconds=60)
 AI_GENERATE_LIMIT = RateLimit(prefix="ai_generate", limit=20, window_seconds=3600)
 USER_MANAGEMENT_LIMIT = RateLimit(prefix="user_management", limit=10, window_seconds=60)
+OTP_LIMIT = RateLimit(prefix="otp", limit=5, window_seconds=600)
 
 __all__ = [
     "RateLimiter",
@@ -42,4 +43,5 @@ __all__ = [
     "SOS_LIMIT",
     "AI_GENERATE_LIMIT",
     "USER_MANAGEMENT_LIMIT",
+    "OTP_LIMIT",
 ]

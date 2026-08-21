@@ -165,9 +165,9 @@ async def send_verification_email(email: EmailStr, otp: str, user_name: str) -> 
             )
 
     if not sent:
+        recipient_domain = email.split("@")[-1] if "@" in email else "unknown"
         logger.warning(
-            "No email transport configured or all failed. "
-            f"Would have sent OTP {otp} to {email}."
+            f"No email transport configured or all transports failed. Verification email could not be delivered to domain: {recipient_domain}."
         )
 
 

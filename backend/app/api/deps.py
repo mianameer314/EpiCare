@@ -5,8 +5,10 @@ Every session is created from the async_sessionmaker, tagged with the current
 trace_id (SQLAlchemy query comments for end-to-end correlation), and closed
 in a finally block.
 """
-from app.models.caretaker_profile import CaretakerProfile
+import logging
 from typing import Annotated
+
+logger = logging.getLogger(__name__)
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -109,7 +111,7 @@ class RoleChecker:
         self.allowed_roles = allowed_roles
 
     def __call__(self, user: CurrentUser) -> User:
-        print(f"DEBUG: user.role='{user.role}' ({type(user.role)}), allowed_roles='{self.allowed_roles}' ([{type(self.allowed_roles[0])}])")
+        logger.debug("role_check: user.role=%s allowed_roles=%s", user.role, self.allowed_roles)
         if user.role not in self.allowed_roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,

@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 
 from app.api.deps import CurrentUser, DbDep, RefreshUser
 from app.core.security import create_access_token, create_refresh_token, verify_password
-from app.rate_limit import LOGIN_LIMIT, REFRESH_LIMIT, REGISTER_LIMIT
+from app.rate_limit import LOGIN_LIMIT, REFRESH_LIMIT, REGISTER_LIMIT, OTP_LIMIT
 from app.schemas.user import (
     ChangePasswordRequest,
     LoginRequest,
@@ -109,11 +109,13 @@ async def login(data: LoginRequest, db: DbDep):
 @router.post(
     "/verify-email",
     status_code=status.HTTP_200_OK,
+    dependencies=[Depends(OTP_LIMIT)],
     summary="Verify user email",
     description="Verify the 6-digit OTP sent to the user's email.",
     responses={
         400: {"description": "Bad Request - Invalid or expired OTP"},
         404: {"description": "Not Found - User not found"},
+        429: {"description": "Too Many Requests - Rate limit exceeded"},
     },
 )
 async def verify_email(data: VerifyOTPRequest, db: DbDep):
@@ -188,11 +190,13 @@ async def forgot_password(data: ForgotPasswordRequest, db: DbDep, background_tas
 @router.post(
     "/verify-reset-otp",
     status_code=status.HTTP_200_OK,
+    dependencies=[Depends(OTP_LIMIT)],
     summary="Verify reset OTP",
     description="Check if the OTP is valid without resetting the password.",
     responses={
         400: {"description": "Bad Request - Invalid or expired OTP"},
         404: {"description": "Not Found - User not found"},
+        429: {"description": "Too Many Requests - Rate limit exceeded"},
     },
 )
 async def verify_reset_otp(data: VerifyResetOTPRequest, db: DbDep):
@@ -211,11 +215,13 @@ async def verify_reset_otp(data: VerifyResetOTPRequest, db: DbDep):
 @router.post(
     "/reset-password",
     status_code=status.HTTP_200_OK,
+    dependencies=[Depends(OTP_LIMIT)],
     summary="Reset password",
     description="Verify OTP and reset password for the user.",
     responses={
         400: {"description": "Bad Request - Invalid or expired OTP"},
         404: {"description": "Not Found - User not found"},
+        429: {"description": "Too Many Requests - Rate limit exceeded"},
     },
 )
 async def reset_password(data: ResetPasswordRequest, db: DbDep):

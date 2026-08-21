@@ -14,7 +14,19 @@ from app.models.emergency import EmergencyContact, SosEvent
 from app.models.user import User
 from app.services.email import send_email
 
+from enum import StrEnum
+
 logger = logging.getLogger(__name__)
+
+
+class DeliveryStatus(StrEnum):
+    DELIVERED = "DELIVERED"
+    SENT = "SENT"
+    FAILED = "FAILED"
+    NOT_CONFIGURED = "NOT_CONFIGURED"
+    NO_DESTINATION = "NO_DESTINATION"
+    NO_FCM_TOKEN = "NO_FCM_TOKEN"
+    NOT_ATTEMPTED = "NOT_ATTEMPTED"
 
 
 def ensure_firebase_initialized() -> bool:
@@ -175,19 +187,20 @@ class BaseSOSProvider:
         caretakers: List[User],
         event: SosEvent,
         patient_name: str = "A Patient",
+        patient_email: Optional[str] = None,
     ) -> Dict[str, str]:
         """Extended dispatch alerting both emergency contacts and active Care Network caretakers."""
         try:
             contact_res = await self.send_sos(contacts, event)
             return {f"contact_{cid}": status for cid, status in contact_res.items()}
         except NotImplementedError:
-            return {f"contact_{c.id}": "SENT" for c in contacts}
+            return {f"contact_{c.id}": DeliveryStatus.NOT_CONFIGURED for c in contacts}
 
 
 class EmailSOSProvider(BaseSOSProvider):
     async def send_sos(self, contacts: List[EmergencyContact], event: SosEvent) -> Dict[int, str]:
         res = await self.send_sos_extended(contacts=contacts, caretakers=[], event=event)
-        return {c.id: res.get(f"contact_{c.id}", "SENT") for c in contacts}
+        return {c.id: res.get(f"contact_{c.id}", DeliveryStatus.FAILED) for c in contacts}
 
     async def send_sos_extended(
         self,
@@ -199,7 +212,6 @@ class EmailSOSProvider(BaseSOSProvider):
     ) -> Dict[str, str]:
         results: Dict[str, str] = {}
         html_content = build_sos_html_email(event, patient_name)
-        text_content = build_sos_message(event, patient_name)
 
         # Collect email recipients (Connected Caregivers & Emergency Contacts)
         recipient_emails = set()
@@ -208,6 +220,8 @@ class EmailSOSProvider(BaseSOSProvider):
         for ct in caretakers:
             if ct.email and "@" in ct.email:
                 recipient_emails.add((f"caretaker_{ct.id}", ct.email, ct.full_name))
+            else:
+                results[f"caretaker_{ct.id}"] = DeliveryStatus.NO_DESTINATION
 
         # 2. Emergency Contacts
         for contact in contacts:
@@ -215,8 +229,7 @@ class EmailSOSProvider(BaseSOSProvider):
             if target_email:
                 recipient_emails.add((f"contact_{contact.id}", target_email, contact.name))
             else:
-                # Contact does not have email (likely phone number)
-                results[f"contact_{contact.id}"] = "NO_EMAIL"
+                results[f"contact_{contact.id}"] = DeliveryStatus.NO_DESTINATION
 
         for key, email, name in recipient_emails:
             try:
@@ -226,10 +239,10 @@ class EmailSOSProvider(BaseSOSProvider):
                     html_content=html_content,
                 )
                 logger.info(f"SOS Email successfully dispatched to {name} ({email})")
-                results[key] = "SENT"
+                results[key] = DeliveryStatus.SENT
             except Exception as e:
                 logger.error(f"Failed to send SOS Email to {name} ({email}): {e}")
-                results[key] = "FAILED"
+                results[key] = DeliveryStatus.FAILED
 
         return results
 
@@ -237,7 +250,7 @@ class EmailSOSProvider(BaseSOSProvider):
 class FirebaseSOSProvider(BaseSOSProvider):
     async def send_sos(self, contacts: List[EmergencyContact], event: SosEvent) -> Dict[int, str]:
         res = await self.send_sos_extended(contacts=contacts, caretakers=[], event=event)
-        return {c.id: res.get(f"contact_{c.id}", "SENT") for c in contacts}
+        return {c.id: res.get(f"contact_{c.id}", DeliveryStatus.FAILED) for c in contacts}
 
     async def send_sos_extended(
         self,
@@ -249,21 +262,16 @@ class FirebaseSOSProvider(BaseSOSProvider):
     ) -> Dict[str, str]:
         results: Dict[str, str] = {}
         fb_ready = ensure_firebase_initialized()
-        message_body = build_sos_message(event, patient_name)
 
         for ct in caretakers:
             key = f"caretaker_{ct.id}"
             if not fb_ready:
-                logger.warning(f"Firebase not initialized. Simulating Push Notification for caretaker {ct.full_name}")
-                results[key] = "SENT"
+                logger.warning(f"Firebase not initialized. Cannot send Push Notification for caretaker {ct.full_name}")
+                results[key] = DeliveryStatus.NOT_CONFIGURED
                 continue
 
             if ct.fcm_token:
                 try:
-                    # DATA-ONLY message (no top-level notification field).
-                    # This ensures the service worker's push event handler fires
-                    # even when the app is closed / screen is off, giving us
-                    # full control over sound, vibration, and notification display.
                     msg = messaging.Message(
                         data={
                             "event_id": str(event.id),
@@ -302,20 +310,25 @@ class FirebaseSOSProvider(BaseSOSProvider):
                     )
                     messaging.send(msg)
                     logger.info(f"Firebase Push Notification sent to caretaker {ct.full_name}")
-                    results[key] = "SENT"
+                    results[key] = DeliveryStatus.SENT
                 except FirebaseError as e:
                     logger.error(f"Firebase push failed for {ct.full_name}: {e}")
-                    results[key] = "FAILED"
+                    results[key] = DeliveryStatus.FAILED
             else:
-                logger.info(f"No FCM token registered for caretaker {ct.full_name}. Fallback to email/SMS.")
-                results[key] = "NO_FCM_TOKEN"
+                logger.info(f"No FCM token registered for caretaker {ct.full_name}.")
+                results[key] = DeliveryStatus.NO_FCM_TOKEN
 
         for contact in contacts:
-            results[f"contact_{contact.id}"] = "SENT"
+            results[f"contact_{contact.id}"] = DeliveryStatus.NO_FCM_TOKEN
 
-        # Also trigger email fallback so caretakers & patient always receive notification
+        # Trigger email fallback and merge results for unreached targets
         email_provider = EmailSOSProvider()
-        await email_provider.send_sos_extended(contacts, caretakers, event, patient_name, patient_email=patient_email)
+        email_results = await email_provider.send_sos_extended(contacts, caretakers, event, patient_name, patient_email=patient_email)
+        for k, v in email_results.items():
+            if v in (DeliveryStatus.SENT, DeliveryStatus.DELIVERED):
+                results[k] = v
+            elif k not in results:
+                results[k] = v
 
         return results
 
@@ -323,7 +336,7 @@ class FirebaseSOSProvider(BaseSOSProvider):
 class WhatsAppSOSProvider(BaseSOSProvider):
     async def send_sos(self, contacts: List[EmergencyContact], event: SosEvent) -> Dict[int, str]:
         res = await self.send_sos_extended(contacts=contacts, caretakers=[], event=event)
-        return {c.id: res.get(f"contact_{c.id}", "SENT") for c in contacts}
+        return {c.id: res.get(f"contact_{c.id}", DeliveryStatus.FAILED) for c in contacts}
 
     async def send_sos_extended(
         self,
@@ -342,14 +355,19 @@ class WhatsAppSOSProvider(BaseSOSProvider):
         for c in contacts:
             if c.phone_number and not ("@" in c.phone_number):
                 all_phone_targets.append((f"contact_{c.id}", c.phone_number, c.name))
+            else:
+                results[f"contact_{c.id}"] = DeliveryStatus.NO_DESTINATION
+
         for ct in caretakers:
             if ct.phone_number:
                 all_phone_targets.append((f"caretaker_{ct.id}", ct.phone_number, ct.full_name))
+            else:
+                results[f"caretaker_{ct.id}"] = DeliveryStatus.NO_DESTINATION
 
         for key, phone, name in all_phone_targets:
             if not token or not phone_id:
-                logger.warning(f"WhatsApp credentials missing. Faking SOS message to {name} ({phone})")
-                results[key] = "SENT"
+                logger.warning(f"WhatsApp credentials missing. Cannot dispatch SOS message to {name} ({phone})")
+                results[key] = DeliveryStatus.NOT_CONFIGURED
                 continue
 
             url = f"https://graph.facebook.com/v19.0/{phone_id}/messages"
@@ -364,14 +382,19 @@ class WhatsAppSOSProvider(BaseSOSProvider):
                 async with httpx.AsyncClient() as client:
                     resp = await client.post(url, headers=headers, json=payload, timeout=10.0)
                     resp.raise_for_status()
-                results[key] = "SENT"
+                results[key] = DeliveryStatus.SENT
             except Exception as e:
                 logger.error(f"WhatsApp SOS failed for {name}: {e}")
-                results[key] = "FAILED"
+                results[key] = DeliveryStatus.FAILED
 
-        # Also fallback email
+        # Fallback email and merge results for unreached targets
         email_provider = EmailSOSProvider()
-        await email_provider.send_sos_extended(contacts, caretakers, event, patient_name, patient_email=patient_email)
+        email_results = await email_provider.send_sos_extended(contacts, caretakers, event, patient_name, patient_email=patient_email)
+        for k, v in email_results.items():
+            if v in (DeliveryStatus.SENT, DeliveryStatus.DELIVERED):
+                results[k] = v
+            elif k not in results:
+                results[k] = v
 
         return results
 
@@ -379,7 +402,7 @@ class WhatsAppSOSProvider(BaseSOSProvider):
 class TwilioSOSProvider(BaseSOSProvider):
     async def send_sos(self, contacts: List[EmergencyContact], event: SosEvent) -> Dict[int, str]:
         res = await self.send_sos_extended(contacts=contacts, caretakers=[], event=event)
-        return {c.id: res.get(f"contact_{c.id}", "SENT") for c in contacts}
+        return {c.id: res.get(f"contact_{c.id}", DeliveryStatus.FAILED) for c in contacts}
 
     async def send_sos_extended(
         self,
@@ -399,14 +422,19 @@ class TwilioSOSProvider(BaseSOSProvider):
         for c in contacts:
             if c.phone_number and not ("@" in c.phone_number):
                 all_phone_targets.append((f"contact_{c.id}", c.phone_number, c.name))
+            else:
+                results[f"contact_{c.id}"] = DeliveryStatus.NO_DESTINATION
+
         for ct in caretakers:
             if ct.phone_number:
                 all_phone_targets.append((f"caretaker_{ct.id}", ct.phone_number, ct.full_name))
+            else:
+                results[f"caretaker_{ct.id}"] = DeliveryStatus.NO_DESTINATION
 
         for key, phone, name in all_phone_targets:
             if not sid or not token or not from_num:
-                logger.warning(f"Twilio credentials missing. Faking SOS SMS to {name} ({phone})")
-                results[key] = "SENT"
+                logger.warning(f"Twilio credentials missing. Cannot dispatch SOS SMS to {name} ({phone})")
+                results[key] = DeliveryStatus.NOT_CONFIGURED
                 continue
 
             url = f"https://api.twilio.com/2010-04-01/Accounts/{sid}/Messages.json"
@@ -415,14 +443,19 @@ class TwilioSOSProvider(BaseSOSProvider):
                 async with httpx.AsyncClient() as client:
                     resp = await client.post(url, data=data, auth=(sid, token), timeout=10.0)
                     resp.raise_for_status()
-                results[key] = "SENT"
+                results[key] = DeliveryStatus.SENT
             except Exception as e:
                 logger.error(f"Twilio SMS failed for {name}: {e}")
-                results[key] = "FAILED"
+                results[key] = DeliveryStatus.FAILED
 
-        # Also fallback email
+        # Fallback email and merge results for unreached targets
         email_provider = EmailSOSProvider()
-        await email_provider.send_sos_extended(contacts, caretakers, event, patient_name, patient_email=patient_email)
+        email_results = await email_provider.send_sos_extended(contacts, caretakers, event, patient_name, patient_email=patient_email)
+        for k, v in email_results.items():
+            if v in (DeliveryStatus.SENT, DeliveryStatus.DELIVERED):
+                results[k] = v
+            elif k not in results:
+                results[k] = v
 
         return results
 

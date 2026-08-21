@@ -136,10 +136,15 @@ async def verify_registration_otp(db: AsyncSession, email: str, otp: str) -> boo
     if not pending:
         return False
         
+    if pending.otp_attempts >= 5:
+        return False
+
     if datetime.now(timezone.utc) > pending.otp_expires_at:
         return False
         
     if not verify_password(otp, pending.otp_secret_hash):
+        pending.otp_attempts += 1
+        await db.commit()
         return False
         
     # OTP is valid -> Promote to actual User
@@ -152,6 +157,7 @@ async def verify_registration_otp(db: AsyncSession, email: str, otp: str) -> boo
         is_active=True,
         is_email_verified=True,  # They just verified it
         is_phone_verified=False,
+        otp_attempts=0,
     )
     db.add(user)
     await db.flush()  # Get user.id
@@ -198,6 +204,7 @@ async def resend_registration_otp(db: AsyncSession, email: str, background_tasks
     otp_plain = _generate_otp()
     pending.otp_secret_hash = hash_password(otp_plain)
     pending.otp_expires_at = datetime.now(timezone.utc) + timedelta(minutes=10)
+    pending.otp_attempts = 0
     await db.commit()
     
     background_tasks.add_task(send_verification_email, pending.email, otp_plain, pending.full_name)
@@ -209,6 +216,7 @@ async def generate_and_send_otp(db: AsyncSession, user: User, background_tasks: 
     otp_plain = _generate_otp()
     user.otp_secret_hash = hash_password(otp_plain)
     user.otp_expires_at = datetime.now(timezone.utc) + timedelta(minutes=10)
+    user.otp_attempts = 0
     await db.commit()
     
     background_tasks.add_task(send_verification_email, user.email, otp_plain, user.full_name)
@@ -221,15 +229,21 @@ async def verify_user_otp(db: AsyncSession, user: User, otp: str) -> bool:
     if not user.otp_secret_hash or not user.otp_expires_at:
         return False
         
+    if user.otp_attempts >= 5:
+        return False
+
     if datetime.now(timezone.utc) > user.otp_expires_at:
         return False
         
     if not verify_password(otp, user.otp_secret_hash):
+        user.otp_attempts += 1
+        await db.commit()
         return False
         
     user.is_email_verified = True
     user.otp_secret_hash = None
     user.otp_expires_at = None
+    user.otp_attempts = 0
     await db.commit()
     return True
 
@@ -241,10 +255,15 @@ async def check_reset_otp(db: AsyncSession, user: User, otp: str) -> bool:
     if not user.otp_secret_hash or not user.otp_expires_at:
         return False
         
+    if user.otp_attempts >= 5:
+        return False
+
     if datetime.now(timezone.utc) > user.otp_expires_at:
         return False
         
     if not verify_password(otp, user.otp_secret_hash):
+        user.otp_attempts += 1
+        await db.commit()
         return False
         
     return True
@@ -257,15 +276,21 @@ async def reset_user_password(db: AsyncSession, user: User, otp: str, new_passwo
     if not user.otp_secret_hash or not user.otp_expires_at:
         return False
         
+    if user.otp_attempts >= 5:
+        return False
+
     if datetime.now(timezone.utc) > user.otp_expires_at:
         return False
         
     if not verify_password(otp, user.otp_secret_hash):
+        user.otp_attempts += 1
+        await db.commit()
         return False
         
     user.password_hash = hash_password(new_password)
     user.otp_secret_hash = None
     user.otp_expires_at = None
+    user.otp_attempts = 0
     await db.commit()
     return True
 

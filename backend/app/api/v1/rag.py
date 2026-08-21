@@ -1,14 +1,17 @@
 from fastapi import APIRouter, Depends, UploadFile, File
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import CurrentUser, DbDep
+from app.api.deps import CurrentUser, DbDep, RoleChecker
+from app.models.enums import UserRole
 from app.services.rag_ingestion import ingest_document
 
 router = APIRouter(prefix="/rag")
 
+RequireAdmin = Depends(RoleChecker([UserRole.ADMIN]))
+
 @router.post(
     "/upload-document",
     tags=['🤖 AI Chatbot'],
+    dependencies=[RequireAdmin],
     summary="Upload a medical document for the RAG Chatbot",
     description="Admin endpoint to upload PDFs. Gracefully handles states where AI team hasn't provided the LangChain embedding pipeline yet."
 )
@@ -17,9 +20,6 @@ async def upload_rag_document(
     db: DbDep,
     file: UploadFile = File(...)
 ):
-    # Depending on requirements, we might want an admin check here
-    
-    # Process document gracefully
     doc = await ingest_document(db, file)
     
     return {

@@ -127,7 +127,7 @@ def _apply_overrides() -> Generator[None, None, None]:
     def override_get_storage_service() -> StorageService:
         return test_storage
 
-    from app.rate_limit import REGISTER_LIMIT, LOGIN_LIMIT, REFRESH_LIMIT
+    from app.rate_limit import REGISTER_LIMIT, LOGIN_LIMIT, REFRESH_LIMIT, OTP_LIMIT
     async def bypass_rate_limit():
         pass
         
@@ -136,6 +136,7 @@ def _apply_overrides() -> Generator[None, None, None]:
     app.dependency_overrides[REGISTER_LIMIT] = bypass_rate_limit
     app.dependency_overrides[LOGIN_LIMIT] = bypass_rate_limit
     app.dependency_overrides[REFRESH_LIMIT] = bypass_rate_limit
+    app.dependency_overrides[OTP_LIMIT] = bypass_rate_limit
     
     yield
     app.dependency_overrides.clear()
