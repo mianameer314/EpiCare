@@ -16,7 +16,7 @@ import type { RecommendationOut } from '../api';
 import { recommendationsApi } from '../api';
 import { useToast } from '../../../providers/ToastProvider';
 import './RecommendationCard.css';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 interface RecommendationCardProps {
   recommendation: RecommendationOut;
@@ -24,6 +24,7 @@ interface RecommendationCardProps {
 }
 
 export function RecommendationCard({ recommendation, onDismiss }: RecommendationCardProps) {
+  const queryClient = useQueryClient();
   const [feedback, setFeedback] = useState<'HELPFUL' | 'NOT_HELPFUL' | 'CLICKED_ACTION' | null>(
     (recommendation as any).user_feedback || null
   );
@@ -60,6 +61,9 @@ export function RecommendationCard({ recommendation, onDismiss }: Recommendation
           onDismiss(recommendation.id);
         }
       }
+      
+      // Auto-invalidate all recommendations queries instantly
+      queryClient.invalidateQueries({ queryKey: ['recommendations'] });
     } catch (err: any) {
       toast.error(err.message || 'Failed to submit feedback.');
     } finally {

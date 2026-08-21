@@ -250,6 +250,7 @@ export function LifestylePage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['seizures'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['recommendations'] });
       showSuccess('Seizure episode recorded successfully.');
       setIsFormOpen(false);
       setConfirmSaveData(null);
@@ -276,6 +277,7 @@ export function LifestylePage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['lifestyle', 'sleep'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['recommendations'] });
       showSuccess('Sleep session recorded successfully.');
       setIsFormOpen(false);
       setConfirmSaveData(null);
@@ -294,6 +296,7 @@ export function LifestylePage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['lifestyle', 'triggers'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['recommendations'] });
       showSuccess('Trigger event logged successfully.');
       setIsFormOpen(false);
       setConfirmSaveData(null);
@@ -323,6 +326,7 @@ export function LifestylePage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['lifestyle'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['recommendations'] });
       showSuccess('Daily diet & digital habits saved.');
       setIsFormOpen(false);
       setConfirmSaveData(null);
@@ -489,6 +493,7 @@ export function LifestylePage() {
       }
       queryClient.invalidateQueries({ queryKey: ['lifestyle'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['recommendations'] });
       setDeleteTarget(null);
       if (selectedLogDetails && selectedLogDetails.rawId === deleteTarget.id) {
         setSelectedLogDetails(null);

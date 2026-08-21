@@ -36,6 +36,7 @@ export function EmergencyContactsManager({ contacts, isLoading }: EmergencyConta
     mutationFn: (data: EmergencyContactCreate) => emergencyApi.createContact(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['emergency', 'contacts'] });
+      queryClient.invalidateQueries({ queryKey: ['recommendations'] });
       closeModal();
       toast.success('Emergency contact added successfully.');
     },
@@ -50,6 +51,7 @@ export function EmergencyContactsManager({ contacts, isLoading }: EmergencyConta
       emergencyApi.updateContact(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['emergency', 'contacts'] });
+      queryClient.invalidateQueries({ queryKey: ['recommendations'] });
       closeModal();
       toast.success('Emergency contact updated successfully.');
     },
@@ -63,6 +65,7 @@ export function EmergencyContactsManager({ contacts, isLoading }: EmergencyConta
     mutationFn: (id: number) => emergencyApi.deleteContact(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['emergency', 'contacts'] });
+      queryClient.invalidateQueries({ queryKey: ['recommendations'] });
       toast.delete('Emergency contact removed.');
     },
     onError: (err: any) => {

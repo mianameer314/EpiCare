@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { RecommendationOut } from './api';
 import { recommendationsApi } from './api';
 import { RecommendationCard } from './components/RecommendationCard';
@@ -27,6 +27,7 @@ import { useToast } from '../../providers/ToastProvider';
 import './RecommendationsDashboard.css';
 
 export function RecommendationsDashboard() {
+  const queryClient = useQueryClient();
   const [isGenerating, setIsGenerating] = useState(false);
   const [historyPage, setHistoryPage] = useState(1);
   const [expandedHistoryId, setExpandedHistoryId] = useState<number | null>(null);
@@ -35,19 +36,32 @@ export function RecommendationsDashboard() {
   const { data: activeRecs, isLoading: activeLoading, refetch: refetchActive } = useQuery({
     queryKey: ['recommendations', 'active'],
     queryFn: () => recommendationsApi.getActive(),
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
+    refetchInterval: 10000,
   });
 
   const { data: historyRecs, isLoading: historyLoading, refetch: refetchHistory } = useQuery({
     queryKey: ['recommendations', 'history', historyPage],
     queryFn: () => recommendationsApi.getHistory((historyPage - 1) * 5, 5),
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
+    refetchInterval: 10000,
   });
 
   const { data: stats, refetch: refetchStats } = useQuery({
     queryKey: ['recommendations', 'stats'],
     queryFn: () => recommendationsApi.getAnalytics(),
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
+    refetchInterval: 10000,
   });
 
   const handleCardDismiss = () => {
+    queryClient.invalidateQueries({ queryKey: ['recommendations'] });
     refetchActive();
     refetchHistory();
     refetchStats();
@@ -57,35 +71,20 @@ export function RecommendationsDashboard() {
     try {
       setIsGenerating(true);
       await recommendationsApi.regenerate();
+      queryClient.invalidateQueries({ queryKey: ['recommendations'] });
       refetchActive();
       refetchHistory();
       refetchStats();
-      toast.success('Clinical recommendations updated with latest health data.');
-    } catch (e: any) {
-      toast.error(e.message || 'Failed to analyze recent health data.');
+      toast.success('Insights refreshed based on your latest lifestyle logs.');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to regenerate recommendations.');
     } finally {
       setIsGenerating(false);
     }
   };
 
-  const formatDateTime = (dateStr: string) => {
-    try {
-      const d = new Date(dateStr);
-      const datePart = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-      const timePart = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-      return `${datePart} • ${timePart}`;
-    } catch {
-      return dateStr;
-    }
-  };
-
-  const getCategoryIcon = (category: string) => {
-    const cat = category.toUpperCase();
-    if (cat.includes('SLEEP')) return <Moon size={13} />;
-    if (cat.includes('EMERGENCY')) return <ShieldAlert size={13} />;
-    if (cat.includes('TRIGGER')) return <Activity size={13} />;
-    if (cat.includes('MED')) return <Pill size={13} />;
-    return <Lightbulb size={13} />;
+  const toggleExpand = (id: number) => {
+    setExpandedHistoryId(prev => (prev === id ? null : id));
   };
 
   const getCategoryClass = (category: string) => {
@@ -97,62 +96,111 @@ export function RecommendationsDashboard() {
     return 'category-default';
   };
 
+  const getCategoryIcon = (category: string) => {
+    const cat = category.toUpperCase();
+    if (cat.includes('SLEEP')) return <Moon size={13} />;
+    if (cat.includes('EMERGENCY')) return <ShieldAlert size={13} />;
+    if (cat.includes('TRIGGER')) return <Activity size={13} />;
+    if (cat.includes('MED')) return <Pill size={13} />;
+    return <BookOpen size={13} />;
+  };
+
+  const getStatusBadge = (rec: RecommendationOut) => {
+    if (rec.priority === 'VICTORY') {
+      return (
+        <span className="history-status-badge status-resolved">
+          <CheckCircle2 size={12} /> Action Completed & Resolved
+        </span>
+      );
+    }
+    if (rec.is_active) {
+      return (
+        <span className="history-status-badge status-active">
+          <CircleDot size={12} /> Active In Dashboard
+        </span>
+      );
+    }
+    if (rec.is_dismissed) {
+      return (
+        <span className="history-status-badge status-dismissed">
+          <XCircle size={12} /> Dismissed by Patient
+        </span>
+      );
+    }
+    return (
+      <span className="history-status-badge status-archived">
+        <Clock size={12} /> Archived
+      </span>
+    );
+  };
+
+  const formatTimestamp = (dateStr?: string) => {
+    if (!dateStr) return 'Recent';
+    try {
+      const d = new Date(dateStr);
+      return d.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    } catch {
+      return dateStr;
+    }
+  };
+
   return (
     <div className="insights-dashboard">
-      <header className="insights-header">
-        <div>
-          <h1 className="insights-title">Personalized Care Insights</h1>
-          <p className="insights-subtitle">
-            Continuous health intelligence & clinical safety protocols tailored to your epilepsy care journey.
-          </p>
+      {/* Top Banner Stats Row */}
+      <div className="stats-row">
+        <div className="stat-card">
+          <span className="stat-label">Active Insights</span>
+          <span className="stat-value">{activeRecs ? activeRecs.length : 0}</span>
         </div>
-        <button onClick={handleRegenerate} className="refresh-btn" disabled={isGenerating}>
-          {isGenerating ? (
-            <>
-              <Loader2 size={18} className="spin-icon" /> Analyzing Data...
-            </>
-          ) : (
-            'Analyze Recent Data'
-          )}
-        </button>
-      </header>
-
-      {stats && (
-        <div className="stats-row">
-          <div className="stat-card">
-            <span className="stat-label">Active Insights</span>
-            <span className="stat-value">{activeRecs?.length || 0}</span>
-          </div>
-          <div className="stat-card">
-            <span className="stat-label">Total Insights</span>
-            <span className="stat-value">{stats.total_generated}</span>
-          </div>
-          <div className="stat-card">
-            <span className="stat-label">Helpful Feedback</span>
-            <span className="stat-value">{stats.total_helpful}</span>
-          </div>
-          <div className="stat-card">
-            <span className="stat-label">Not Helpful</span>
-            <span className="stat-value">{stats.total_not_helpful}</span>
-          </div>
-          <div className="stat-card">
-            <span className="stat-label">Insights Dismissed</span>
-            <span className="stat-value">{stats.total_dismissed}</span>
-          </div>
+        <div className="stat-card">
+          <span className="stat-label">Total Insights</span>
+          <span className="stat-value">{stats?.total_generated ?? 0}</span>
         </div>
-      )}
+        <div className="stat-card">
+          <span className="stat-label">Helpful Feedback</span>
+          <span className="stat-value" style={{ color: '#166534' }}>{stats?.total_helpful ?? 0}</span>
+        </div>
+        <div className="stat-card">
+          <span className="stat-label">Not Helpful</span>
+          <span className="stat-value">{stats?.total_not_helpful ?? 0}</span>
+        </div>
+        <div className="stat-card">
+          <span className="stat-label">Insights Dismissed</span>
+          <span className="stat-value">{stats?.total_dismissed ?? 0}</span>
+        </div>
+      </div>
 
-      <section className="insights-section">
-        <h2 className="section-title">
-          <AlertTriangle size={20} /> Actionable Insights (Active)
-        </h2>
+      {/* Active Recommendations Section */}
+      <div className="insights-section">
+        <div className="section-header-flex">
+          <h3 className="section-title" style={{ margin: 0, border: 'none', padding: 0 }}>
+            <AlertTriangle size={18} />
+            Actionable Insights (Active)
+          </h3>
+          <button 
+            className="refresh-btn" 
+            onClick={handleRegenerate}
+            disabled={isGenerating}
+          >
+            {isGenerating ? <Loader2 className="spin-icon" size={16} /> : null}
+            {isGenerating ? 'Analyzing...' : 'Refresh Insights'}
+          </button>
+        </div>
+
         {activeLoading ? (
           <div className="loading-state">
-            <Loader2 size={24} className="spin-icon" /> Loading active clinical insights...
+            <Loader2 className="spin-icon" size={24} />
+            <span>Analyzing recent health logs...</span>
           </div>
         ) : activeRecs && activeRecs.length > 0 ? (
           <div className="insights-grid">
-            {activeRecs.map((rec: RecommendationOut) => (
+            {activeRecs.map((rec) => (
               <RecommendationCard 
                 key={rec.id} 
                 recommendation={rec} 
@@ -162,144 +210,128 @@ export function RecommendationsDashboard() {
           </div>
         ) : (
           <div className="empty-state">
-            <Lightbulb size={48} className="empty-icon" />
-            <h3>You are completely up to date!</h3>
-            <p>No urgent recommendations or pending health actions required right now. Keep logging your daily logs and check back soon.</p>
+            <Lightbulb size={36} className="empty-icon" />
+            <h4 style={{ margin: '0 0 8px 0', fontSize: '1.1rem', fontWeight: 700, color: '#1e3d2b' }}>You're all caught up!</h4>
+            <p style={{ margin: 0, maxWidth: '440px', lineHeight: 1.5 }}>No active lifestyle alerts or routine reminders at this time. Keep logging your daily metrics!</p>
           </div>
         )}
-      </section>
+      </div>
 
-      <section className="insights-section">
+      {/* Upgraded Industrial-Grade History & Audit Trail */}
+      <div className="insights-section">
         <div className="section-header-flex">
-          <h2 className="section-title" style={{ marginBottom: 0, borderBottom: 'none' }}>
-            <History size={20} /> Insight History & Audit Trail
-          </h2>
-          <span className="history-count-badge">
-            Page {historyPage}
-          </span>
+          <h3 className="section-title" style={{ margin: 0, border: 'none', padding: 0 }}>
+            <History size={18} />
+            Insight History & Audit Trail
+          </h3>
         </div>
 
         {historyLoading ? (
           <div className="loading-state">
-            <Loader2 size={24} className="spin-icon" /> Loading historical insight log...
+            <Loader2 className="spin-icon" size={20} />
+            <span>Loading history log...</span>
           </div>
         ) : historyRecs && historyRecs.length > 0 ? (
-          <>
-            <div className="insights-history-list">
-              {historyRecs.map((rec: RecommendationOut) => {
-                const isResolved = rec.priority === 'VICTORY' || rec.title.toLowerCase().includes('resolved');
-                const isExpanded = expandedHistoryId === rec.id;
+          <div className="insights-history-list">
+            {historyRecs.map((rec) => {
+              const isExpanded = expandedHistoryId === rec.id;
+              const hasEvidence = rec.evidence_tags && rec.evidence_tags.length > 0;
+              const cardStatusClass = rec.priority === 'VICTORY' 
+                ? 'history-resolved' 
+                : rec.is_active 
+                ? 'history-active' 
+                : rec.is_dismissed 
+                ? 'history-dismissed' 
+                : '';
 
-                return (
-                  <div 
-                    key={rec.id} 
-                    className={`history-card ${isResolved ? 'history-resolved' : rec.is_active ? 'history-active' : rec.is_dismissed ? 'history-dismissed' : ''}`}
-                  >
-                    <div className="history-card-header">
-                      <div className="history-badges-row">
-                        <span className={`history-category-pill ${getCategoryClass(rec.category)}`}>
-                          {getCategoryIcon(rec.category)}
-                          {rec.category.replace('_', ' ')}
+              return (
+                <div key={rec.id} className={`history-card ${cardStatusClass}`}>
+                  <div className="history-card-header">
+                    <div className="history-badges-row">
+                      <span className={`history-category-pill ${getCategoryClass(rec.category)}`}>
+                        {getCategoryIcon(rec.category)}
+                        {rec.category.replace('_', ' ')}
+                      </span>
+                      {getStatusBadge(rec)}
+                    </div>
+                    <div className="history-date-stamp">
+                      <Calendar size={12} />
+                      <span>{formatTimestamp(rec.created_at)}</span>
+                    </div>
+                  </div>
+
+                  <div className="history-card-main">
+                    <h4 className="history-card-title">{rec.title}</h4>
+                    <p className="history-card-body">{rec.body}</p>
+                  </div>
+
+                  <div className="history-card-header" style={{ marginTop: '4px' }}>
+                    <div className="history-status-group">
+                      {rec.user_feedback === 'HELPFUL' && (
+                        <span className="history-feedback-pill feedback-helpful">
+                          <ThumbsUp size={11} /> Marked Helpful
                         </span>
-
-                        <div className="history-status-group">
-                          {isResolved ? (
-                            <span className="history-status-badge status-resolved">
-                              <CheckCircle2 size={13} /> Action Completed & Resolved
-                            </span>
-                          ) : rec.is_active ? (
-                            <span className="history-status-badge status-active">
-                              <CircleDot size={13} /> Active In Dashboard
-                            </span>
-                          ) : rec.is_dismissed ? (
-                            <span className="history-status-badge status-dismissed">
-                              <XCircle size={13} /> Dismissed by Patient
-                            </span>
-                          ) : (
-                            <span className="history-status-badge status-archived">
-                              <Clock size={13} /> Archived
-                            </span>
-                          )}
-
-                          {rec.user_feedback === 'HELPFUL' && (
-                            <span className="history-feedback-pill feedback-helpful">
-                              <ThumbsUp size={12} /> Marked Helpful
-                            </span>
-                          )}
-                          {rec.user_feedback === 'NOT_HELPFUL' && (
-                            <span className="history-feedback-pill feedback-unhelpful">
-                              <ThumbsDown size={12} /> Marked Not Helpful
-                            </span>
-                          )}
-                          {rec.user_feedback === 'CLICKED_ACTION' && (
-                            <span className="history-feedback-pill feedback-action">
-                              <ArrowRight size={12} /> Action Opened
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="history-date-stamp">
-                        <Calendar size={13} />
-                        <span>{formatDateTime(rec.created_at)}</span>
-                      </div>
+                      )}
+                      {rec.user_feedback === 'NOT_HELPFUL' && (
+                        <span className="history-feedback-pill feedback-unhelpful">
+                          <ThumbsDown size={11} /> Marked Not Helpful
+                        </span>
+                      )}
+                      {rec.user_feedback === 'CLICKED_ACTION' && (
+                        <span className="history-feedback-pill feedback-action">
+                          <ArrowRight size={11} /> Action Opened
+                        </span>
+                      )}
+                      {rec.action_url && (
+                        <span style={{ fontSize: '0.72rem', color: '#6b7c72' }}>
+                          Target: <code style={{ background: '#eef2ef', padding: '2px 6px', borderRadius: '4px' }}>{rec.action_url}</code>
+                        </span>
+                      )}
                     </div>
 
-                    <div className="history-card-main">
-                      <h4 className="history-card-title">{rec.title}</h4>
-                      <p className="history-card-body">{rec.body}</p>
-                    </div>
-
-                    {rec.evidence_tags && rec.evidence_tags.length > 0 && (
-                      <div className="history-card-evidence">
-                        <button 
-                          className="history-evidence-toggle"
-                          onClick={() => setExpandedHistoryId(isExpanded ? null : rec.id)}
-                        >
-                          <BookOpen size={13} />
-                          {isExpanded ? 'Hide Clinical Context' : `View Clinical Context (${rec.evidence_tags.length} sources)`}
-                        </button>
-
-                        {isExpanded && (
-                          <div className="history-evidence-details">
-                            {rec.evidence_tags.map((tag, i) => (
-                              <div key={i} className="evidence-tag-item">
-                                <strong>{tag.title}</strong>
-                                {tag.content && <p>{tag.content}</p>}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
+                    {hasEvidence && (
+                      <button 
+                        className="history-evidence-toggle"
+                        onClick={() => toggleExpand(rec.id)}
+                      >
+                        {isExpanded ? 'Hide Clinical Sources' : 'View Clinical Evidence'}
+                      </button>
                     )}
                   </div>
-                );
-              })}
-            </div>
-            
-            <div style={{ marginTop: 'var(--space-6)' }}>
+
+                  {isExpanded && hasEvidence && (
+                    <div className="history-evidence-details">
+                      <strong style={{ fontSize: '0.75rem', color: '#1f2937', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                        Clinical Sources & Guidance:
+                      </strong>
+                      {rec.evidence_tags?.map((tag: any, idx: number) => (
+                        <div key={idx} className="evidence-tag-item">
+                          <strong>• {tag.title || 'Guideline Reference'}</strong>
+                          {tag.summary && <p>{tag.summary}</p>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+
+            <div className="history-pagination-wrapper" style={{ display: 'flex', justifyContent: 'center', marginTop: 'var(--space-4)' }}>
               <Pagination
                 currentPage={historyPage}
-                totalPages={historyPage + (historyRecs.length < 5 ? 0 : 1)}
-                pageSize={5}
+                totalPages={Math.ceil((stats?.total_generated || 1) / 5) || 1}
+                onPageChange={(p) => setHistoryPage(p)}
                 itemName="insights"
-                onPageChange={setHistoryPage}
               />
             </div>
-          </>
+          </div>
         ) : (
           <div className="empty-state">
-            <History size={40} className="empty-icon" />
-            <h3>No Previous Insights Recorded</h3>
-            <p>Historical recommendations, resolved clinical actions, and feedback logs will appear here.</p>
-            {historyPage > 1 && (
-              <div style={{ marginTop: 'var(--space-4)' }}>
-                <button className="btn btn-secondary" onClick={() => setHistoryPage(1)}>Return to First Page</button>
-              </div>
-            )}
+            <History size={28} className="empty-icon" />
+            <p style={{ margin: 0 }}>No historical recommendations recorded yet.</p>
           </div>
         )}
-      </section>
+      </div>
     </div>
   );
 }

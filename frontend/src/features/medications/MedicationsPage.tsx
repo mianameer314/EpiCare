@@ -115,6 +115,7 @@ export function MedicationsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['medications'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['recommendations'] });
       closeModal();
       toast.success('Prescription saved to database and live schedules generated.');
     },
@@ -128,6 +129,7 @@ export function MedicationsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['medications'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['recommendations'] });
       setMedToDelete(null);
       toast.info('Prescription removed.');
     },
@@ -139,6 +141,7 @@ export function MedicationsPage() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['medications'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['recommendations'] });
       
       // Mark this specific prescription ID as locally logged for UI idempotency
       setLoggedPrescriptionIds(prev => new Set(prev).add(variables));
