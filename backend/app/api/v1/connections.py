@@ -258,11 +258,16 @@ async def request_connection(
     if not patient_profile:
         raise HTTPException(status_code=404, detail="Patient profile not found")
         
-    # Check if doctor exists
-    result = await db.execute(select(DoctorProfile).where(DoctorProfile.id == data.doctor_id))
+    # Check if doctor exists and is PMDC verified (Finding 13)
+    result = await db.execute(
+        select(DoctorProfile).where(
+            DoctorProfile.id == data.doctor_id,
+            DoctorProfile.is_pmdc_verified.is_(True),
+        )
+    )
     doctor_profile = result.scalar_one_or_none()
     if not doctor_profile:
-        raise HTTPException(status_code=404, detail="Doctor not found")
+        raise HTTPException(status_code=404, detail="Verified doctor not found")
         
     # Check if connection already exists
     query = select(PatientDoctorNetwork).where(

@@ -22,6 +22,7 @@ from app.models.model_version import ModelVersion
 from app.models.audit_log import AuditLog
 from app.models.seizure import ManualSeizureLog
 from app.models.pending_registration import PendingRegistration
+from app.models.user_session import UserSession
 
 __all__ = [
     "User",
@@ -53,4 +54,5 @@ __all__ = [
     "AuditLog",
     "ManualSeizureLog",
     "PendingRegistration",
+    "UserSession",
 ]

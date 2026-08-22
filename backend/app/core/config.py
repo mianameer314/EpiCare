@@ -2,6 +2,7 @@
 Application configuration.
 Loads all configuration from environment variables (.env locally, container vars in production).
 """
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -28,6 +29,14 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     JWT_ACCESS_EXPIRY_MINUTES: int = 30
     JWT_REFRESH_EXPIRY_DAYS: int = 7
+    JWT_ISSUER: str = "epicare-api"
+    JWT_AUDIENCE: str = "epicare-client"
+
+    # ==========================================================
+    # Proxy / Network Security
+    # ==========================================================
+    TRUST_PROXY_HEADERS: bool = False
+    TRUSTED_PROXY_IPS: str = "127.0.0.1"
 
     # ==========================================================
     # CORS
@@ -132,6 +141,34 @@ class Settings(BaseSettings):
     # Background Jobs
     # ==========================================================
     # (legacy flag kept for compatibility; scheduler uses SCHEDULER_ENABLED)
+
+    @model_validator(mode="after")
+    def validate_production(self) -> "Settings":
+        """Fail-secure validation for production environment (Finding 8)."""
+        if self.APP_ENV == "production":
+            if not self.JWT_SECRET or len(self.JWT_SECRET) < 32:
+                raise ValueError("JWT_SECRET must be at least 32 characters in production")
+            if self.DEBUG:
+                raise ValueError("DEBUG must be False in production")
+            if not self.DATABASE_URL or "sqlite" in self.DATABASE_URL:
+                raise ValueError("DATABASE_URL is required and cannot be SQLite in production")
+            if not self.CORS_ORIGINS or "localhost" in self.CORS_ORIGINS or "*" in self.CORS_ORIGINS:
+                raise ValueError("Production CORS_ORIGINS must be explicit and cannot allow localhost or wildcard")
+            
+            # Validate selected SOS provider credentials
+            if self.SOS_PROVIDER == "whatsapp":
+                if not self.WHATSAPP_TOKEN or not self.WHATSAPP_PHONE_ID:
+                    raise ValueError("WHATSAPP_TOKEN and WHATSAPP_PHONE_ID are required when SOS_PROVIDER='whatsapp'")
+            elif self.SOS_PROVIDER == "twilio":
+                if not self.TWILIO_ACCOUNT_SID or not self.TWILIO_AUTH_TOKEN or not self.TWILIO_FROM_NUMBER:
+                    raise ValueError("Twilio credentials (SID, AUTH_TOKEN, FROM_NUMBER) are required when SOS_PROVIDER='twilio'")
+            elif self.SOS_PROVIDER == "firebase":
+                if not self.FIREBASE_CREDENTIALS_PATH and not self.FIREBASE_PROJECT_ID:
+                    raise ValueError("Firebase credentials are required when SOS_PROVIDER='firebase'")
+            elif self.SOS_PROVIDER == "email":
+                if not self.MAIL_SERVER and not self.GMAIL_REFRESH_TOKEN:
+                    raise ValueError("Email transport credentials (MAIL_SERVER or GMAIL_REFRESH_TOKEN) required when SOS_PROVIDER='email'")
+        return self
 
     model_config = SettingsConfigDict(
         env_file=".env",

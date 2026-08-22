@@ -247,10 +247,80 @@ app.include_router(seizures.router, prefix=api_prefix)
 app.include_router(recommendations.router, prefix=api_prefix)
 
 
+from sqlalchemy import text
+from fastapi import Response, status
+
+
 @app.get("/", include_in_schema=False)
 async def root():
     """Minimal root probe (Docker healthcheck target)."""
     return {"app": settings.APP_NAME, "docs": "/docs"}
+
+
+@app.get("/livez", tags=["⚙️ System Health & Status"], summary="Liveness probe")
+async def livez():
+    """Kubernetes / container liveness probe — returns 200 when application process is alive."""
+    return {"status": "alive"}
+
+
+@app.get("/readyz", tags=["⚙️ System Health & Status"], summary="Readiness probe")
+async def readyz(response: Response):
+    """
+    Kubernetes / deployment readiness probe (Finding 8).
+    Evaluates database, cache/redis, storage, and model loader.
+    Fails closed with HTTP 503 if critical dependencies are unreachable.
+    """
+    components = {}
+    is_ready = True
+
+    # 1. Database Check (Critical)
+    try:
+        async with engine.connect() as conn:
+            await conn.execute(text("SELECT 1"))
+        components["database"] = {"status": "ready"}
+    except Exception as e:
+        logger.error(f"Readiness check: Database failure: {e}")
+        components["database"] = {"status": "unhealthy", "error": str(e)}
+        is_ready = False
+
+    # 2. Redis Rate Limiter Check (Non-fatal in dev/test, reported)
+    try:
+        from app.rate_limit.core import get_rate_limiter
+        limiter = get_rate_limiter()
+        if limiter.using_redis:
+            components["rate_limiter"] = {"status": "ready", "backend": "redis"}
+        else:
+            components["rate_limiter"] = {"status": "degraded", "backend": "in-memory"}
+    except Exception as e:
+        components["rate_limiter"] = {"status": "unavailable", "error": str(e)}
+
+    # 3. Storage Check
+    try:
+        import os
+        from pathlib import Path
+        storage_path = Path(settings.LOCAL_STORAGE_PATH)
+        if not storage_path.exists():
+            storage_path.mkdir(parents=True, exist_ok=True)
+        components["storage"] = {"status": "ready", "provider": settings.STORAGE_PROVIDER or "local"}
+    except Exception as e:
+        components["storage"] = {"status": "unhealthy", "error": str(e)}
+        is_ready = False
+
+    # 4. Model Loader Check
+    try:
+        loader = get_model_loader()
+        components["model_loader"] = {
+            "status": "ready" if loader.registry.status.value == "ACTIVE" else loader.registry.status.value,
+            "version": loader.version,
+        }
+    except Exception as e:
+        components["model_loader"] = {"status": "unavailable", "error": str(e)}
+
+    if not is_ready:
+        response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+        return {"status": "not_ready", "components": components}
+
+    return {"status": "ready", "components": components}
 
 
 def custom_openapi():

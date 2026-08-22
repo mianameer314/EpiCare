@@ -1,9 +1,7 @@
-"""
-Auth routes — register, login, refresh, logout, and profile (async).
-"""
-from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks, Request, Response
 
 from app.api.deps import CurrentUser, DbDep, RefreshUser
+from app.core.config import settings
 from app.core.security import create_access_token, create_refresh_token, verify_password
 from app.rate_limit import LOGIN_LIMIT, REFRESH_LIMIT, REGISTER_LIMIT, OTP_LIMIT
 from app.schemas.user import (
@@ -20,6 +18,7 @@ from app.schemas.user import (
     ResetPasswordRequest,
 )
 from app.services import user as user_service
+from app.services import session as session_service
 from app.models.doctor_profile import DoctorProfile
 from sqlalchemy import select
 from app.models.enums import UserRole
@@ -56,8 +55,8 @@ async def register(data: UserRegister, db: DbDep, background_tasks: BackgroundTa
         429: {"description": "Too Many Requests - Login rate limit exceeded"},
     },
 )
-async def login(data: LoginRequest, db: DbDep):
-    """Authenticate and get access + refresh tokens."""
+async def login(data: LoginRequest, db: DbDep, request: Request, response: Response):
+    """Authenticate and get access + refresh tokens with server-side session tracking."""
     user = await user_service.get_user_by_email(db, data.email)
     if not user:
         from app.models.pending_registration import PendingRegistration
@@ -88,10 +87,7 @@ async def login(data: LoginRequest, db: DbDep):
             detail="Email is not verified. Please verify your email first.",
         )
         
-    from app.models.enums import UserRole
     if user.role == UserRole.DOCTOR:
-        
-        
         result = await db.execute(select(DoctorProfile).where(DoctorProfile.user_id == user.id))
         doctor_profile = result.scalar_one_or_none()
         
@@ -101,8 +97,24 @@ async def login(data: LoginRequest, db: DbDep):
                 detail="Your doctor profile is pending PMDC verification by an admin.",
             )
 
-    access_token = create_access_token(data={"sub": user.email})
-    refresh_token = create_refresh_token(subject=user.email)
+    client_ip = request.client.host if request.client else None
+    user_agent = request.headers.get("user-agent")
+
+    access_token, refresh_token, _ = await session_service.create_session(
+        db, user, user_agent=user_agent, ip_address=client_ip
+    )
+
+    # Set secure HttpOnly cookie for web clients
+    response.set_cookie(
+        key="epicare_refresh",
+        value=refresh_token,
+        httponly=True,
+        secure=not settings.DEBUG,
+        samesite="lax",
+        max_age=settings.JWT_REFRESH_EXPIRY_DAYS * 86400,
+        path="/api/v1/auth",
+    )
+
     return Token(access_token=access_token, refresh_token=refresh_token)
 
 
@@ -234,6 +246,8 @@ async def reset_password(data: ResetPasswordRequest, db: DbDep):
     if not is_valid:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired OTP")
         
+    # Revoke all existing sessions across all devices
+    await session_service.revoke_all_user_sessions(db, user.id)
     return {"message": "Password reset successfully"}
 
 
@@ -242,30 +256,71 @@ async def reset_password(data: ResetPasswordRequest, db: DbDep):
     response_model=Token,
     dependencies=[Depends(REFRESH_LIMIT)],
     summary="Refresh auth tokens",
-    description="Generate a new set of access and refresh tokens using a valid existing refresh token.",
+    description="Generate a new set of access and refresh tokens using a valid existing refresh token (rotates token, detects token theft).",
     responses={
-        401: {"description": "Unauthorized - Invalid or expired refresh token"},
+        401: {"description": "Unauthorized - Invalid, expired, or reused refresh token"},
         429: {"description": "Too Many Requests"},
     },
 )
-async def refresh_token(current_user: RefreshUser):
-    """Get new tokens using a refresh token."""
-    access_token = create_access_token(data={"sub": current_user.email})
-    refresh_token = create_refresh_token(subject=current_user.email)
-    return Token(access_token=access_token, refresh_token=refresh_token)
+async def refresh_token(request: Request, response: Response, db: DbDep):
+    """Get new rotated tokens with session tracking and theft detection."""
+    refresh_token_str = request.cookies.get("epicare_refresh")
+    if not refresh_token_str:
+        auth_header = request.headers.get("authorization")
+        if auth_header and auth_header.lower().startswith("bearer "):
+            refresh_token_str = auth_header[7:].strip()
+
+    if not refresh_token_str:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token is required",
+        )
+
+    client_ip = request.client.host if request.client else None
+    user_agent = request.headers.get("user-agent")
+
+    access_token, new_refresh_token, _ = await session_service.rotate_session_token(
+        db, refresh_token_str, user_agent=user_agent, ip_address=client_ip
+    )
+
+    # Update HttpOnly cookie with rotated token
+    response.set_cookie(
+        key="epicare_refresh",
+        value=new_refresh_token,
+        httponly=True,
+        secure=not settings.DEBUG,
+        samesite="lax",
+        max_age=settings.JWT_REFRESH_EXPIRY_DAYS * 86400,
+        path="/api/v1/auth",
+    )
+
+    return Token(access_token=access_token, refresh_token=new_refresh_token)
 
 
 @router.post(
     "/logout",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Logout user",
-    description="Acknowledge logout intention (client-side clears the tokens).",
+    description="Revoke the calling session server-side and clear the refresh cookie.",
     responses={
         401: {"description": "Unauthorized"},
     },
 )
-async def logout(current_user: CurrentUser):
-    """Invalidate the client session (client discards tokens)."""
+async def logout(request: Request, response: Response, current_user: CurrentUser, db: DbDep):
+    """Revoke the current session and clear refresh cookie."""
+    auth_header = request.headers.get("authorization")
+    if auth_header and auth_header.lower().startswith("bearer "):
+        token = auth_header[7:].strip()
+        try:
+            from app.core.security import decode_token
+            payload = decode_token(token)
+            sid = payload.get("sid")
+            if sid:
+                await session_service.revoke_session(db, sid)
+        except Exception:
+            pass
+
+    response.delete_cookie(key="epicare_refresh", path="/api/v1/auth")
     return None
 
 
@@ -302,17 +357,18 @@ async def update_profile(data: UserProfileUpdate, current_user: CurrentUser, db:
     "/change-password",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Change account password",
-    description="Change the authenticated user's password securely by verifying their current password.",
+    description="Change the authenticated user's password securely and revoke all other active sessions.",
     responses={
         400: {"description": "Bad Request - Validation error"},
         401: {"description": "Unauthorized - Incorrect current password"},
     },
 )
 async def change_password(data: ChangePasswordRequest, current_user: CurrentUser, db: DbDep):
-    """Change own password."""
+    """Change own password and revoke all active sessions."""
     await user_service.change_password(
         db, current_user, data.current_password, data.new_password
     )
+    await session_service.revoke_all_user_sessions(db, current_user.id)
     return None
 
 

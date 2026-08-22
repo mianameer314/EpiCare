@@ -70,7 +70,10 @@ async def get_current_user(credentials: TokenDep, db: DbDep) -> User:
 
 
 async def get_refresh_user(credentials: TokenDep, db: DbDep) -> User:
-    """Decode refresh JWT and return the user."""
+    """Decode refresh JWT, verify session validity, and return the user."""
+    from app.models.user_session import UserSession
+    from datetime import datetime, timezone
+
     try:
         payload = decode_token(credentials.credentials)
         if payload.get("type") != "refresh":
@@ -90,6 +93,7 @@ async def get_refresh_user(credentials: TokenDep, db: DbDep) -> User:
             detail="Invalid or expired refresh token",
         )
 
+    # Validate active user
     result = await db.execute(select(User).where(User.email == user_email))
     user = result.scalar_one_or_none()
     if user is None or not user.is_active:
@@ -97,6 +101,22 @@ async def get_refresh_user(credentials: TokenDep, db: DbDep) -> User:
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User not found or inactive",
         )
+
+    # Validate session if session_id or jti is in payload
+    session_id = payload.get("sid")
+    jti = payload.get("jti")
+    if session_id or jti:
+        sess_query = select(UserSession).where(
+            UserSession.session_id == session_id if session_id else UserSession.refresh_token_jti == jti
+        )
+        sess_res = await db.execute(sess_query)
+        session = sess_res.scalar_one_or_none()
+        if session and (session.is_revoked or (session.expires_at and session.expires_at < datetime.now(timezone.utc))):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Session has been revoked or expired",
+            )
+
     return user
 
 
