@@ -210,13 +210,17 @@ async def upload_my_pmdc_certificate(
     )
 
 
+from urllib.parse import quote
+from app.services.storage.validator import sanitize_filename
+
+
 @router.get(
     "/me/doctor-profile/pmdc-certificate",
     tags=["👨‍⚕️ Doctor - Profile & Management"],
     summary="View PMDC certificate",
 )
 async def view_my_pmdc_certificate(current_user: CurrentUser, db: DbDep):
-    """Return the authenticated doctor's certificate inline for preview/download."""
+    """Return the authenticated doctor's certificate with RFC-safe Content-Disposition (Finding 15)."""
     profile = await doctor_service.get_profile_for_user(db, current_user.id)
     if not profile or not profile.pmdc_certificate_path:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="PMDC certificate not found")
@@ -224,11 +228,18 @@ async def view_my_pmdc_certificate(current_user: CurrentUser, db: DbDep):
     if not storage.exists(profile.pmdc_certificate_path):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Stored PMDC certificate not found")
     content = storage.read(profile.pmdc_certificate_path)
-    filename = profile.pmdc_certificate_name or "pmdc-certificate"
+    raw_filename = profile.pmdc_certificate_name or "pmdc-certificate.pdf"
+    safe_filename = sanitize_filename(raw_filename)
+    encoded_filename = quote(safe_filename)
+    mime_type = profile.pmdc_certificate_mime_type or "application/pdf"
     return Response(
         content=content,
-        media_type=profile.pmdc_certificate_mime_type or "application/octet-stream",
-        headers={"Content-Disposition": f'inline; filename="{filename}"'},
+        media_type=mime_type,
+        headers={
+            "Content-Disposition": f'attachment; filename="{safe_filename}"; filename*=UTF-8\'\'{encoded_filename}',
+            "X-Content-Type-Options": "nosniff",
+            "Cache-Control": "private, no-transform, max-age=300",
+        },
     )
 
 
@@ -402,8 +413,11 @@ async def delete_my_caretaker_profile(current_user: CurrentUser, db: DbDep):
     return None
 
 
+from pydantic import Field
+
+
 class FcmTokenUpdate(BaseModel):
-    fcm_token: str
+    fcm_token: str = Field(min_length=20, max_length=4096, pattern=r"^[A-Za-z0-9_:.\-]+$")
 
 
 @router.put(

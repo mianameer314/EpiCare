@@ -117,10 +117,14 @@ async def get_pending_doctors(
     return create_paginated_response(items, total, params.skip, params.limit)
 
 
+from urllib.parse import quote
+from app.services.storage.validator import sanitize_filename
+
+
 @router.get(
     "/doctors/{user_id}/pmdc-certificate",
     summary="View doctor PMDC certificate",
-    description="Return a doctor's uploaded PMDC certificate for admin review.",
+    description="Return a doctor's uploaded PMDC certificate for admin review with RFC-safe Content-Disposition (Finding 15).",
 )
 async def view_doctor_certificate(user_id: int, db: DbDep):
     profile = await doctor_service.get_profile_for_user(db, user_id)
@@ -129,11 +133,18 @@ async def view_doctor_certificate(user_id: int, db: DbDep):
     storage = get_storage_service()
     if not storage.exists(profile.pmdc_certificate_path):
         raise HTTPException(status_code=404, detail="Stored PMDC certificate not found")
-    filename = profile.pmdc_certificate_name or "pmdc-certificate"
+    raw_filename = profile.pmdc_certificate_name or "pmdc-certificate.pdf"
+    safe_filename = sanitize_filename(raw_filename)
+    encoded_filename = quote(safe_filename)
+    mime_type = profile.pmdc_certificate_mime_type or "application/pdf"
     return Response(
         content=storage.read(profile.pmdc_certificate_path),
-        media_type=profile.pmdc_certificate_mime_type or "application/octet-stream",
-        headers={"Content-Disposition": f'inline; filename="{filename}"'},
+        media_type=mime_type,
+        headers={
+            "Content-Disposition": f'attachment; filename="{safe_filename}"; filename*=UTF-8\'\'{encoded_filename}',
+            "X-Content-Type-Options": "nosniff",
+            "Cache-Control": "private, no-transform, max-age=300",
+        },
     )
 
 

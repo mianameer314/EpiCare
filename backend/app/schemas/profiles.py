@@ -4,7 +4,7 @@ from typing import Optional, Literal
 
 from zoneinfo import available_timezones
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 
 from app.schemas.base import StrictDatetime, StrictModel, StrictDate
 
@@ -122,6 +122,10 @@ class DoctorProfileOut(StrictModel):
     gender: Optional[str] = None
     hospital_affiliation: Optional[str] = None
     license_image_url: Optional[str] = None
+    certificate_available: bool = False
+    profile_photo_available: bool = False
+    certificate_url: Optional[str] = None
+    profile_photo_url: Optional[str] = None
     pmdc_certificate_path: Optional[str] = None
     pmdc_certificate_name: Optional[str] = None
     pmdc_certificate_mime_type: Optional[str] = None
@@ -141,6 +145,17 @@ class DoctorProfileOut(StrictModel):
     is_pmdc_verified: bool
     created_at: StrictDatetime
     updated_at: StrictDatetime
+
+    @model_validator(mode="after")
+    def compute_asset_indicators(self) -> "DoctorProfileOut":
+        """Compute opaque availability indicators without relying on raw storage paths (Finding 14)."""
+        object.__setattr__(self, "certificate_available", bool(self.pmdc_certificate_path or self.license_image_url))
+        object.__setattr__(self, "profile_photo_available", bool(self.profile_photo_path))
+        if self.certificate_available and not self.certificate_url:
+            object.__setattr__(self, "certificate_url", "/api/v1/users/me/doctor-profile/pmdc-certificate")
+        if self.profile_photo_available and not self.profile_photo_url:
+            object.__setattr__(self, "profile_photo_url", f"/api/v1/users/doctors/{self.user_id}/photo")
+        return self
 
     model_config = {"from_attributes": True, "strict": True}
 

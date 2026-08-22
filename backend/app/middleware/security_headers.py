@@ -20,8 +20,12 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             "default-src 'self'; "
             "script-src 'self' 'unsafe-inline' cdn.jsdelivr.net; "
             "style-src 'self' 'unsafe-inline' cdn.jsdelivr.net; "
-            "img-src 'self' data: cdn.jsdelivr.net fastapi.tiangolo.com; "
-            "frame-ancestors 'none'"
+            "img-src 'self' data: cdn.jsdelivr.net fastapi.tiangolo.com blob:; "
+            "font-src 'self' data:; "
+            "connect-src 'self'; "
+            "frame-ancestors 'none'; "
+            "object-src 'none'; "
+            "base-uri 'self'"
         ),
     }
 

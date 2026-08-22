@@ -1,4 +1,4 @@
-﻿"""
+"""
 Rate limiting — Redis-backed sliding window with an in-memory fallback.
 
 The limiter degrades gracefully: if Redis is unavailable the service keeps
@@ -87,12 +87,26 @@ class RateLimiter:
                 logger.warning("Rate limiter: error closing Redis: %s", exc)
             self._redis = None
 
-    async def check(self, key: str, limit: int, window_seconds: int) -> RateLimitResult:
+    async def check(
+        self, key: str, limit: int, window_seconds: int, fail_closed: bool = False
+    ) -> RateLimitResult:
         if self._using_redis and self._redis is not None:
             try:
                 return await self._check_redis(key, limit, window_seconds)
             except Exception as exc:
-                logger.error("Rate limiter: Redis check failed (%s) — falling back", exc)
+                logger.error("Rate limiter: Redis check failed (%s)", exc)
+                if fail_closed:
+                    from fastapi import HTTPException, status
+                    raise HTTPException(
+                        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                        detail="Authentication rate limiter temporarily unavailable",
+                    )
+        elif fail_closed and self._using_redis:
+            from fastapi import HTTPException, status
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Authentication rate limiter temporarily unavailable",
+            )
         return self._memory.check(key, limit, window_seconds)
 
     async def _check_redis(self, key: str, limit: int, window_seconds: int) -> RateLimitResult:
