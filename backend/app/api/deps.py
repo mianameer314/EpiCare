@@ -10,7 +10,7 @@ from typing import Annotated
 
 logger = logging.getLogger(__name__)
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -33,7 +33,7 @@ TokenDep = Annotated[HTTPAuthorizationCredentials, Depends(bearer_scheme)]
 
 # ---------- Auth Guards ----------
 
-async def get_current_user(credentials: TokenDep, db: DbDep) -> User:
+async def get_current_user(request: Request, credentials: TokenDep, db: DbDep) -> User:
     """Decode JWT and return the authenticated User, or raise 401."""
     try:
         payload = decode_token(credentials.credentials)
@@ -66,6 +66,9 @@ async def get_current_user(credentials: TokenDep, db: DbDep) -> User:
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Inactive user account",
         )
+
+    # Attach identity to request state once (Finding 17)
+    request.state.user_id = user.id
     return user
 
 

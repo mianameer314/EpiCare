@@ -292,7 +292,7 @@ async def export_dashboard_pdf(db: DbDep, target_user_id: TargetPatientIdForRead
     pdf.set_font("helvetica", "", 12)
     pdf.cell(0, 10, f"- Average Sleep: {stats.avg_sleep_hours} hours/night", new_x="LMARGIN", new_y="NEXT")
     stress = str(stats.avg_stress_level) if stats.avg_stress_level is not None else "N/A"
-    pdf.cell(0, 10, f"- Average Stress Level: {stress}/10", new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(0, 10, f"- Average Stress Level: {stress}/5", new_x="LMARGIN", new_y="NEXT")
     pdf.cell(0, 10, f"- Most Frequent Triggers: {', '.join(stats.most_frequent_triggers) if stats.most_frequent_triggers else 'None'}", new_x="LMARGIN", new_y="NEXT")
     pdf.ln(5)
     

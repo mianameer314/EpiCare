@@ -1,40 +1,63 @@
+"""
+Chat service — provides evidence-grounded educational epilepsy guidance,
+emergency safety triage, and dynamic hookups for future RAG AI pipelines (Finding 10).
+"""
 import logging
-import os
 from pathlib import Path
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
 
-from app.models.chat import ChatSession, ChatMessage
-from app.models.user import User
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
-# The AI team is expected to put their RAG / LangChain scripts in this directory
+# Dynamic RAG script directory (relative to project root)
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
-RAG_SCRIPT_DIR = PROJECT_ROOT / "rag" / "scripts"
+RAG_DIR = PROJECT_ROOT / "rag"
+RAG_SCRIPT_DIR = RAG_DIR / "scripts"
+
+# Auto-ensure directory exists so future AI team code drops work immediately
+try:
+    RAG_SCRIPT_DIR.mkdir(parents=True, exist_ok=True)
+except Exception as e:
+    logger.debug(f"Note: RAG script directory creation: {e}")
 
 
 def generate_clinical_knowledge_response(message: str) -> str:
     """
-    Synthesizes evidence-based medical responses according to ILAE, AAN, and NHS
+    Synthesizes evidence-based educational responses according to ILAE, AAN, and NHS
     clinical guidelines on epilepsy management, emergency triage, and AED pharmacology.
     """
     lower = message.lower().strip()
 
-    # 1. Emergency 1122 / 911 Ambulance Criteria
-    if any(k in lower for k in ["emergency", "ambulance", "1122", "911", "hospital", "urgent", "status epilepticus"]):
+    # 1. Acute Emergency / Ambulance Protocol / Active Seizure Alert
+    if any(k in lower for k in [
+        "seizure right now", "having a seizure", "active seizure", "emergency",
+        "ambulance", "1122", "911", "hospital", "urgent", "status epilepticus",
+        "can't breathe", "cannot breathe", "unconscious"
+    ]):
         return (
-            "### 🚨 Emergency 1122 Ambulance Criteria\n\n"
-            "Call an emergency ambulance (**1122 / 911**) immediately if:\n\n"
-            "1. **Duration > 5 Minutes:** An active seizure lasting longer than 5 minutes is a medical emergency with high risk of *Status Epilepticus*.\n"
-            "2. **Cluster Seizures:** A second seizure starts immediately without the individual regaining full consciousness.\n"
-            "3. **Breathing Difficulty:** Persistent cyanosis (blue lips/skin) or irregular breathing after convulsions stop.\n"
-            "4. **Trauma or Water:** The seizure occurred in water (swimming/bath) or resulted in head trauma/physical injury.\n"
-            "5. **First-Time Seizure / Pregnancy:** The person is pregnant, has diabetes, or has never had a diagnosed seizure before.\n\n"
-            "*⚠️ In an active emergency, trigger the **Emergency SOS button** in EpiCare to notify all designated emergency contacts.*"
+            "### 🚨 IMMEDIATE EMERGENCY & AMBULANCE PROTOCOL\n\n"
+            "**If a seizure is actively occurring or lasting more than 5 minutes, call emergency services immediately (1122 in Pakistan / 911 in US/Intl).**\n\n"
+            "#### ⚡ Immediate First-Aid Steps (CARE):\n"
+            "1. **Protect Head:** Place something soft under the head.\n"
+            "2. **Recovery Position:** Roll gently onto the lateral side once convulsions ease to keep the airway open.\n"
+            "3. **Time Duration:** Note the exact start time of the seizure.\n"
+            "4. **DO NOT Restrain:** Never pin the limbs down or place anything inside the mouth.\n\n"
+            "🚨 **Action Required:** Tap the **Emergency SOS button** in EpiCare immediately to alert your designated caretakers and dispatch emergency location alerts."
         )
 
-    # 2. Seizure First Aid Protocol
+    # 2. Medication Dosage Change Refusal Guard (Clinical Safety Boundary)
+    if any(k in lower for k in [
+        "how much should i take", "change my dose", "increase my dose", "decrease my dose",
+        "prescribe me", "what dose of", "how many mg should i take"
+    ]):
+        return (
+            "### ⚠️ Medication Prescription & Dosage Safety Notice\n\n"
+            "**EpiCare AI cannot calculate, change, or prescribe individualized medication dosages.**\n\n"
+            "- Antiepileptic drug (AED) dosages require precise clinical titration based on serum drug levels, renal/hepatic function, seizure frequency, and co-medications.\n"
+            "- **Required Action:** Please contact your verified doctor directly through your **Care Network** in EpiCare or schedule an in-person clinical consultation before modifying any medication schedule."
+        )
+
+    # 3. Seizure First Aid Protocol
     if any(k in lower for k in ["first aid", "first-aid", "someone has a seizure", "what to do during", "convulsion", "tonic clonic", "tonic-clonic"]):
         return (
             "### 🛡️ Essential Seizure First-Aid Protocol (CARE Framework)\n\n"
@@ -44,36 +67,35 @@ def generate_clinical_knowledge_response(message: str) -> str:
             "3. **Time the Seizure:** Note the exact start time using your watch or phone.\n"
             "4. **Clear Surroundings:** Remove sharp or hazardous objects, glasses, and loosen tight neck clothing.\n\n"
             "**🚫 Crucial What-NOT-To-Do Rules:**\n"
-            "- **NEVER** place any spoon, cloth, or fingers into the person's mouth (they will not swallow their tongue, but forceful objects cause severe dental damage and choking).\n"
+            "- **NEVER** place any spoon, cloth, or fingers into the person's mouth.\n"
             "- **NEVER** physically restrain or pin their limbs down.\n"
             "- **NEVER** give water, food, or oral pills until they are fully awake and communicative."
         )
 
-    # 3. Missed AED Medication Protocol
+    # 4. Missed AED Medication Protocol
     if any(k in lower for k in ["missed dose", "missed medication", "forgot medicine", "forgot pill", "forgot to take", "missed keppra", "missed lamictal"]):
         return (
             "### 💊 Missed Antiepileptic Drug (AED) Protocol\n\n"
-            "Strict adherence to antiepileptic medications maintains steady-state plasma concentrations to prevent breakthrough seizures. Here is standard clinical protocol:\n\n"
+            "Strict adherence to antiepileptic medications maintains steady-state plasma concentrations to prevent breakthrough seizures:\n\n"
             "1. **Recent Miss (Within a Few Hours):** If you remember within 3–4 hours of your scheduled time, take the prescribed dose immediately.\n"
             "2. **Close to Next Dose:** If it is almost time for your next scheduled dose, skip the forgotten pill and take your regular dose on schedule.\n"
             "3. **Never Double Up:** Do not take two full doses simultaneously unless specifically directed by your neurologist, as sudden concentration spikes can cause toxicity (ataxia, dizziness, nystagmus).\n"
-            "4. **Log the Incident:** Record the missed dose in your **Medications Tracker** on EpiCare so your physician can evaluate adherence patterns.\n\n"
-            "*Tip: Set daily recurring reminders in EpiCare to avoid schedule disruptions.*"
+            "4. **Log the Incident:** Record the missed dose in your **Medications Tracker** on EpiCare so your physician can evaluate adherence patterns."
         )
 
-    # 4. Specific AED Inquiries (Keppra / Levetiracetam, Lamotrigine, Tegretol, Valproate)
+    # 5. Specific AED Inquiries (Keppra / Levetiracetam, Lamotrigine, Tegretol, Valproate)
     if any(k in lower for k in ["keppra", "levetiracetam", "lamictal", "lamotrigine", "valproate", "epilim", "tegretol", "carbamazepine"]):
         return (
-            "### 🔬 Antiepileptic Medication Clinical Overview\n\n"
+            "### 🔬 Antiepileptic Medication Educational Overview\n\n"
             "Common first-line AEDs require consistent timing and clinical monitoring:\n\n"
-            "- **Levetiracetam (Keppra):** Rapid onset; common side effects include mild somnolence, fatigue, and mood/behavioral changes. Maintain steady 12-hour dosing.\n"
+            "- **Levetiracetam (Keppra):** Rapid onset; common side effects include mild somnolence, fatigue, and behavioral changes. Maintain steady 12-hour dosing.\n"
             "- **Lamotrigine (Lamictal):** Requires slow, gradual titration to prevent severe dermatological reactions (*Stevens-Johnson syndrome*). Never rapidly increase dosage.\n"
-            "- **Sodium Valproate (Epilim):** Broad-spectrum agent; requires routine liver function tests and complete blood count monitoring. Strictly contraindicated in pregnancy.\n"
+            "- **Sodium Valproate (Epilim):** Broad-spectrum agent; requires routine liver function and CBC monitoring. Strictly contraindicated in pregnancy.\n"
             "- **Carbamazepine (Tegretol):** Auto-induces hepatic metabolism; regular therapeutic drug monitoring (TDM) is recommended.\n\n"
             "*Always discuss any dosage adjustment, side effect, or generic brand switch with your prescribing neurologist.*"
         )
 
-    # 5. Sleep & Circadian Rhythm
+    # 6. Sleep & Circadian Rhythm
     if any(k in lower for k in ["sleep", "insomnia", "tired", "wake up", "rest", "circadian", "sleep deprivation"]):
         return (
             "### 🌙 Sleep Hygiene & Seizure Threshold\n\n"
@@ -84,7 +106,7 @@ def generate_clinical_knowledge_response(message: str) -> str:
             "4. **Sleep Log Telemetry:** Track your sleep quality and duration in the **Lifestyle & Logs** section to help your neurologist detect sleep-induced seizure patterns."
         )
 
-    # 6. Triggers & Photosensitivity
+    # 7. Triggers & Photosensitivity
     if any(k in lower for k in ["trigger", "triggers", "flashing", "light", "strobe", "stress", "dehydration", "alcohol", "caffeine"]):
         return (
             "### ⚠️ Epilepsy Trigger Identification & Management\n\n"
@@ -96,7 +118,7 @@ def generate_clinical_knowledge_response(message: str) -> str:
             "*Log any suspected trigger exposures in your **Triggers Log** on EpiCare for pattern analysis.*"
         )
 
-    # 7. Pre-Ictal Auras & Warning Signs
+    # 8. Pre-Ictal Auras & Warning Signs
     if any(k in lower for k in ["aura", "warning", "pre-ictal", "deja vu", "stomach sensation", "smell", "visual flashes"]):
         return (
             "### ⚡ Understanding Pre-Ictal Auras\n\n"
@@ -109,47 +131,40 @@ def generate_clinical_knowledge_response(message: str) -> str:
             "  4. If your doctor has prescribed a fast-acting rescue medication (e.g. nasal Midazolam or sublingual Lorazepam), prepare it according to your care plan."
         )
 
-    # 8. Diet & Ketogenic Therapy
-    if any(k in lower for k in ["diet", "food", "keto", "ketogenic", "nutrition", "sugar"]):
-        return (
-            "### 🥗 Nutritional & Dietary Support in Epilepsy\n\n"
-            "- **Regular Meal Schedule:** Hypoglycemia (low blood sugar) can trigger autonomic stress and lower seizure threshold. Eat balanced, regular meals.\n"
-            "- **Ketogenic & Modified Atkins Diets (MAD):** Clinically supervised high-fat, low-carbohydrate regimens shift brain metabolism from glucose to ketone bodies, reducing seizure frequency in drug-resistant cases.\n"
-            "- **Caffeine Moderation:** Excessive caffeine or energy drinks can disrupt sleep and cause central nervous system overstimulation.\n\n"
-            "*Note: Ketogenic dietary therapy should always be managed under the supervision of a specialized clinical dietitian and neurologist.*"
-        )
-
-    # Default Clinical Synthesis
+    # Default Educational Synthesis
     return (
-        "### 🧠 Clinical Assistant Guidance\n\n"
+        "### 🧠 Educational Epilepsy Guidance\n\n"
         f"Regarding your inquiry: *\"{message}\"*\n\n"
         "Managing epilepsy successfully relies on a structured multimodal foundation:\n\n"
         "1. **Strict Medication Adherence:** Take all antiepileptic medications at the exact same hours every day.\n"
         "2. **Sleep Regularity:** Maintain 7–8+ hours of uninterrupted sleep to avoid lowering your seizure threshold.\n"
         "3. **Trigger Management:** Keep track of emotional stress, sensory exposure, and missed doses using your **Lifestyle & Logs** dashboard.\n"
-        "4. **Emergency Readiness:** Ensure family, caretakers, and coworkers are familiar with seizure first-aid rules (cushion head, roll onto recovery side, never put objects in mouth).\n\n"
-        "*Disclaimer: EpiCare AI provides clinical educational insights based on neurology literature. For diagnostic changes or medication adjustments, always consult your neurologist.*"
+        "4. **Emergency Readiness:** Ensure family, caretakers, and coworkers are familiar with seizure first-aid rules.\n\n"
+        "*Disclaimer: EpiCare AI provides educational insights based on neurology guidelines. It is not a substitute for clinical diagnosis or individualized medical advice. Always consult your neurologist for treatment decisions.*"
     )
 
 
 async def process_chat_message(db: AsyncSession, user_id: int, message: str) -> str:
     """
     Process a user's chatbot message.
-    Checks if external RAG vector scripts exist; if not, utilizes the integrated
-    Clinical Knowledge Engine for immediate, verified medical assistance.
+    Checks if external RAG vector scripts exist in the RAG scripts directory;
+    if not, seamlessly utilizes the integrated Clinical Educational Knowledge Engine.
     """
-    is_rag_ready = RAG_SCRIPT_DIR.exists() and any(RAG_SCRIPT_DIR.iterdir())
+    query_script = RAG_SCRIPT_DIR / "query.py"
+    is_rag_ready = query_script.exists()
 
     if is_rag_ready:
-        logger.info(f"RAG scripts found. Invoking LangChain / Pinecone vector inference for user {user_id}...")
+        logger.info("RAG query script found at %s. Invoking vector inference for user %s...", query_script, user_id)
         try:
-            # --- AI TEAM: The AI team's external RAG script will execute here when placed ---
-            # from rag.scripts.query import answer_question
-            # return answer_question(message, user_id)
-            pass
-        except Exception as e:
-            logger.error(f"Error during RAG script execution: {e}. Falling back to internal engine.")
+            # Dynamically invoke the AI team's query module if present
+            import importlib.util
+            spec = importlib.util.spec_from_file_location("rag_query_module", str(query_script))
+            if spec and spec.loader:
+                rag_module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(rag_module)
+                if hasattr(rag_module, "answer_question"):
+                    return str(rag_module.answer_question(message, user_id))
+        except Exception as exc:
+            logger.error("Error during RAG script execution (%s). Falling back to internal engine.", exc)
 
-    # Generate verified response from Integrated Clinical Knowledge Engine
     return generate_clinical_knowledge_response(message)
-

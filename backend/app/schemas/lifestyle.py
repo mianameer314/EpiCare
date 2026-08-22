@@ -1,7 +1,7 @@
 """
 Lifestyle schemas — sleep, trigger, and stress logs.
 """
-from pydantic import Field
+from pydantic import Field, model_validator
 from typing import Literal
 
 from app.schemas.base import StrictDatetime, StrictModel
@@ -14,6 +14,13 @@ class SleepLogCreate(StrictModel):
     woke_at: StrictDatetime
     quality: int | None = Field(None, ge=1, le=5)
     notes: str | None = None
+
+    @model_validator(mode="after")
+    def validate_sleep_interval(self) -> "SleepLogCreate":
+        """Finding 19: Reject zero or negative sleep duration intervals."""
+        if self.woke_at <= self.slept_at:
+            raise ValueError("woke_at must be strictly after slept_at")
+        return self
 
 
 class TriggerLogCreate(StrictModel):
@@ -122,6 +129,14 @@ class SleepLogUpdate(StrictModel):
     woke_at: StrictDatetime | None = None
     quality: int | None = Field(None, ge=1, le=5)
     notes: str | None = None
+
+    @model_validator(mode="after")
+    def validate_sleep_interval(self) -> "SleepLogUpdate":
+        """Finding 19: Reject negative durations if both boundaries are updated."""
+        if self.slept_at is not None and self.woke_at is not None:
+            if self.woke_at <= self.slept_at:
+                raise ValueError("woke_at must be strictly after slept_at")
+        return self
 
 
 class TriggerLogUpdate(StrictModel):

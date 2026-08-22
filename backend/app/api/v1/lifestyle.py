@@ -127,6 +127,11 @@ async def update_sleep_log(
         setattr(log_obj, field, value)
         
     if "slept_at" in update_data or "woke_at" in update_data:
+        if log_obj.woke_at <= log_obj.slept_at:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="woke_at must be strictly after slept_at",
+            )
         duration = (log_obj.woke_at - log_obj.slept_at).total_seconds() / 60.0
         log_obj.duration_minutes = int(duration)
         

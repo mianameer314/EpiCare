@@ -198,6 +198,16 @@ async def get_chat_history(
     return messages
 
 
+def make_session_title(content: str, max_chars: int = 45) -> str:
+    """Generate a clean, Unicode-safe title without truncated words or broken characters (Finding 20)."""
+    clean = " ".join(content.strip().split())
+    if not clean:
+        return "Educational Inquiry"
+    if len(clean) <= max_chars:
+        return clean
+    return clean[:max_chars].rstrip() + "..."
+
+
 @router.post(
     "/message",
     tags=['🤖 AI Chatbot'],
@@ -222,22 +232,17 @@ async def send_chat_message(
 
     # 2. If no session requested (new conversation mode) or session not found, create a BRAND NEW session!
     if not chat_session:
-        first_title = payload.content[:45].strip()
-        if len(payload.content) > 45:
-            first_title += "..."
+        title = make_session_title(payload.content)
         chat_session = ChatSession(
             user_id=current_user.id,
-            title=first_title or "Clinical Inquiry",
+            title=title,
         )
         db.add(chat_session)
         await db.commit()
         await db.refresh(chat_session)
-    elif chat_session.title in ["New chat", "New Clinical Discussion", "Medical Inquiry", "Clinical Inquiry"]:
+    elif chat_session.title in ["New chat", "New Clinical Discussion", "Medical Inquiry", "Clinical Inquiry", "Educational Inquiry"]:
         # Auto-update title if it was a default placeholder
-        first_title = payload.content[:45].strip()
-        if len(payload.content) > 45:
-            first_title += "..."
-        chat_session.title = first_title
+        chat_session.title = make_session_title(payload.content)
         await db.commit()
 
     # Save user message

@@ -1,4 +1,4 @@
-﻿"""
+"""
 Request context middleware — request IDs, trace IDs, timing, and per-request state.
 
 Every response carries both X-Request-Id and X-Trace-ID headers (same value);
@@ -32,32 +32,8 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
         request_id_var.set(request_id)
         request_start_var.set(time.perf_counter())
 
-        # Resolve the authenticated user id (best effort, never raises)
-        user_id = None
-        auth_header = request.headers.get("authorization", "")
-        if auth_header.lower().startswith("bearer "):
-            token = auth_header[7:].strip()
-            try:
-                from app.core.security import decode_token
-
-                payload = decode_token(token)
-                if payload.get("type") == "access" and payload.get("sub"):
-                    from sqlalchemy import select
-
-                    from app.db.session import SessionLocal
-                    from app.models.user import User
-
-                    session = SessionLocal()
-                    try:
-                        result = await session.execute(
-                            select(User.id).where(User.email == payload["sub"])
-                        )
-                        user_id = result.scalar_one_or_none()
-                    finally:
-                        await session.close()
-            except Exception:
-                user_id = None
-        request.state.user_id = user_id
+        # Initialize request context user_id (resolved cleanly by auth dependency - Finding 17)
+        request.state.user_id = None
 
         start = time.perf_counter()
         response = await call_next(request)

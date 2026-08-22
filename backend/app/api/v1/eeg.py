@@ -185,25 +185,40 @@ async def get_session_spectrogram(
     storage = get_storage_service()
     key = f"spectrograms/session_{session_id}.png"
     if not storage.exists(key):
-        # Generate on-demand if session file exists
+        if not storage.exists(session.stored_path):
+            raise not_found_error("EEG file")
+
+        from app.ml.model_loader import get_model_loader
+        from app.services.eeg_session import _read_and_validate, generate_spectrogram_image
+        from app.services.eeg_preprocessing import preprocess_eeg
+
+        loader = get_model_loader()
+        if not loader.is_ready or loader.package is None:
+            logger.warning("spectrogram_model_unavailable", extra={"session_id": session_id})
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="EEG model is temporarily unavailable for spectrogram generation",
+            )
+
         try:
-            from app.ml.model_loader import get_model_loader
-            from app.services.eeg_session import _read_and_validate, generate_spectrogram_image
-            from app.services.eeg_preprocessing import preprocess_eeg
-            loader = get_model_loader()
-            if loader.is_ready and loader.package is not None:
-                file_bytes = storage.read(session.stored_path)
-                validated = await _read_and_validate(db, session, file_bytes)
-                preprocessed = await preprocess_eeg(
-                    validated.data,
-                    validated.sampling_rate,
-                    validated.channel_labels,
-                    str(loader.package.root),
-                )
-                spec_bytes = generate_spectrogram_image(preprocessed.model_inputs)
-                storage.save_spectrogram(spec_bytes, session.id)
-        except Exception:
-            pass
+            file_bytes = storage.read(session.stored_path)
+            validated = await _read_and_validate(db, session, file_bytes)
+            preprocessed = await preprocess_eeg(
+                validated.data,
+                validated.sampling_rate,
+                validated.channel_labels,
+                str(loader.package.root),
+            )
+            spec_bytes = generate_spectrogram_image(preprocessed.model_inputs)
+            storage.save_spectrogram(spec_bytes, session.id)
+        except HTTPException:
+            raise
+        except Exception as exc:
+            logger.error("spectrogram_generation_failed for session %s: %s", session_id, exc)
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"EEG session cannot produce a spectrogram: {str(exc)}",
+            )
 
     if not storage.exists(key):
         raise not_found_error("Spectrogram")

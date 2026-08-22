@@ -1,4 +1,4 @@
-﻿"""
+"""
 Storage service — high-level API used by route handlers.
 
 Wraps the provider abstraction with UUID key generation, hashing, and
@@ -61,6 +61,14 @@ class StorageService:
     def save_report(self, data: bytes, prediction_id: int) -> str:
         """Save an exported report artifact."""
         key = f"reports/prediction_{prediction_id}.pdf"
+        self.provider.save(data, key)
+        self._pending.append(key)
+        return key
+
+    def save_rag_document(self, data: bytes, filename: str) -> str:
+        """Save an uploaded RAG reference document (Finding 9)."""
+        clean_name = sanitize_filename(filename or "document.pdf")
+        key = generate_storage_key("rag/documents", clean_name)
         self.provider.save(data, key)
         self._pending.append(key)
         return key
