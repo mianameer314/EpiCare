@@ -55,9 +55,18 @@ class RateLimiter:
         self._redis = None
         self._memory = MemoryRateLimiter()
         self._using_redis = False
+        self._redis_unavailable = False
+
+    @property
+    def using_redis(self) -> bool:
+        return self._using_redis and self._redis is not None
+
+    @property
+    def redis_unavailable(self) -> bool:
+        return self._redis_unavailable
 
     async def init(self) -> None:
-        """Try to connect to Redis. On failure, fall back to memory mode."""
+        """Try to connect to Redis. On failure, record unavailability."""
         try:
             import redis.asyncio as aioredis
 
@@ -71,10 +80,12 @@ class RateLimiter:
             await client.ping()
             self._redis = client
             self._using_redis = True
+            self._redis_unavailable = False
             logger.info("Rate limiter: using Redis (%s)", self._redis_url)
         except Exception as exc:
             self._redis = None
             self._using_redis = False
+            self._redis_unavailable = True
             logger.warning(
                 "Rate limiter: Redis unavailable (%s) — using in-memory fallback", exc
             )
@@ -86,27 +97,30 @@ class RateLimiter:
             except Exception as exc:
                 logger.warning("Rate limiter: error closing Redis: %s", exc)
             self._redis = None
+            self._using_redis = False
 
     async def check(
         self, key: str, limit: int, window_seconds: int, fail_closed: bool = False
     ) -> RateLimitResult:
+        if fail_closed and (self._redis_unavailable or self._redis is None or not self._using_redis):
+            from fastapi import HTTPException, status
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Authentication rate limiter temporarily unavailable",
+            )
+
         if self._using_redis and self._redis is not None:
             try:
                 return await self._check_redis(key, limit, window_seconds)
             except Exception as exc:
                 logger.error("Rate limiter: Redis check failed (%s)", exc)
+                self._redis_unavailable = True
                 if fail_closed:
                     from fastapi import HTTPException, status
                     raise HTTPException(
                         status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                         detail="Authentication rate limiter temporarily unavailable",
                     )
-        elif fail_closed and self._using_redis:
-            from fastapi import HTTPException, status
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="Authentication rate limiter temporarily unavailable",
-            )
         return self._memory.check(key, limit, window_seconds)
 
     async def _check_redis(self, key: str, limit: int, window_seconds: int) -> RateLimitResult:

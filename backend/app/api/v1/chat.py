@@ -225,16 +225,24 @@ async def send_chat_message(
 ):
     chat_session = None
 
-    # 1. If session_id is explicitly passed, verify ownership and use it
-    if payload.session_id and payload.session_id > 0:
+    # 1. If session_id is explicitly passed, verify ownership and return 404 if not found (Finding 14)
+    if payload.session_id is not None and payload.session_id > 0:
         res = await db.execute(
             select(ChatSession)
             .where(ChatSession.id == payload.session_id, ChatSession.user_id == current_user.id)
         )
         chat_session = res.scalar_one_or_none()
-
-    # 2. If no session requested (new conversation mode) or session not found, create a BRAND NEW session!
-    if not chat_session:
+        if not chat_session:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Chat session not found",
+            )
+        if chat_session.title in ["New chat", "New Clinical Discussion", "Medical Inquiry", "Clinical Inquiry", "Educational Inquiry"]:
+            # Auto-update title if it was a default placeholder
+            chat_session.title = make_session_title(payload.content)
+            await db.commit()
+    else:
+        # 2. Only create a brand new session when session_id is omitted (None / 0)
         title = make_session_title(payload.content)
         chat_session = ChatSession(
             user_id=current_user.id,
@@ -243,10 +251,6 @@ async def send_chat_message(
         db.add(chat_session)
         await db.commit()
         await db.refresh(chat_session)
-    elif chat_session.title in ["New chat", "New Clinical Discussion", "Medical Inquiry", "Clinical Inquiry", "Educational Inquiry"]:
-        # Auto-update title if it was a default placeholder
-        chat_session.title = make_session_title(payload.content)
-        await db.commit()
 
     # Save user message
     user_msg = ChatMessage(

@@ -55,19 +55,22 @@ let refreshPromise: Promise<string | null> | null = null;
  * mobile network blip never silently logs the user out.
  */
 async function handleTokenRefresh(): Promise<string | null> {
-  const refreshToken = localStorage.getItem('refresh_token');
-  if (!refreshToken) return null;
-
   if (!refreshPromise) {
     refreshPromise = (async () => {
       let res: Response;
+      const refreshToken = localStorage.getItem('refresh_token');
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (refreshToken) {
+        headers['Authorization'] = `Bearer ${refreshToken}`;
+      }
+
       try {
         res = await fetch(`${API_BASE_URL}/auth/refresh`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${refreshToken}`,
-          },
+          credentials: 'include',
+          headers,
         });
       } catch {
         // Network error (backend cold-start, offline) — keep the session.
@@ -90,9 +93,6 @@ async function handleTokenRefresh(): Promise<string | null> {
       const data = await res.json();
       if (data.access_token) {
         localStorage.setItem('access_token', data.access_token);
-        if (data.refresh_token) {
-          localStorage.setItem('refresh_token', data.refresh_token);
-        }
         return data.access_token;
       }
       return null;
@@ -130,6 +130,7 @@ async function request<T>(endpoint: string, options: RequestInit = {}, retryCoun
   try {
     response = await fetch(`${API_BASE_URL}${endpoint}`, {
       ...options,
+      credentials: options.credentials || 'include',
       headers,
     });
   } catch (err: any) {

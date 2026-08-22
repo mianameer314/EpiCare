@@ -21,11 +21,12 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             "script-src 'self' 'unsafe-inline' cdn.jsdelivr.net; "
             "style-src 'self' 'unsafe-inline' cdn.jsdelivr.net; "
             "img-src 'self' data: cdn.jsdelivr.net fastapi.tiangolo.com blob:; "
-            "font-src 'self' data:; "
-            "connect-src 'self'; "
+            "font-src 'self' data: cdn.jsdelivr.net; "
+            "connect-src 'self' https://firebase.googleapis.com https://fcm.googleapis.com; "
             "frame-ancestors 'none'; "
             "object-src 'none'; "
-            "base-uri 'self'"
+            "base-uri 'self'; "
+            "form-action 'self'"
         ),
     }
 

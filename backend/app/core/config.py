@@ -163,8 +163,10 @@ class Settings(BaseSettings):
                 if not self.TWILIO_ACCOUNT_SID or not self.TWILIO_AUTH_TOKEN or not self.TWILIO_FROM_NUMBER:
                     raise ValueError("Twilio credentials (SID, AUTH_TOKEN, FROM_NUMBER) are required when SOS_PROVIDER='twilio'")
             elif self.SOS_PROVIDER == "firebase":
-                if not self.FIREBASE_CREDENTIALS_PATH and not self.FIREBASE_PROJECT_ID:
-                    raise ValueError("Firebase credentials are required when SOS_PROVIDER='firebase'")
+                import os
+                has_credentials = bool(self.FIREBASE_CREDENTIALS_PATH or os.environ.get("FIREBASE_CREDENTIALS_JSON"))
+                if not has_credentials:
+                    raise ValueError("Firebase requires service-account credentials (FIREBASE_CREDENTIALS_JSON or FIREBASE_CREDENTIALS_PATH) when SOS_PROVIDER='firebase'")
             elif self.SOS_PROVIDER == "email":
                 if not self.MAIL_SERVER and not self.GMAIL_REFRESH_TOKEN:
                     raise ValueError("Email transport credentials (MAIL_SERVER or GMAIL_REFRESH_TOKEN) required when SOS_PROVIDER='email'")

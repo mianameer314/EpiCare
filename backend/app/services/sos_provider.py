@@ -93,9 +93,18 @@ def ensure_firebase_initialized() -> bool:
     return False
 
 
+from html import escape
+
+
 def build_sos_message(event: SosEvent, patient_name: str = "A patient") -> str:
     """Plain-text fallback SOS message."""
-    if event.latitude is not None and event.longitude is not None:
+    has_valid_coords = (
+        event.latitude is not None
+        and event.longitude is not None
+        and -90 <= event.latitude <= 90
+        and -180 <= event.longitude <= 180
+    )
+    if has_valid_coords:
         loc_str = f"Live Map Navigation: https://maps.google.com/?q={event.latitude},{event.longitude}"
     else:
         loc_str = "Location: Unavailable (Device location was not shared at time of trigger)"
@@ -109,8 +118,15 @@ def build_sos_message(event: SosEvent, patient_name: str = "A patient") -> str:
 
 
 def build_sos_html_email(event: SosEvent, patient_name: str = "A Patient") -> str:
-    """Rich responsive HTML email alert with live Google Maps button and first-aid guide."""
-    if event.latitude is not None and event.longitude is not None:
+    """Rich responsive HTML email alert with live Google Maps button and first-aid guide (Finding 15)."""
+    safe_patient_name = escape(patient_name or "A Patient", quote=True)
+    has_valid_coords = (
+        event.latitude is not None
+        and event.longitude is not None
+        and -90 <= event.latitude <= 90
+        and -180 <= event.longitude <= 180
+    )
+    if has_valid_coords:
         location_section = f"""
             <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; margin: 20px 0; text-align: center;">
                 <div style="font-size: 13px; font-weight: 700; color: #475569; text-transform: uppercase; margin-bottom: 6px;">Live Patient Location:</div>
@@ -150,7 +166,7 @@ def build_sos_html_email(event: SosEvent, patient_name: str = "A Patient") -> st
             <div class="content">
                 <div class="alert-box">
                     <p style="margin: 0; font-size: 15px; color: #991b1b;">
-                        <strong>{patient_name}</strong> has triggered an Emergency SOS from their EpiCare application.
+                        <strong>{safe_patient_name}</strong> has triggered an Emergency SOS from their EpiCare application.
                     </p>
                 </div>
                 <p style="font-size: 14px; line-height: 1.5; color: #334155;">

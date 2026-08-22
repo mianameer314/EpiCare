@@ -7,6 +7,8 @@ from pathlib import Path
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.services.ai_registry import get_ai_adapter
+
 logger = logging.getLogger(__name__)
 
 # Dynamic RAG script directory (relative to project root)
@@ -155,24 +157,14 @@ def generate_clinical_knowledge_response(message: str) -> str:
 async def process_chat_message(db: AsyncSession, user_id: int, message: str) -> str:
     """
     Process a user's chatbot message.
-    Checks if external RAG vector scripts exist in the RAG scripts directory;
-    if not, seamlessly utilizes the integrated Clinical Educational Knowledge Engine.
+    If an approved RAG adapter is registered, routes the message through vector retrieval;
+    otherwise, seamlessly utilizes the integrated Clinical Educational Knowledge Engine.
     """
-    query_script = RAG_SCRIPT_DIR / "query.py"
-    is_rag_ready = query_script.exists()
-
-    if is_rag_ready:
-        logger.info("RAG query script found at %s. Invoking vector inference for user %s...", query_script, user_id)
+    rag_adapter = get_ai_adapter("rag_query")
+    if rag_adapter:
         try:
-            # Dynamically invoke the AI team's query module if present
-            import importlib.util
-            spec = importlib.util.spec_from_file_location("rag_query_module", str(query_script))
-            if spec and spec.loader:
-                rag_module = importlib.util.module_from_spec(spec)
-                spec.loader.exec_module(rag_module)
-                if hasattr(rag_module, "answer_question"):
-                    return str(rag_module.answer_question(message, user_id))
+            return str(rag_adapter(message, user_id))
         except Exception as exc:
-            logger.error("Error during RAG script execution (%s). Falling back to internal engine.", exc)
+            logger.error("Error during RAG adapter execution (%s). Falling back to clinical engine.", exc)
 
     return generate_clinical_knowledge_response(message)

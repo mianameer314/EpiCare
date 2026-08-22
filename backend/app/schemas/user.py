@@ -121,14 +121,14 @@ class ResetPasswordRequest(StrictModel):
 # ------------------------------------------------------------------
 
 class UserOut(StrictModel):
-    """Response model (never exposes password)."""
+    """Response model (never exposes password or internal storage paths - Finding 7)."""
 
     id: int
     email: EmailStr
     phone_number: str | None
     full_name: str
-    profile_photo_path: str | None = None
-    profile_photo_mime_type: str | None = None
+    profile_photo_available: bool = False
+    profile_photo_url: str | None = None
     role: StrictUserRole
     is_active: bool
     is_email_verified: bool

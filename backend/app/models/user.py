@@ -49,6 +49,14 @@ class User(Base):
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
     )
 
+    @property
+    def profile_photo_available(self) -> bool:
+        return bool(self.profile_photo_path)
+
+    @property
+    def profile_photo_url(self) -> str | None:
+        return "/api/v1/users/me/profile-photo" if self.profile_photo_path else None
+
     patient_profile: Mapped["PatientProfile | None"] = relationship(
         back_populates="user", uselist=False, cascade="all, delete-orphan"
     )

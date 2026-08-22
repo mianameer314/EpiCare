@@ -84,11 +84,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   /* ── Login ── */
   const login = useCallback(async (email: string, password: string) => {
-    const res = await apiClient.post<{ access_token: string; refresh_token: string; token_type: string }>('/auth/login', { email, password });
+    const res = await apiClient.post<{ access_token: string; refresh_token?: string; token_type: string }>('/auth/login', { email, password });
     localStorage.setItem(TOKEN_KEY, res.access_token);
-    if (res.refresh_token) {
-      localStorage.setItem(REFRESH_KEY, res.refresh_token);
-    }
+    // Refresh token is maintained securely in HttpOnly epicare_refresh cookie (Finding 2)
+    localStorage.removeItem(REFRESH_KEY);
     const user = await apiClient.get<User>('/auth/me');
     localStorage.setItem(USER_KEY, JSON.stringify(user));
     setState({ user, isAuthenticated: true, isLoading: false });

@@ -301,18 +301,31 @@ async def refresh_token(request: Request, response: Response, db: DbDep):
     "/logout",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Logout user",
-    description="Revoke the calling session server-side and clear the refresh cookie.",
+    description="Revoke the calling session server-side and clear the refresh cookie (Findings 2, 17).",
     responses={
-        401: {"description": "Unauthorized"},
+        204: {"description": "Successfully logged out"},
     },
 )
-async def logout(request: Request, response: Response, current_user: CurrentUser, db: DbDep):
+async def logout(request: Request, response: Response, db: DbDep):
     """Revoke the current session and clear refresh cookie."""
+    from app.core.security import decode_token
+
+    # 1. Check refresh cookie first (browser session)
+    refresh_cookie = request.cookies.get("epicare_refresh")
+    if refresh_cookie:
+        try:
+            payload = decode_token(refresh_cookie)
+            sid = payload.get("sid")
+            if sid:
+                await session_service.revoke_session(db, sid)
+        except Exception:
+            pass
+
+    # 2. Check authorization header
     auth_header = request.headers.get("authorization")
     if auth_header and auth_header.lower().startswith("bearer "):
         token = auth_header[7:].strip()
         try:
-            from app.core.security import decode_token
             payload = decode_token(token)
             sid = payload.get("sid")
             if sid:

@@ -249,6 +249,7 @@ app.include_router(recommendations.router, prefix=api_prefix)
 
 from sqlalchemy import text
 from fastapi import Response, status
+from datetime import datetime, timezone
 
 
 @app.get("/", include_in_schema=False)
@@ -263,10 +264,16 @@ async def livez():
     return {"status": "alive"}
 
 
+@app.get("/healthz", tags=["⚙️ System Health & Status"], summary="Healthcheck alias", include_in_schema=False)
+async def healthz():
+    """Healthcheck alias pointing to liveness status (Finding 6)."""
+    return {"status": "alive"}
+
+
 @app.get("/readyz", tags=["⚙️ System Health & Status"], summary="Readiness probe")
 async def readyz(response: Response):
     """
-    Kubernetes / deployment readiness probe (Finding 8).
+    Kubernetes / deployment readiness probe (Findings 6, 13).
     Evaluates database, cache/redis, storage, and model loader.
     Fails closed with HTTP 503 if critical dependencies are unreachable.
     """
@@ -283,7 +290,7 @@ async def readyz(response: Response):
         components["database"] = {"status": "unhealthy", "error": str(e)}
         is_ready = False
 
-    # 2. Redis Rate Limiter Check (Non-fatal in dev/test, reported)
+    # 2. Redis Rate Limiter Check
     try:
         from app.rate_limit.core import get_rate_limiter
         limiter = get_rate_limiter()
@@ -291,10 +298,15 @@ async def readyz(response: Response):
             components["rate_limiter"] = {"status": "ready", "backend": "redis"}
         else:
             components["rate_limiter"] = {"status": "degraded", "backend": "in-memory"}
+            if settings.APP_ENV == "production":
+                # In production, distributed rate limiting is critical
+                is_ready = False
     except Exception as e:
         components["rate_limiter"] = {"status": "unavailable", "error": str(e)}
+        if settings.APP_ENV == "production":
+            is_ready = False
 
-    # 3. Storage Check
+    # 3. Storage Check (Critical)
     try:
         import os
         from pathlib import Path
@@ -318,9 +330,11 @@ async def readyz(response: Response):
 
     if not is_ready:
         response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
-        return {"status": "not_ready", "components": components}
 
-    return {"status": "ready", "components": components}
+    return {
+        "status": "ready" if is_ready else "unhealthy",
+        "components": components,
+    }
 
 
 def custom_openapi():

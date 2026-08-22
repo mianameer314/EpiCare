@@ -1,4 +1,4 @@
-﻿# EpiCare Backend — Dockerfile (mirrors BRANDING-SYSTEM)
+# EpiCare Backend — Production Dockerfile
 FROM python:3.12-slim
 
 # Set environment variables
@@ -28,12 +28,12 @@ RUN addgroup --system appgroup && adduser --system appuser --ingroup appgroup
 RUN chown -R appuser:appgroup /app
 USER appuser
 
-# Healthcheck
-HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/healthz || exit 1
+# Healthcheck (Finding 6: uses livez liveness probe)
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+    CMD curl -fsS http://localhost:8000/livez || exit 1
 
 # Expose port
 EXPOSE 8000
 
-# Start command (Runs database migrations before starting Uvicorn server)
-CMD sh -c "PYTHONPATH=. alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"
+# Start command (Finding 16: web process decoupled from migration job)
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]

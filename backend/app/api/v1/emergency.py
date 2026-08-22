@@ -1,3 +1,4 @@
+from app.services.sos_provider import DeliveryStatus
 import logging
 from datetime import date, datetime, time, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Header, status
@@ -184,9 +185,6 @@ async def process_sos_in_background(event_id: int, user_id: int):
                 caretakers = list(ct_query.scalars().all())
 
             logger.info(f"[SOS] Event {event_id}: Found {len(caretakers)} caretakers, {len(contacts)} contacts for {patient_name}")
-            for ct in caretakers:
-                logger.info(f"[SOS] Caretaker: {ct.full_name} (id={ct.id}, fcm_token={'YES' if ct.fcm_token else 'NO'})")
-
             # 5. Dispatch alerts via SOS Provider
             provider = get_sos_provider()
             logger.info(f"[SOS] Using provider: {type(provider).__name__}")
@@ -204,43 +202,6 @@ async def process_sos_in_background(event_id: int, user_id: int):
 
             logger.info(f"[SOS] Event {event_id} delivery results: {delivery_results}")
 
-            # Direct push notification fallback — ensure every caretaker with an FCM token gets a push
-            from app.services.sos_provider import ensure_firebase_initialized
-            from firebase_admin import messaging as fb_messaging
-            from firebase_admin.exceptions import FirebaseError
-
-            if ensure_firebase_initialized():
-                for ct in caretakers:
-                    if ct.fcm_token and delivery_results.get(f"caretaker_{ct.id}") != "SENT":
-                        try:
-                            msg = fb_messaging.Message(
-                                data={
-                                    "event_id": str(event.id),
-                                    "lat": str(event.latitude or ""),
-                                    "lng": str(event.longitude or ""),
-                                    "title": f"🚨 Seizure Alert: {patient_name}",
-                                    "body": "Patient triggered an Emergency SOS. Tap to view live location.",
-                                },
-                                android=fb_messaging.AndroidConfig(
-                                    priority="high",
-                                    notification=fb_messaging.AndroidNotification(
-                                        title=f"🚨 Seizure Alert: {patient_name}",
-                                        body="Patient triggered an Emergency SOS. Tap to view live location.",
-                                        icon="icon-192",
-                                        color="#e63946",
-                                        sound="default",
-                                        channel_id="epicare-emergency",
-                                    ),
-                                ),
-                                token=ct.fcm_token,
-                            )
-                            resp = fb_messaging.send(msg)
-                            logger.info(f"[SOS] Direct push to {ct.full_name}: {resp}")
-                            delivery_results[f"caretaker_{ct.id}"] = "SENT"
-                        except FirebaseError as e:
-                            logger.error(f"[SOS] Direct push failed for {ct.full_name}: {e}")
-                            delivery_results[f"caretaker_{ct.id}"] = "FAILED"
-
             # 6. Log deliveries for contacts
             for contact in contacts:
                 status_str = delivery_results.get(f"contact_{contact.id}", "NOT_ATTEMPTED")
@@ -251,9 +212,9 @@ async def process_sos_in_background(event_id: int, user_id: int):
                 )
                 db.add(delivery)
 
-            # 7. Derive overall event status strictly from delivery confirmation
+            # 7. Derive overall event status strictly from normalized provider acknowledgements (Finding 4)
             statuses = list(delivery_results.values())
-            if any(s in ("SENT", "DELIVERED") for s in statuses):
+            if any(s in (DeliveryStatus.SENT, DeliveryStatus.DELIVERED, "SENT", "DELIVERED") for s in statuses):
                 event.status = "COMPLETED"
                 logger.info(f"[SOS] Event {event_id} completed successfully (confirmed deliveries: {statuses})")
             else:
@@ -325,7 +286,7 @@ async def get_sos_events(
     "/fcm-diagnostic",
     tags=['🤒 Patient - Emergency SOS'],
     summary="FCM Push Notification Diagnostic",
-    description="Shows sanitized push notification readiness status for the current patient and active caretakers without leaking PHI or credential metadata.",
+    description="Shows sanitized push notification readiness status and counts without exposing patient names or token fragments (Finding 12).",
 )
 async def fcm_diagnostic(
     db: DbDep,
@@ -337,8 +298,9 @@ async def fcm_diagnostic(
     patient_user = await db.get(User, target_user_id)
     fb_ready = ensure_firebase_initialized()
 
-    # Check connected caretakers' FCM status safely without exposing emails or token fragments
-    caretaker_info = []
+    # Check connected caretakers' FCM status safely without exposing personal names or token fragments (Finding 12)
+    connected_caretakers_count = 0
+    caretakers_with_tokens_count = 0
     patient_prof_res = await db.execute(
         select(PatientProfile).where(PatientProfile.user_id == target_user_id)
     )
@@ -354,10 +316,9 @@ async def fcm_diagnostic(
             )
         )
         for ct in ct_query.scalars().all():
-            caretaker_info.append({
-                "name": ct.full_name,
-                "has_fcm_token": bool(ct.fcm_token),
-            })
+            connected_caretakers_count += 1
+            if ct.fcm_token:
+                caretakers_with_tokens_count += 1
 
     is_provider_firebase = settings.SOS_PROVIDER.lower() == "firebase"
     push_ready = bool(fb_ready and is_provider_firebase)
@@ -365,11 +326,9 @@ async def fcm_diagnostic(
     return {
         "firebase_admin_initialized": fb_ready,
         "push_ready": push_ready,
-        "patient": {
-            "name": patient_user.full_name if patient_user else None,
-            "has_fcm_token": bool(patient_user.fcm_token) if patient_user else False,
-        },
-        "connected_caretakers": caretaker_info,
+        "patient_token_registered": bool(patient_user.fcm_token) if patient_user else False,
+        "connected_caretaker_count": connected_caretakers_count,
+        "caretakers_with_tokens": caretakers_with_tokens_count,
         "diagnosis": (
             "OK — Push notifications are operational and ready."
             if push_ready

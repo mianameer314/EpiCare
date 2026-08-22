@@ -95,7 +95,7 @@ async def test_rag_ingestion_storage_and_deduplication():
         doc = await ingest_document(session, fake_file)
         assert doc.id is not None
         assert doc.checksum == expected_hash
-        assert doc.status in ("PENDING_AI_TEAM", "INGESTED")
+        assert doc.status in ("UPLOADED", "PENDING_AI_TEAM", "INGESTED")
         assert doc.source_path.startswith("rag/documents/")
 
         # Ingest identical file -> must return existing record (deduplication)

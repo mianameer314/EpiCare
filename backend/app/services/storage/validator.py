@@ -99,10 +99,30 @@ def sanitize_and_reencode_image(data: bytes, output_format: str = "JPEG", max_di
         )
 
 
+async def read_limited_upload(file: UploadFile, max_bytes: int) -> bytes:
+    """Stream upload in 1MB chunks and abort immediately if size exceeds limit (Finding 10)."""
+    chunks: list[bytes] = []
+    total = 0
+    chunk_size = 1024 * 1024  # 1 MB chunk
+    while True:
+        chunk = await file.read(chunk_size)
+        if not chunk:
+            break
+        total += len(chunk)
+        if total > max_bytes:
+            limit_mb = max_bytes // (1024 * 1024)
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"File size exceeds the {limit_mb} MB limit.",
+            )
+        chunks.append(chunk)
+    return b"".join(chunks)
+
+
 async def validate_doctor_upload(file: UploadFile, *, photo: bool = False) -> tuple[bytes, str, str]:
     """
-    Validate a PMDC certificate or profile photo with extension, size, magic-byte inspection,
-    and image re-encoding (Finding 11).
+    Validate a PMDC certificate or profile photo with extension, streaming size limits,
+    magic-byte inspection, and image re-encoding (Findings 10, 11).
     """
     filename = sanitize_filename(file.filename or "")
     if not filename:
@@ -115,19 +135,11 @@ async def validate_doctor_upload(file: UploadFile, *, photo: bool = False) -> tu
             detail="Only PDF, JPG, JPEG, PNG, and WEBP files are allowed.",
         )
 
-    # Read data
-    data = await file.read()
+    # Enforce streaming size limits (Finding 10)
+    max_size = MAX_DOCTOR_PHOTO_SIZE_BYTES if photo else MAX_DOCTOR_DOCUMENT_SIZE_BYTES
+    data = await read_limited_upload(file, max_size)
     if not data:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Empty file rejected")
-
-    # Enforce size limits
-    max_size = MAX_DOCTOR_PHOTO_SIZE_BYTES if photo else MAX_DOCTOR_DOCUMENT_SIZE_BYTES
-    if len(data) > max_size:
-        limit_mb = max_size // (1024 * 1024)
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"File size exceeds the {limit_mb} MB limit.",
-        )
 
     # Magic-byte inspection
     kind = filetype.guess(data)
@@ -146,6 +158,7 @@ async def validate_doctor_upload(file: UploadFile, *, photo: bool = False) -> tu
         # Re-encode image to eliminate polyglots/malicious metadata
         img_fmt = "PNG" if ext == ".png" else ("WEBP" if ext == ".webp" else "JPEG")
         clean_bytes, clean_mime = sanitize_and_reencode_image(data, output_format=img_fmt)
+        logger.info("doctor_photo_validated_and_reencoded", extra={"file_name": filename, "size_bytes": len(clean_bytes)})
         return clean_bytes, filename, clean_mime
     else:
         if not detected_mime or detected_mime not in ALLOWED_DOC_MIMES:
@@ -160,12 +173,13 @@ async def validate_doctor_upload(file: UploadFile, *, photo: bool = False) -> tu
             clean_bytes, clean_mime = sanitize_and_reencode_image(data, output_format=img_fmt)
             return clean_bytes, filename, clean_mime
             
+        logger.info("doctor_document_validated", extra={"file_name": filename, "size_bytes": len(data)})
         return data, filename, detected_mime
 
 
 async def validate_eeg_upload(file: UploadFile) -> bytes:
     """
-    Validate an EEG upload with extension, size, and header signature checks (Finding 11).
+    Validate an EEG upload (.edf/.csv) with streaming size limit and EDF header inspection (Findings 10, 11).
     """
     filename = sanitize_filename(file.filename or "")
     if not filename:
@@ -183,15 +197,10 @@ async def validate_eeg_upload(file: UploadFile) -> bytes:
             detail=f"File type '{ext}' is not allowed. Allowed: {sorted(ALLOWED_EEG_EXTENSIONS)}",
         )
 
-    data = await file.read()
+    # Enforce streaming size limit (Finding 10)
+    data = await read_limited_upload(file, MAX_EEG_SIZE_BYTES)
     if not data:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Empty file rejected")
-
-    if len(data) > MAX_EEG_SIZE_BYTES:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"File size exceeds the {settings.EEG_MAX_SIZE_MB} MB limit.",
-        )
 
     # Magic byte check for EDF files
     if ext == ".edf":
@@ -204,7 +213,3 @@ async def validate_eeg_upload(file: UploadFile) -> bytes:
 
     logger.info("eeg_upload_validated", extra={"file_name": filename, "size_bytes": len(data)})
     return data
-
-
-
-

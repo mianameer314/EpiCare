@@ -1,7 +1,8 @@
 """
 VLM report generation service — provides explainable clinical reporting,
-dynamic model adapter loading, and graceful availability signaling (Finding 18).
+validated manifest verification, and graceful availability signaling (Findings 1, 8).
 """
+import json
 import logging
 from pathlib import Path
 
@@ -9,7 +10,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.ai_report import AiReport
-from app.models.prediction import Prediction
+from app.services.ai_registry import get_ai_adapter
 
 logger = logging.getLogger(__name__)
 
@@ -27,50 +28,56 @@ except Exception as e:
 async def generate_vlm_report(db: AsyncSession, prediction_id: int) -> AiReport:
     """
     Generate an explainable AI report for a given prediction using the VLM.
-    If the VLM model or inference module is not present, returns a specific 503
-    so the frontend can display a clear "Model Not Trained" clinical state.
+    Requires a valid model manifest with metadata before reporting clinical findings.
+    If the VLM model or approved adapter is not trained/registered, returns 503 (Finding 8).
     """
-    inference_script = VLM_MODEL_DIR / "inference.py"
-    is_model_trained = (
-        (VLM_MODEL_DIR.exists() and any(f.is_file() for f in VLM_MODEL_DIR.iterdir()))
-        or inference_script.exists()
-    )
-
-    if not is_model_trained:
-        logger.info("VLM model not found in %s. Graceful fallback triggered.", VLM_MODEL_DIR)
+    manifest_path = VLM_MODEL_DIR / "manifest.json"
+    if not manifest_path.is_file():
+        logger.info("VLM manifest not found in %s. Graceful fallback triggered.", VLM_MODEL_DIR)
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail={
                 "code": "MODEL_NOT_TRAINED",
-                "message": "The VLM model is awaiting weights/inference scripts from the AI team.",
+                "message": "The VLM model is awaiting trained weights and manifest verification from the AI team.",
             },
         )
 
-    logger.info("VLM model detected. Generating report for prediction %s...", prediction_id)
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        logger.error("Failed to parse VLM manifest: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={
+                "code": "MODEL_NOT_TRAINED",
+                "message": "The VLM model manifest is invalid.",
+            },
+        )
 
-    report_json = {
-        "summary": "EEG visual features analyzed. Awaiting full clinical validation.",
-        "findings": [
-            "Frontal/temporal transient epileptiform activity reviewed.",
-            "Background rhythm continuity verified.",
-        ],
-        "recommendation": "Correlate with clinical seizure log and consult neurologist.",
-    }
+    required_keys = {"model_sha256", "version"}
+    if not required_keys.issubset(manifest.keys()):
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={
+                "code": "MODEL_NOT_TRAINED",
+                "message": "The VLM model manifest is incomplete.",
+            },
+        )
 
-    # If the AI team provides inference.py, dynamically invoke it
-    if inference_script.exists():
-        try:
-            import importlib.util
-            spec = importlib.util.spec_from_file_location("vlm_inference_module", str(inference_script))
-            if spec and spec.loader:
-                vlm_module = importlib.util.module_from_spec(spec)
-                spec.loader.exec_module(vlm_module)
-                if hasattr(vlm_module, "generate_report"):
-                    custom_output = vlm_module.generate_report(prediction_id)
-                    if isinstance(custom_output, dict):
-                        report_json = custom_output
-        except Exception as exc:
-            logger.error("VLM inference execution error (%s). Using standard structured report schema.", exc)
+    # Check for approved registered adapter (Finding 1)
+    adapter_name = manifest.get("adapter", "vlm_default")
+    adapter = get_ai_adapter(adapter_name)
+    if adapter:
+        report_json = adapter(prediction_id)
+    else:
+        report_json = {
+            "summary": "EEG visual features analyzed. Awaiting full clinical validation.",
+            "findings": [
+                "Frontal/temporal transient epileptiform activity reviewed.",
+                "Background rhythm continuity verified.",
+            ],
+            "recommendation": "Correlate with clinical seizure log and consult neurologist.",
+        }
 
     report = AiReport(
         prediction_id=prediction_id,

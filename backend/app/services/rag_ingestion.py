@@ -1,9 +1,10 @@
 """
 RAG document ingestion service — securely saves uploaded reference PDFs,
-computes SHA-256 digests, and dynamically invokes or prepares scripts for the AI team (Finding 9).
+computes SHA-256 digests, streams bounded uploads, and manages ingestion states (Findings 9, 10).
 """
 import hashlib
 import logging
+from enum import StrEnum
 from pathlib import Path
 
 from fastapi import HTTPException, UploadFile, status
@@ -12,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.rag import RagDocument
 from app.services.storage.service import get_storage_service
-from app.services.storage.validator import sanitize_filename
+from app.services.storage.validator import read_limited_upload, sanitize_filename
 
 logger = logging.getLogger(__name__)
 
@@ -21,21 +22,26 @@ PROJECT_ROOT = Path(__file__).resolve().parents[3]
 RAG_DIR = PROJECT_ROOT / "rag"
 RAG_SCRIPT_DIR = RAG_DIR / "scripts"
 
-# Auto-ensure directory exists so future AI team code drops work immediately
-try:
-    RAG_SCRIPT_DIR.mkdir(parents=True, exist_ok=True)
-except Exception as e:
-    logger.debug(f"Note: RAG script directory creation: {e}")
+# Maximum size for uploaded RAG reference documents (10 MB)
+MAX_RAG_DOCUMENT_BYTES = 10 * 1024 * 1024
+
+
+class RagDocumentStatus(StrEnum):
+    UPLOADED = "UPLOADED"
+    PROCESSING = "PROCESSING"
+    READY = "READY"
+    FAILED = "FAILED"
+    PENDING_AI_TEAM = "PENDING_AI_TEAM"
 
 
 async def ingest_document(db: AsyncSession, file: UploadFile) -> RagDocument:
     """
     Ingest a PDF document for RAG processing.
-    Saves document bytes via the StorageService, calculates real SHA-256 checksum,
-    deduplicates identical files, and sets 'PENDING_AI_TEAM' or 'INGESTED' dynamically.
+    Streams upload with strict size limit, computes SHA-256 digest,
+    deduplicates identical files, and sets the document state cleanly (Findings 9, 10).
     """
-    # Read upload bytes safely
-    data = await file.read()
+    # Stream upload bytes with strict size limit (Finding 10)
+    data = await read_limited_upload(file, MAX_RAG_DOCUMENT_BYTES)
     if not data:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -57,17 +63,8 @@ async def ingest_document(db: AsyncSession, file: UploadFile) -> RagDocument:
     raw_filename = sanitize_filename(file.filename or "rag_document.pdf")
     storage_key = storage.save_rag_document(data, raw_filename)
 
-    # 4. Check if external AI RAG scripts/pipeline exist
-    is_rag_ready = RAG_SCRIPT_DIR.exists() and any(
-        f.suffix in (".py", ".sh") for f in RAG_SCRIPT_DIR.iterdir() if f.is_file()
-    )
-
-    doc_status = "PENDING_AI_TEAM"
-    if is_rag_ready:
-        doc_status = "INGESTED"
-        logger.info("RAG scripts detected in %s. Document marked as INGESTED.", RAG_SCRIPT_DIR)
-    else:
-        logger.info("RAG scripts pending in %s. Document %s stored as PENDING_AI_TEAM.", RAG_SCRIPT_DIR, raw_filename)
+    # 4. Status reflects upload state without executing unreviewed arbitrary scripts (Findings 1, 9)
+    doc_status = RagDocumentStatus.UPLOADED.value
 
     doc = RagDocument(
         title=file.filename or "Unknown Document",
