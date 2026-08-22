@@ -42,7 +42,10 @@ export function ConfirmDialog({
 }: ConfirmDialogProps) {
   const resolvedDesc = description || message || '';
   const resolvedVariant = variant || confirmVariant || 'warning';
-  const handleClose = onClose || onCancel || (() => {});
+  const handleClose = React.useCallback(() => {
+    if (onClose) onClose();
+    else if (onCancel) onCancel();
+  }, [onClose, onCancel]);
 
   // Close on Escape key
   React.useEffect(() => {

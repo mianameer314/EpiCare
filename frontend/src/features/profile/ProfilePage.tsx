@@ -180,7 +180,14 @@ function NeumorphicRangeSelect({ id, label, startValue, endValue, options, start
         <button
           type="button"
           className="profile-neumorphic-menu-action"
-          onClick={() => { part === 'start' ? onChange(undefined, endValue) : onChange(startValue, undefined); setOpenPart(null); }}
+          onClick={() => {
+            if (part === 'start') {
+              onChange(undefined, endValue);
+            } else {
+              onChange(startValue, undefined);
+            }
+            setOpenPart(null);
+          }}
         >
           Clear selection
         </button>
@@ -191,7 +198,14 @@ function NeumorphicRangeSelect({ id, label, startValue, endValue, options, start
               key={option.value}
               type="button"
               className={`profile-neumorphic-option ${selected ? 'selected' : ''}`}
-              onClick={() => { part === 'start' ? onChange(option.value, endValue) : onChange(startValue, option.value); setOpenPart(null); }}
+              onClick={() => {
+                if (part === 'start') {
+                  onChange(option.value, endValue);
+                } else {
+                  onChange(startValue, option.value);
+                }
+                setOpenPart(null);
+              }}
               role="option"
               aria-selected={selected}
             >
@@ -817,7 +831,7 @@ export function ProfilePage() {
         if (/^\d+$/.test(trimmed)) {
           return 'City name must contain alphabetic letters (e.g. Islamabad, Lahore)';
         }
-        if (!/^[a-zA-Z\s\.,'-]+$/.test(trimmed)) {
+        if (!/^[a-zA-Z\s.,'-]+$/.test(trimmed)) {
           return 'City name should only contain letters and standard punctuation';
         }
         if (trimmed.length > 100) return 'City name must be 100 characters or fewer';

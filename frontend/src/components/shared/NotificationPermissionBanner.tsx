@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Bell, BellOff, X } from 'lucide-react';
-import { requestPushNotificationPermission } from '../../services/firebase';
+import {
+  getFcmToken,
+  registerFcmDeviceToken,
+  requestPushNotificationPermission,
+} from '../../services/firebase';
 import './NotificationPermissionBanner.css';
 
 /**
@@ -65,7 +69,6 @@ export function NotificationPermissionBanner() {
       } else {
         // Token failed — but permission might be granted already.
         // Try to get token directly and register it.
-        const { getFcmToken, registerFcmDeviceToken } = await import('../../services/firebase');
         const directToken = await getFcmToken();
         if (directToken && localStorage.getItem('access_token')) {
           await registerFcmDeviceToken(directToken);
