@@ -84,6 +84,37 @@ async def db(_prepare_database) -> AsyncGenerator:
         await session.close()
 
 
+@pytest.fixture
+def db_session(db):
+    """Alias for db fixture."""
+    return db
+
+
+@pytest.fixture
+async def test_user(db):
+    """Fixture providing an active, verified test user."""
+    import uuid
+    from app.core.security import get_password_hash
+    from app.models.enums import UserRole
+    from app.models.user import User
+
+    unique_email = f"test_{uuid.uuid4().hex[:8]}@epicare.test"
+    unique_phone = f"+923{str(uuid.uuid4().int)[:9]}"
+    user = User(
+        email=unique_email,
+        password_hash=get_password_hash("Password123!"),
+        full_name="Security Test User",
+        phone_number=unique_phone,
+        role=UserRole.PATIENT,
+        is_active=True,
+        is_email_verified=True,
+    )
+    db.add(user)
+    await db.commit()
+    await db.refresh(user)
+    return user
+
+
 # ---------- Dependency overrides ----------
 @pytest.fixture(autouse=True)
 def mock_email_service(monkeypatch):

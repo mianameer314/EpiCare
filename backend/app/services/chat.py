@@ -46,10 +46,18 @@ def generate_clinical_knowledge_response(message: str) -> str:
         )
 
     # 2. Medication Dosage Change Refusal Guard (Clinical Safety Boundary)
-    if any(k in lower for k in [
-        "how much should i take", "change my dose", "increase my dose", "decrease my dose",
-        "prescribe me", "what dose of", "how many mg should i take"
-    ]):
+    if (
+        any(k in lower for k in [
+            "how much", "what dose", "what dosage", "how many mg", "change my dose",
+            "increase my dose", "decrease my dose", "prescribe me", "what dose of",
+            "how many pills", "how many tablets", "should i take", "can i take"
+        ])
+        and any(k in lower for k in [
+            "take", "dose", "dosage", "mg", "pill", "tablet", "keppra", "lamictal",
+            "valproate", "tegretol", "levetiracetam", "lamotrigine", "carbamazepine",
+            "medication", "medicine", "prescribe", "increase", "decrease"
+        ])
+    ):
         return (
             "### ⚠️ Medication Prescription & Dosage Safety Notice\n\n"
             "**EpiCare AI cannot calculate, change, or prescribe individualized medication dosages.**\n\n"

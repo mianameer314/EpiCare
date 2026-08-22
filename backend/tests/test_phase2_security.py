@@ -8,15 +8,22 @@ Reverse Proxy Trust & Client IP Spoofing Defense (Finding 7),
 and Hardened Content-Security-Policy Middleware (Finding 16).
 """
 import io
+import uuid
+from datetime import datetime, timezone
+
 import pytest
-from httpx import AsyncClient
+from fastapi import HTTPException, UploadFile
+from fastapi.testclient import TestClient
 from PIL import Image
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
+from app.core.security import hash_password
+from app.db.session import TestSessionLocal
 from app.models.doctor_profile import DoctorProfile
 from app.models.enums import UserRole
+from app.models.patient_profile import PatientProfile
+from app.models.pending_registration import PendingRegistration
 from app.models.user import User
 from app.schemas.profiles import DoctorProfileOut
 from app.services.storage.validator import (
@@ -24,7 +31,6 @@ from app.services.storage.validator import (
     validate_doctor_upload,
     validate_eeg_upload,
 )
-from fastapi import HTTPException, UploadFile
 
 
 def create_dummy_image(format_name: str = "PNG", size: tuple[int, int] = (100, 100)) -> bytes:
@@ -33,6 +39,57 @@ def create_dummy_image(format_name: str = "PNG", size: tuple[int, int] = (100, 1
     img = Image.new("RGB", size, color="blue")
     img.save(buf, format=format_name)
     return buf.getvalue()
+
+
+async def _create_user(client: TestClient, role: str = "PATIENT", prefix: str = "p2") -> tuple[dict, int, str]:
+    """Helper to register, verify, and return (auth_headers, user_id, email)."""
+    email = f"{role.lower()}_{prefix}_{uuid.uuid4().hex[:6]}@example.com"
+    phone = f"+923{str(uuid.uuid4().int)[:9]}"
+
+    reg_res = client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": email,
+            "password": "Password123!",
+            "full_name": f"Test {role.capitalize()}",
+            "phone_number": phone,
+            "role": role,
+            "pmdc_number": f"PMDC-{prefix}" if role == "DOCTOR" else None,
+        },
+    )
+    assert reg_res.status_code == 201, reg_res.text
+
+    async with TestSessionLocal() as session:
+        res = await session.execute(select(PendingRegistration).where(PendingRegistration.email == email))
+        pending = res.scalar_one_or_none()
+        if pending:
+            user = User(
+                email=pending.email,
+                password_hash=pending.password_hash,
+                phone_number=pending.phone_number,
+                full_name=pending.full_name,
+                role=UserRole(role),
+                is_active=True,
+                is_email_verified=True,
+                is_phone_verified=False,
+                otp_attempts=0,
+            )
+            session.add(user)
+            await session.flush()
+
+            if role == "PATIENT":
+                session.add(PatientProfile(user_id=user.id, date_of_birth=datetime.now(timezone.utc).date()))
+            elif role == "DOCTOR":
+                session.add(DoctorProfile(user_id=user.id, pmdc_number=pending.pmdc_number, specialty="Neurology", is_pmdc_verified=True))
+
+            await session.delete(pending)
+            await session.commit()
+            user_id = user.id
+
+    login_res = client.post("/api/v1/auth/login", json={"email": email, "password": "Password123!"})
+    assert login_res.status_code == 200, login_res.text
+    token = login_res.json()["access_token"]
+    return {"Authorization": f"Bearer {token}"}, user_id, email
 
 
 @pytest.mark.asyncio
@@ -120,46 +177,28 @@ def test_doctor_profile_out_opaque_asset_availability():
 
 
 @pytest.mark.asyncio
-async def test_rfc_safe_content_disposition_on_certificate_download(
-    client: AsyncClient, test_user: User, db_session: AsyncSession
-):
+async def test_rfc_safe_content_disposition_on_certificate_download(client: TestClient):
     """Finding 15: Certificate download must return RFC 6266/5987 encoded Content-Disposition."""
-    test_user.role = UserRole.DOCTOR
-    test_user.is_active = True
-    test_user.is_email_verified = True
-    await db_session.commit()
+    doc_headers, doc_user_id, doc_email = await _create_user(client, role="DOCTOR", prefix="certrfcdoc")
 
-    # Create doctor profile with certificate in DB
+    # Set up PMDC certificate in DB
     from app.services.storage.service import get_storage_service
     storage = get_storage_service()
     cert_bytes = b"%PDF-1.4 Mock PDF Certificate Content"
-    cert_key = storage.save_doctor_document(cert_bytes, "Dr John's Certificate (2026).pdf")
+    cert_key = storage.save_doctor_file(cert_bytes, "Dr John's Certificate (2026).pdf", photo=False)
 
-    doc_profile = DoctorProfile(
-        user_id=test_user.id,
-        pmdc_number="88888-D",
-        specialty="Epileptology",
-        is_pmdc_verified=True,
-        pmdc_certificate_path=cert_key,
-        pmdc_certificate_name="Dr John's Certificate (2026).pdf",
-        pmdc_certificate_mime_type="application/pdf",
-        pmdc_certificate_size=len(cert_bytes),
-    )
-    db_session.add(doc_profile)
-    await db_session.commit()
-
-    # Login as doctor
-    login_resp = await client.post(
-        "/api/v1/auth/login",
-        json={"email": test_user.email, "password": "Password123!"},
-    )
-    assert login_resp.status_code == 200
-    token = login_resp.json()["access_token"]
+    async with TestSessionLocal() as session:
+        doc_prof = (await session.execute(select(DoctorProfile).where(DoctorProfile.user_id == doc_user_id))).scalar_one()
+        doc_prof.pmdc_certificate_path = cert_key
+        doc_prof.pmdc_certificate_name = "Dr John's Certificate (2026).pdf"
+        doc_prof.pmdc_certificate_mime_type = "application/pdf"
+        doc_prof.pmdc_certificate_size = len(cert_bytes)
+        await session.commit()
 
     # Download certificate
-    resp = await client.get(
+    resp = client.get(
         "/api/v1/users/me/doctor-profile/pmdc-certificate",
-        headers={"Authorization": f"Bearer {token}"},
+        headers=doc_headers,
     )
     assert resp.status_code == 200
     cd = resp.headers.get("content-disposition", "")
@@ -170,50 +209,39 @@ async def test_rfc_safe_content_disposition_on_certificate_download(
 
 
 @pytest.mark.asyncio
-async def test_fcm_token_validation_bounds(
-    client: AsyncClient, test_user: User, db_session: AsyncSession
-):
+async def test_fcm_token_validation_bounds(client: TestClient):
     """Finding 21: FCM token must enforce min/max bounds and strict pattern."""
-    test_user.is_active = True
-    test_user.is_email_verified = True
-    await db_session.commit()
-
-    login_resp = await client.post(
-        "/api/v1/auth/login",
-        json={"email": test_user.email, "password": "Password123!"},
-    )
-    token = login_resp.json()["access_token"]
+    headers, _, _ = await _create_user(client, role="PATIENT", prefix="fcmpt")
 
     # 1. Invalid characters (<script> / SQL / space)
-    bad_resp = await client.put(
+    bad_resp = client.put(
         "/api/v1/users/me/fcm-token",
         json={"fcm_token": "token_with_<script>_injection"},
-        headers={"Authorization": f"Bearer {token}"},
+        headers=headers,
     )
     assert bad_resp.status_code == 422
 
     # 2. Too short (< 20 chars)
-    short_resp = await client.put(
+    short_resp = client.put(
         "/api/v1/users/me/fcm-token",
         json={"fcm_token": "short_token_123"},
-        headers={"Authorization": f"Bearer {token}"},
+        headers=headers,
     )
     assert short_resp.status_code == 422
 
     # 3. Valid FCM token
     valid_fcm = "eK1q_Z98v7:APA91bF" + "a" * 30
-    good_resp = await client.put(
+    good_resp = client.put(
         "/api/v1/users/me/fcm-token",
         json={"fcm_token": valid_fcm},
-        headers={"Authorization": f"Bearer {token}"},
+        headers=headers,
     )
     assert good_resp.status_code == 200
 
 
-@pytest.mark.asyncio
-async def test_security_headers_and_hardened_csp(client: AsyncClient):
+def test_security_headers_and_hardened_csp(client: TestClient):
     """Finding 16: Content-Security-Policy must include object-src 'none' and base-uri 'self'."""
-    resp = await client.get("/livez")
+    resp = client.get("/livez")
     assert resp.status_code == 200
     csp = resp.headers.get("content-security-policy", "")
     assert "object-src 'none'" in csp

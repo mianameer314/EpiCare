@@ -205,7 +205,10 @@ def make_session_title(content: str, max_chars: int = 45) -> str:
         return "Educational Inquiry"
     if len(clean) <= max_chars:
         return clean
-    return clean[:max_chars].rstrip() + "..."
+    truncated = clean[:max_chars]
+    if " " in truncated:
+        truncated = truncated.rsplit(" ", 1)[0]
+    return truncated.rstrip() + "..."
 
 
 @router.post(
