@@ -49,7 +49,7 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
                 "path": request.url.path,
                 "status_code": response.status_code,
                 "duration_ms": duration_ms,
-                "user_id": user_id,
+                "user_id": getattr(request.state, "user_id", None),
             },
         )
         return response
